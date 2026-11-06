@@ -25,8 +25,8 @@ test('mobile logging persists and the cached production PWA reloads offline',asy
 
   await page.goto('/today')
   await expect(page.getByRole('heading',{name:'Recorded nutrition and fluids'})).toBeVisible()
-  await expect(page.getByText('345 kcal',{exact:true})).toBeVisible()
-  await expect(page.getByText('250 ml',{exact:true})).toBeVisible()
+  await expect(page.getByText('345 kcal',{exact:true}).first()).toBeVisible()
+  await expect(page.getByText('250 ml',{exact:true}).first()).toBeVisible()
 
   // Register and activate service worker before cutting the network.
   await page.evaluate(async()=>{await navigator.serviceWorker.ready})
@@ -35,8 +35,8 @@ test('mobile logging persists and the cached production PWA reloads offline',asy
   await context.setOffline(true)
   await page.reload({waitUntil:'domcontentloaded'})
   await expect(page.getByRole('heading',{name:'Your day, your pace.'})).toBeVisible()
-  await expect(page.getByText('345 kcal',{exact:true})).toBeVisible()
-  await expect(page.getByText('250 ml',{exact:true})).toBeVisible()
+  await expect(page.getByText('345 kcal',{exact:true}).first()).toBeVisible()
+  await expect(page.getByText('250 ml',{exact:true}).first()).toBeVisible()
 })
 
 test('backup export, confirmed reset and replace restore preserve local entries',async({page})=>{
