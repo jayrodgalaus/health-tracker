@@ -18,6 +18,7 @@ export function DataPage() {
   const navigate = useNavigate()
   const counts = useLiveQuery(() => countLocalRecords(), [], undefined)
   const [preview,setPreview]=useState<HealthBackup|null>(null)
+  const [exportPreview,setExportPreview]=useState<HealthBackup|null>(null)
   const [filename,setFilename]=useState('')
   const [confirmReplace,setConfirmReplace]=useState('')
   const [confirmReset,setConfirmReset]=useState('')
@@ -26,10 +27,24 @@ export function DataPage() {
   const [error,setError]=useState('')
   const [notice,setNotice]=useState('')
 
-  async function exportFile() {
-    setBusy(true);setError('');setNotice('')
+  async function prepareExport() {
+    setBusy(true);setError('');setNotice('');setExportPreview(null)
     try {
       const backup=await readLocalBackup()
+      const json=JSON.stringify(backup,null,2)
+      if(new TextEncoder().encode(json).length>BACKUP_MAX_BYTES)throw new Error('Backup exceeds the supported 25 MiB size; no file was created.')
+      setExportPreview(backup)
+      setNotice('Export preview ready. Review its record counts and timestamp, then download the file.')
+    } catch(cause) {
+      setError(cause instanceof Error?cause.message:'Could not prepare your local export.')
+    } finally {setBusy(false)}
+  }
+
+  async function exportFile() {
+    if(!exportPreview)return
+    setBusy(true);setError('');setNotice('')
+    try {
+      const backup=exportPreview
       const json=JSON.stringify(backup,null,2)
       if(new TextEncoder().encode(json).length>BACKUP_MAX_BYTES)throw new Error('Backup exceeds the supported 25 MiB size; no file was created.')
       const blob=new Blob([json],{type:'application/json'})
@@ -71,7 +86,7 @@ export function DataPage() {
     setBusy(true);setError('');setNotice('')
     try {
       const counts=await replaceLocalData(preview)
-      setPreview(null);setConfirmReplace('')
+      setPreview(null);setConfirmReplace('');setExportPreview(null)
       const total=Object.values(counts).reduce((sum,value)=>sum+value,0)
       setNotice('Successfully restored '+total+' records on this device. No records were uploaded.')
       navigate('/today')
@@ -85,7 +100,7 @@ export function DataPage() {
     setBusy(true);setError('');setNotice('')
     try {
       await deleteAllLocalRecords()
-      setResetExpanded(false);setConfirmReset('')
+      setResetExpanded(false);setConfirmReset('');setExportPreview(null)
       setNotice('All browser-local Health Tracker records were deleted. Start again with a new profile.')
       navigate('/onboarding')
     } catch(cause) {
@@ -125,8 +140,23 @@ export function DataPage() {
         profile details, day reviews and preferences. The file contains sensitive lifestyle
         information: keep it private. No password or encryption is added automatically.
       </p>
-      <button type="button" disabled={busy} className={action+' bg-evergreen-600 text-white'} onClick={()=>{void exportFile()}}>Export JSON backup</button>
-      <p className="text-xs text-slate-600">The browser will download a file with an export timestamp and record counts. Review the filename and storage location yourself.</p>
+      <button type="button" disabled={busy} className={action+' bg-evergreen-600 text-white'} onClick={()=>{void prepareExport()}}>
+        {exportPreview?'Refresh export preview':'Prepare export preview'}
+      </button>
+      {exportPreview&&<div className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+        <h3 className="font-semibold">Ready to export · {readable(exportPreview.exportedAt)}</h3>
+        <p className="text-xs text-slate-700">This downloadable snapshot is fixed at the preparation time above. If you log more data, refresh the preview before exporting.</p>
+        <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+          {BACKUP_TABLES.map(key=><div key={key}>
+            <dt className="text-xs text-slate-600">{titles[key]}</dt>
+            <dd className="font-semibold">{backupCounts(exportPreview)[key]}</dd>
+          </div>)}
+        </dl>
+        <button type="button" disabled={busy} className={action+' bg-evergreen-600 text-white'} onClick={()=>{void exportFile()}}>
+          Download this validated JSON backup
+        </button>
+      </div>}
+      <p className="text-xs text-slate-600">The browser will download a file containing the exact previewed records. Confirm its filename and storage location yourself.</p>
     </section>
 
     <section aria-labelledby="restore-heading" className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">

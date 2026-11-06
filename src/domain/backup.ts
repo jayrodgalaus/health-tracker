@@ -2,7 +2,7 @@ import type {
   AppSettings, DayReview, ExerciseEntry, FoodEntry, GoalPeriod, Profile, SavedFood, WeightEntry
 } from './models'
 import { assertLocalDay } from './profile'
-import { portionRatio, validatePortion } from './nutrition'
+import { portionRatio, scaleNutrition, validatePortion } from './nutrition'
 
 export const BACKUP_FORMAT_VERSION = 1
 export const BACKUP_MAX_BYTES = 25 * 1024 * 1024
@@ -156,9 +156,29 @@ function validateRecord(table:BackupTableName,raw:unknown,field:string){
     basis(r.labelBasis,field+'.labelBasis')
     portionRatio(r.labelBasis as FoodEntry['labelBasis'],r.quantity as number,r.unit as FoodEntry['unit'])
     nutrition(r.nutrientsSnapshot,field+'.nutrientsSnapshot')
-    if(r.referenceNutrientsSnapshot!==undefined)nutrition(r.referenceNutrientsSnapshot,field+'.referenceNutrientsSnapshot')
+    if(r.referenceNutrientsSnapshot!==undefined) {
+      nutrition(r.referenceNutrientsSnapshot,field+'.referenceNutrientsSnapshot')
+      // Each new-format log includes the original label. Its consumed snapshot
+      // must match that immutable reference and quantity, not merely be nonnegative.
+      const expected=scaleNutrition(
+        r.referenceNutrientsSnapshot as FoodEntry['nutrientsSnapshot'],
+        r.labelBasis as FoodEntry['labelBasis'],
+        r.quantity as number, r.unit as FoodEntry['unit']
+      )
+      const consumed=r.nutrientsSnapshot as FoodEntry['nutrientsSnapshot']
+      for(const nutrient of nutrients){
+        const stored=consumed[nutrient as keyof typeof consumed] ?? null
+        const calculated=expected[nutrient as keyof typeof expected] ?? null
+        if((stored===null)!==(calculated===null) ||
+          (stored!==null&&calculated!==null&&
+            Math.abs(stored-calculated)>0.000001*Math.max(1,Math.abs(calculated)))) {
+          invalid(field+'.nutrientsSnapshot.'+nutrient,'does not match original label snapshot and portion')
+        }
+      }
+    }
     text(r.servingDescription,field+'.servingDescription',150,true)
     numeric(r.fluidMl,field+'.fluidMl',0,30000,true)
+    if(r.kind==='food'&&r.fluidMl!=null)invalid(field,'solid food must not contain beverage fluid volume')
     if(r.beverageType==='water'&&(r.kind!=='beverage'||(r.nutrientsSnapshot as FoodEntry['nutrientsSnapshot']).energyKcal!==0))
       invalid(field,'water must have known zero kcal')
   } else if(table==='exerciseEntries'){
@@ -174,6 +194,9 @@ function validateRecord(table:BackupTableName,raw:unknown,field:string){
     numeric(r.met,field+'.met',1,25,true)
     if(r.estimationMethod==='manualActive'&&r.estimatedEnergyKcal==null)invalid(field,'manual active kcal missing')
     if(r.estimationMethod==='metNet'&&r.met==null)invalid(field,'MET missing')
+    if(r.estimationMethod==='manualActive'&&r.met!=null)invalid(field,'manual active kcal cannot also contain a MET')
+    if(r.estimationMethod==='metNet'&&r.estimatedEnergyKcal!=null)invalid(field,'MET method cannot also store manual kcal')
+    if(r.estimationMethod==='unknown'&&(r.met!=null||r.estimatedEnergyKcal!=null))invalid(field,'unknown energy method cannot contain an energy figure')
     if(r.isStrengthTraining!==undefined&&typeof r.isStrengthTraining!=='boolean')invalid(field,'invalid strength flag')
     if(r.timeOfDay!=null&&!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(r.timeOfDay as string))invalid(field,'invalid time')
     text(r.notes,field+'.notes',500,true)

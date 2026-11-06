@@ -122,6 +122,12 @@ describe('complete local JSON backup and restore',()=>{
     expect(validateBackup(changed).tables.foodEntries[0]?.nutrientsSnapshot.proteinG).toBeNull()
     changed.tables.foodEntries[0]!.nutrientsSnapshot.proteinG=-1
     expect(()=>validateBackup(changed)).toThrow(/invalid number/)
+    const inconsistent=structuredClone(original)
+    inconsistent.tables.foodEntries[0]!.nutrientsSnapshot.energyKcal=999
+    expect(()=>validateBackup(inconsistent)).toThrow(/does not match original label/)
+    const conflicting=structuredClone(original)
+    conflicting.tables.exerciseEntries[0]!.estimatedEnergyKcal=300
+    expect(()=>validateBackup(conflicting)).toThrow(/cannot also store manual/)
     const stamp=structuredClone(original)
     stamp.tables.weightEntries[0]!.recordedAt='2026-02-30T12:00:00Z'
     expect(()=>validateBackup(stamp)).toThrow(/impossible timestamp/)
