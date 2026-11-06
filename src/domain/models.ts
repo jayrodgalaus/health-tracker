@@ -35,6 +35,8 @@ export interface Profile {
   heightCm: number | null
   sexForEquation?: 'male' | 'female' | null
   activityLevel: ActivityLevel | null
+  /** Explicit non-workout routine multiplier; never inferred from activityLevel. */
+  backgroundActivityMultiplier?: number | null
   goal: HealthGoal | null
   units: UnitPreferences
   createdAt: IsoTimestamp
@@ -157,6 +159,8 @@ export interface DayReview {
   dayKey: LocalDay
   isComplete: boolean
   markedAt: IsoTimestamp | null
+  note?: string | null
+  updatedAt?: IsoTimestamp
 }
 
 /** Browser-only preferences, never user health metrics or remote settings. */
