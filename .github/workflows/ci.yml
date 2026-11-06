@@ -2,7 +2,7 @@ name: Verify Health Tracker
 on:
   pull_request:
   push:
-    branches: [main, feat/phase-0-foundations, feat/phase-1-profile-weight, feat/phase-1-nutrition-logging, feat/phase-1-exercise-logging, feat/phase-2-evaluation-calendar, feat/phase-3-trends-backup]
+    branches: [main, feat/phase-0-foundations, feat/phase-1-profile-weight, feat/phase-1-nutrition-logging, feat/phase-1-exercise-logging, feat/phase-2-evaluation-calendar, feat/phase-3-trends-backup, feat/release-dependency-hardening]
 
 jobs:
   test:
@@ -12,8 +12,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      # Lockfile will replace npm install with npm ci once generated.
-      - run: npm install --no-audit --no-fund
+          cache: npm
+      - run: npm ci --no-audit --no-fund
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
@@ -26,7 +26,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install --no-audit --no-fund
+          cache: npm
+      - run: npm ci --no-audit --no-fund
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e

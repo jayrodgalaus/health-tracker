@@ -5,7 +5,7 @@ these checks pass on real devices, not only GitHub Actions.
 
 ## Automated coverage
 
-Run `npm run typecheck`, `npm test`, `npm run build` and
+Run `npm ci` using the committed `package-lock.json`, then run `npm run typecheck`, `npm test`, `npm run build` and
 `npm run test:e2e` (Playwright Chromium installed). The CI workflows
 build production assets and test at 320/390/430 px, including a
 service-worker offline restart and JSON backup/reset/restore workflow.
@@ -54,5 +54,4 @@ service-worker offline restart and JSON backup/reset/restore workflow.
 - Confirm no account, remote database, telemetry, AI or
   background data upload was introduced.
 
-**Release blocker:** A committed npm lockfile and real iOS/Android
-installed/offline manual checks are still outstanding.
+**Release blockers:** real iOS/Android installed/offline manual checks, screen-reader verification and final review remain outstanding. A committed npm v3 lockfile and frozen `npm ci` installs are implemented; automated Chromium QA does not substitute for a device.
