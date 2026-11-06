@@ -6,10 +6,10 @@ import type { WeightEntry } from '../domain/models'
 const created: HealthTrackerDatabase[] = []
 
 afterEach(async () => {
-  for (const database of created) {
-    if (database.isOpen()) database.close()
-    await database.delete()
-  }
+  // Close all connections before deleting a database, or deletion can be blocked.
+  const byName = new Map(created.map((database) => [database.name, database]))
+  for (const database of created) database.close()
+  for (const database of byName.values()) await database.delete()
   created.length = 0
 })
 
