@@ -98,9 +98,9 @@ test('malformed import never alters existing IndexedDB data',async({page})=>{
   await expect(page.getByText('500 ml',{exact:true})).toBeVisible()
 })
 
-test('320 px, 390 px and 430 px layouts do not force body horizontal scrolling',async({page})=>{
+test('320, 360, 390 and 430 px layouts do not force body horizontal scrolling',async({page})=>{
   await onboard(page)
-  for(const width of [320,390,430]){
+  for(const width of [320,360,390,430]){
     await page.setViewportSize({width,height:844})
     for(const url of ['/today','/calendar','/trends','/settings/data']){
       await page.goto(url)
@@ -140,4 +140,27 @@ test('cached tabs support offline navigation and newly saved records', async ({p
   await expect(page.getByText('150 ml', {exact: true}).first()).toBeVisible()
   await page.reload({waitUntil: 'domcontentloaded'})
   await expect(page.getByText('150 ml', {exact: true}).first()).toBeVisible()
+})
+
+test('keyboard users can skip to content and activate the primary tabs', async ({page}) => {
+  await onboard(page)
+  await page.goto('/today')
+  await page.keyboard.press('Tab')
+  const skip = page.getByRole('link', {name: 'Skip to content'})
+  await expect(skip).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(page.locator('#main-content')).toBeFocused()
+
+  const nav = page.getByRole('navigation', {name: 'Primary navigation'})
+  const calendar = nav.getByRole('link', {name: 'Calendar'})
+  await calendar.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('heading', {name: 'Your recorded days'})).toBeVisible()
+  await expect(calendar).toHaveAttribute('aria-current', 'page')
+
+  const trends = nav.getByRole('link', {name: 'Trends'})
+  await trends.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('heading', {name: 'Recorded history'})).toBeVisible()
+  await expect(trends).toHaveAttribute('aria-current', 'page')
 })
