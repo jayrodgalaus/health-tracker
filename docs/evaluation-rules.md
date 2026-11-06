@@ -62,6 +62,15 @@ Only for a confirmed adult date with required inputs:
 - Mifflin–St Jeor **estimated resting kcal/day** =
   `10 × recordedKg + 6.25 × heightCm − 5 × ageYears + constant`,
   where the explicitly selected equation constant is +5 or −161.
+- Settings provides an **optional movement dropdown** with explicit, descriptive
+  non-workout ranges: resting-only (×1.00), mostly seated (×1.01–1.10,
+  uses ×1.10), light movement (×1.11–1.25, uses ×1.20), frequent standing/
+  walking (×1.26–1.40, uses ×1.35), physically active routine (×1.41–1.55,
+  uses ×1.50), and very demanding physical work (×1.56–1.60, uses ×1.60).
+  These categories are approximate illustrative **product presets**, not
+  measured activity factors or validated activity standards. The selected
+  exact multiplier is shown. No choice is preselected; older custom stored
+  multipliers are retained until deliberately replaced.
 - **Estimated non-workout background** = resting estimate ×
   **explicitly chosen 1.00–1.60 multiplier** in Settings.
   Its intent is non-exercise routine movement/thermic effects, not the

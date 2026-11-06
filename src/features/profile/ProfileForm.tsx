@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import type { ActivityLevel, GoalPeriod, HealthGoal, Profile, UnitPreferences } from '../../domain/models'
 import { EMPTY_TARGETS, type GoalValues, type ProfileValues } from '../../domain/profile'
 import { ALIGNMENT_RULES } from '../../domain/evaluation'
+import { BACKGROUND_MOVEMENT_PRESETS, findBackgroundMovementPreset, hasCustomBackgroundMultiplier } from '../../domain/backgroundMovement'
 import { centimetersFromInches, displayNumber, fluidFrom, fluidTo, inchesFromCentimeters, kilogramsFrom, kilogramsTo } from '../../domain/units'
 import { saveProfileAndGoals } from '../../data/profileRepository'
 import { toLocalDay } from '../../lib/localDate'
@@ -53,6 +54,7 @@ export function ProfileForm({ mode, initialProfile, initialGoal, onSaved }: Prop
   const [sexForEquation, setSexForEquation] = useState(initialProfile?.sexForEquation ?? '')
   const [activityLevel, setActivityLevel] = useState(initialProfile?.activityLevel ?? '')
   const [backgroundMultiplier, setBackgroundMultiplier] = useState(initialProfile?.backgroundActivityMultiplier == null ? '' : String(initialProfile.backgroundActivityMultiplier))
+  const selectedMovementPreset = findBackgroundMovementPreset(backgroundMultiplier)
   const [energyTarget, setEnergyTarget] = useState(initialGoal?.targets.energyKcal?.toString() ?? '')
   const [proteinTarget, setProteinTarget] = useState(initialGoal?.targets.proteinG?.toString() ?? '')
   const [fiberTarget, setFiberTarget] = useState(initialGoal?.targets.fiberG?.toString() ?? '')
@@ -231,7 +233,7 @@ export function ProfileForm({ mode, initialProfile, initialGoal, onSaved }: Prop
           <span className="mt-1 block text-xs font-normal text-slate-500">Saved for today as your first dated measurement, not an estimate.</span>
         </label>}
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <label className={labelClass}>Ordinary background activity (optional)
+          <label className={labelClass}>General activity note (optional; not used in calculations)
             <select className={inputClass} value={activityLevel} onChange={e => setActivityLevel(e.target.value as ActivityLevel | '')}>
               <option value="">Not set</option>
               <option value="sedentary">Mostly seated</option><option value="light">Light</option>
@@ -244,10 +246,43 @@ export function ProfileForm({ mode, initialProfile, initialGoal, onSaved }: Prop
             </select>
           </label>
         </div>
-        <label className={`${labelClass} mt-4`}>Non-workout background multiplier (optional, 1.00–1.60)
-          <input className={inputClass} type="number" min="1" max="1.6" step="any" inputMode="decimal" value={backgroundMultiplier} onChange={e => setBackgroundMultiplier(e.target.value)} placeholder="Not set" />
-          <span className="mt-1 block text-xs font-normal text-slate-600">An optional, broad approximation for ordinary activity and thermic effects, excluding separately logged workouts. 1.00 means resting-only baseline; larger values allow for more everyday non-workout movement. This is <strong>not</strong> a conventional exercise-inclusive activity multiplier. No multiplier is selected automatically.</span>
+        <label className={`${labelClass} mt-4`}>Usual everyday movement (optional, excluding workouts)
+          <select
+            className={inputClass}
+            value={backgroundMultiplier}
+            onChange={e => setBackgroundMultiplier(e.target.value)}
+            aria-describedby="background-movement-help"
+          >
+            <option value="">Not set — skip daily expenditure estimate</option>
+            {BACKGROUND_MOVEMENT_PRESETS.map(preset => (
+              <option key={preset.value} value={String(preset.value)}>
+                {preset.label} ({preset.range}) — uses ×{preset.value.toFixed(2)}
+              </option>
+            ))}
+            {hasCustomBackgroundMultiplier(backgroundMultiplier) && (
+              <option value={backgroundMultiplier}>
+                Keep previously saved custom value — ×{Number(backgroundMultiplier).toFixed(2)}
+              </option>
+            )}
+          </select>
         </label>
+        <p id="background-movement-help" className="mt-2 text-xs leading-5 text-slate-600">
+          Think about a typical day outside planned workouts — sitting, standing,
+          walking around, chores or physical work. The ranges are descriptive examples,
+          not clinical activity classifications. Each option uses the exact displayed multiplier;
+          logged workout energy is added separately and never included twice.
+        </p>
+        {selectedMovementPreset && (
+          <p role="status" className="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-700">
+            <strong>{selectedMovementPreset.label}:</strong> {selectedMovementPreset.examples}.
+            Background kcal estimate = resting kcal × {selectedMovementPreset.value.toFixed(2)}.
+          </p>
+        )}
+        {hasCustomBackgroundMultiplier(backgroundMultiplier) && (
+          <p role="status" className="mt-2 text-sm text-slate-600">
+            Your earlier custom multiplier is kept unchanged. Choose a preset only if you want to update it.
+          </p>
+        )}
         <p className="mt-3 text-xs leading-5 text-slate-600">An adult resting estimate requires a recorded current/prior weight, age, height and equation constant. A total daily estimate also needs this explicit background multiplier and known workout increments on a marked-complete day. If inputs are missing, no total is shown.</p>
       </fieldset>
 
