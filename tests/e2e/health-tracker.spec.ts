@@ -165,7 +165,28 @@ test('keyboard users can skip to content and activate the primary tabs', async (
   await expect(trends).toHaveAttribute('aria-current', 'page')
 })
 
-test('everyday movement presets explain their multiplier and persist without guessing a default', async ({page}) => {
+async function persistedBackgroundMultiplier(page: Page): Promise<number | null> {
+  return page.evaluate(async () => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open('health-tracker')
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+    try {
+      return await new Promise<number | null>((resolve, reject) => {
+        const transaction = database.transaction('profiles', 'readonly')
+        const request = transaction.objectStore('profiles').get('primary')
+        request.onsuccess = () =>
+          resolve((request.result as { backgroundActivityMultiplier?: number | null } | undefined)?.backgroundActivityMultiplier ?? null)
+        request.onerror = () => reject(request.error)
+      })
+    } finally {
+      database.close()
+    }
+  })
+}
+
+test('everyday movement presets explain and persist their multiplier without a hidden default', async ({page}) => {
   await onboard(page)
   await page.goto('/settings')
   const dropdown = page.getByRole('combobox', {name: /Usual everyday movement/})
@@ -173,12 +194,14 @@ test('everyday movement presets explain their multiplier and persist without gue
   await dropdown.selectOption('1.2')
   await expect(page.getByText(/Background kcal estimate = resting kcal × 1\.20/)).toBeVisible()
   await page.getByRole('button', {name: 'Save profile and goals'}).click()
-  await expect(page.getByText("Saved to this browser's IndexedDB.")).toBeVisible()
+  await expect(page.getByText('Profile and goal changes saved locally.')).toBeVisible()
+  await expect.poll(() => persistedBackgroundMultiplier(page)).toBe(1.2)
   await page.reload()
   await expect(dropdown).toHaveValue('1.2')
+
   await dropdown.selectOption('')
   await page.getByRole('button', {name: 'Save profile and goals'}).click()
-  await expect(page.getByText("Saved to this browser's IndexedDB.")).toBeVisible()
+  await expect.poll(() => persistedBackgroundMultiplier(page)).toBeNull()
   await page.reload()
   await expect(dropdown).toHaveValue('')
 })
