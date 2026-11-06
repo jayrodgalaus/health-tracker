@@ -1,29 +1,12 @@
 import { useState, type FormEvent } from 'react'
-import type { FoodEntry, LabelBasis, MealCategory, NutrientSnapshot, SavedFood, ServingUnit } from '../../domain/models'
-import { portionRatio } from '../../domain/nutrition'
+import type { FoodEntry, MealCategory, NutrientSnapshot, SavedFood, ServingUnit } from '../../domain/models'
+import { portionRatio, referenceNutritionForEntry } from '../../domain/nutrition'
 import { saveIntake } from '../../data/intakeRepository'
+import { toLocalDay } from '../../lib/localDate'
+import { basisFor, inferBasisMode, SERVING_UNITS, type BasisMode } from './labelBasis'
 import { NutritionFields, inputsFromNutrition, nutritionFromInputs, parseNumber } from './NutritionFields'
 
 const input = 'mt-1 block min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base'
-type BasisMode = 'serving' | 'piece' | '100g' | '100ml' | 'custom'
-
-function inferBasisMode(basis: LabelBasis): BasisMode {
-  if (basis.unit === 'serving' && basis.quantity === 1) return 'serving'
-  if (basis.unit === 'piece' && basis.quantity === 1) return 'piece'
-  if (basis.unit === 'g' && basis.quantity === 100) return '100g'
-  if (basis.unit === 'ml' && basis.quantity === 100) return '100ml'
-  return 'custom'
-}
-function basisFor(mode: BasisMode, quantity: string, unit: ServingUnit): LabelBasis {
-  switch (mode) {
-    case 'serving': return { quantity: 1, unit: 'serving' }
-    case 'piece': return { quantity: 1, unit: 'piece' }
-    case '100g': return { quantity: 100, unit: 'g' }
-    case '100ml': return { quantity: 100, unit: 'ml' }
-    case 'custom': return { quantity: parseNumber(quantity, 'label reference quantity')!, unit }
-  }
-}
-
 interface Props {
   dayKey: string
   kind: 'food' | 'beverage'
@@ -36,7 +19,7 @@ interface Props {
 
 export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, onCancel }: Props) {
   const source = editing ?? recent
-  const reference = source?.referenceNutrientsSnapshot ?? source?.nutrientsSnapshot ?? saved?.nutrientsPerBasis
+  const reference = source ? referenceNutritionForEntry(source) : saved?.nutrientsPerBasis
   const initialBasis = source?.labelBasis ?? saved?.labelBasis ?? { quantity: 1, unit: 'serving' as const }
   const initialMode = inferBasisMode(initialBasis)
   const [name, setName] = useState(source?.name ?? saved?.name ?? '')
@@ -75,6 +58,7 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
     try {
       const amount = parseNumber(quantity, 'consumed amount')!
       const resolvedBasis = basisFor(mode, basisQuantity, basisUnit)
+      if (mode === 'custom') parseNumber(basisQuantity, 'label reference quantity')
       const referenceNutrients: NutrientSnapshot = nutritionFromInputs(nutrition)
       let fluidMl: number | null = null
       if (kind === 'beverage' && effectiveUnit !== 'ml' && effectiveUnit !== 'fl-oz') {
@@ -114,7 +98,7 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
           <input className={input} maxLength={150} value={name} onChange={event => setName(event.target.value)} placeholder={kind === 'food' ? 'Food or meal name' : 'Drink name'} required />
         </label>
         <label className="block text-sm font-medium">Local log date
-          <input className={input} type="date" max={dayKey > new Date().toISOString().slice(0, 10) ? dayKey : undefined} value={date} onChange={event => setDate(event.target.value)} required />
+          <input className={input} type="date" max={toLocalDay(new Date())} value={date} onChange={event => setDate(event.target.value)} required />
         </label>
         {kind === 'food' && <label className="block text-sm font-medium">Meal (optional)
           <select className={input} value={meal} onChange={event => setMeal(event.target.value as MealCategory | '')}>
@@ -135,7 +119,7 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
           </label>
           <label className="block text-sm font-medium">Label unit
             <select className={input} value={basisUnit} onChange={event => { setBasisUnit(event.target.value as ServingUnit); setUnit(event.target.value as ServingUnit) }}>
-              {(['serving', 'piece', 'g', 'oz', 'ml', 'fl-oz'] as ServingUnit[]).map(value => <option key={value} value={value}>{value}</option>)}
+              {SERVING_UNITS.map(value => <option key={value} value={value}>{value}</option>)}
             </select>
           </label>
         </>}

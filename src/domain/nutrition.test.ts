@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { FoodEntry, NutrientSnapshot } from './models'
-import { aggregateIntake, emptyNutrition, fluidMlFromPortion, portionRatio, scaleNutrition, waterNutrition } from './nutrition'
+import { aggregateIntake, emptyNutrition, fluidMlFromPortion, portionRatio, referenceNutritionForEntry, scaleNutrition, waterNutrition } from './nutrition'
 
 const label = (energyKcal: number | null, proteinG: number | null = null): NutrientSnapshot => ({
   ...emptyNutrition(), energyKcal, proteinG
@@ -46,6 +46,18 @@ describe('nutrition scaling and completeness', () => {
     expect(summary.nutrients.energyKcal.unknownEntryCount).toBe(1)
     expect(summary.fluids.knownAmount).toBe(350)
     expect(fluidMlFromPortion(8, 'fl-oz')).toBeCloseTo(236.588, 2)
+  })
+  it('reconstructs a legacy label basis from consumed values for correct edits', () => {
+    const historical = {
+      ...entry('legacy', 'food', label(150, 7.5)),
+      quantity: 75,
+      unit: 'g' as const,
+      labelBasis: { quantity: 100, unit: 'g' as const }
+    }
+    const reference = referenceNutritionForEntry(historical)
+    expect(reference.energyKcal).toBe(200)
+    expect(reference.proteinG).toBe(10)
+    expect(scaleNutrition(reference, historical.labelBasis, 150, 'g').energyKcal).toBe(300)
   })
   it('water has a known zero kcal, not an unlogged null', () => {
     expect(aggregateIntake([entry('water', 'beverage', waterNutrition(), 250)]).nutrients.energyKcal.knownAmount).toBe(0)

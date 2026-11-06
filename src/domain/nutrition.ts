@@ -139,3 +139,19 @@ export function fluidMlFromPortion(quantity: number, unit: ServingUnit): number 
   validatePortion(quantity, unit)
   return unit === 'ml' || unit === 'fl-oz' ? canonicalQuantity(quantity, unit).amount : null
 }
+
+/**
+ * Phase 0 records did not have referenceNutrientsSnapshot. Recover a historical
+ * per-basis label from the recorded consumed snapshot instead of multiplying it
+ * again on edit. Do not consult the mutable saved-food catalog.
+ */
+export function referenceNutritionForEntry(entry: FoodEntry): CompleteNutrition {
+  if (entry.referenceNutrientsSnapshot) {
+    return { ...emptyNutrition(), ...entry.referenceNutrientsSnapshot }
+  }
+  const ratio = portionRatio(entry.labelBasis, entry.quantity, entry.unit)
+  return Object.fromEntries(NUTRIENT_FIELDS.map(field => {
+    const value = entry.nutrientsSnapshot[field]
+    return [field, value === null || value === undefined ? null : value / ratio]
+  })) as CompleteNutrition
+}
