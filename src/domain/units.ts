@@ -1,6 +1,7 @@
 /** Exact conversion constants; canonical stored quantities are kg, cm and ml. */
 const KG_PER_LB = 0.45359237
 const CM_PER_INCH = 2.54
+const ML_PER_US_FL_OZ = 29.5735295625
 
 export function kilogramsFrom(value: number, unit: 'kg' | 'lb'): number {
   return unit === 'kg' ? value : value * KG_PER_LB
@@ -13,6 +14,12 @@ export function centimetersFromInches(inches: number): number {
 }
 export function inchesFromCentimeters(cm: number): number {
   return cm / CM_PER_INCH
+}
+export function fluidFrom(value: number, unit: 'ml' | 'fl-oz'): number {
+  return unit === 'ml' ? value : value * ML_PER_US_FL_OZ
+}
+export function fluidTo(valueMl: number, unit: 'ml' | 'fl-oz'): number {
+  return unit === 'ml' ? valueMl : valueMl / ML_PER_US_FL_OZ
 }
 /** Round only for display; never round canonical values on storage. */
 export function displayNumber(value: number, decimals = 1): string {
