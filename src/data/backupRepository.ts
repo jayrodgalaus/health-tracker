@@ -6,9 +6,9 @@ import {
 
 /** All browser-owned tables, including preferences and day reviews, are portable. */
 export async function readLocalBackup(database: HealthTrackerDatabase = db): Promise<HealthBackup> {
-  return database.transaction('r', database.profiles, database.goalPeriods,
+  return database.transaction('r', [database.profiles, database.goalPeriods,
     database.savedFoods, database.foodEntries, database.exerciseEntries,
-    database.weightEntries, database.dayReviews, database.appSettings, async () => {
+    database.weightEntries, database.dayReviews, database.appSettings], async () => {
       const [profiles, goalPeriods, savedFoods, foodEntries,
         exerciseEntries, weightEntries, dayReviews, appSettings] = await Promise.all([
           database.profiles.toArray(), database.goalPeriods.toArray(),
@@ -48,9 +48,9 @@ export async function replaceLocalData(
   database: HealthTrackerDatabase = db
 ): Promise<BackupCounts> {
   const backup = validateBackup(untrusted)
-  await database.transaction('rw', database.profiles, database.goalPeriods,
+  await database.transaction('rw', [database.profiles, database.goalPeriods,
     database.savedFoods, database.foodEntries, database.exerciseEntries,
-    database.weightEntries, database.dayReviews, database.appSettings, async () => {
+    database.weightEntries, database.dayReviews, database.appSettings], async () => {
       await database.profiles.clear()
       await database.goalPeriods.clear()
       await database.savedFoods.clear()
@@ -73,9 +73,9 @@ export async function replaceLocalData(
 
 /** Irreversible local reset; a successful transaction triggers onboarding. */
 export async function deleteAllLocalRecords(database: HealthTrackerDatabase = db): Promise<void> {
-  await database.transaction('rw', database.profiles, database.goalPeriods,
+  await database.transaction('rw', [database.profiles, database.goalPeriods,
     database.savedFoods, database.foodEntries, database.exerciseEntries,
-    database.weightEntries, database.dayReviews, database.appSettings, async () => {
+    database.weightEntries, database.dayReviews, database.appSettings], async () => {
       await database.profiles.clear()
       await database.goalPeriods.clear()
       await database.savedFoods.clear()

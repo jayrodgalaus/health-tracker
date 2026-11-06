@@ -98,9 +98,10 @@ describe('complete local JSON backup and restore',()=>{
     const original=await readLocalBackup(database)
     const fixture=structuredClone(original)
     fixture.tables.foodEntries[0]!.name='Different synthetic item'
-    const hook=database.foodEntries.hook('creating',()=>{throw new Error('synthetic insert failure')})
+    const failWrite=()=>{throw new Error('synthetic insert failure')}
+    database.foodEntries.hook('creating',failWrite)
     await expect(replaceLocalData(fixture,database)).rejects.toThrow(/synthetic insert failure/)
-    hook.unsubscribe()
+    database.foodEntries.hook('creating').unsubscribe(failWrite)
     expect((await readLocalBackup(database)).tables).toEqual(original.tables)
     database.close()
   })
