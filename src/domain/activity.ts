@@ -19,12 +19,14 @@ export type WeightEvidence = {
 export function weightForDay(day: LocalDay, weights: readonly WeightEntry[]): WeightEvidence {
   const eligible = weights.filter(w => w.dayKey <= day && parseLocalDay(w.dayKey) !== null)
   if (!eligible.length) return { weightKg: null, sourceDay: null, source: 'missing' }
-  const latest = eligible.reduce((result, entry) => entry.dayKey > result ? entry.dayKey : result, eligible[0].dayKey)
+  const latest = eligible.map(entry => entry.dayKey).sort().at(-1)
+  if (!latest) return { weightKg: null, sourceDay: null, source: 'missing' }
   const matches = eligible.filter(entry => entry.dayKey === latest)
-  if (matches.length !== 1 || !Number.isFinite(matches[0].weightKg) || matches[0].weightKg <= 0) {
+  const measurement = matches[0]
+  if (matches.length !== 1 || !measurement || !Number.isFinite(measurement.weightKg) || measurement.weightKg <= 0) {
     return { weightKg: null, sourceDay: latest, source: 'ambiguous' }
   }
-  return { weightKg: matches[0].weightKg, sourceDay: latest, source: latest === day ? 'sameDay' : 'carriedForward' }
+  return { weightKg: measurement.weightKg, sourceDay: latest, source: latest === day ? 'sameDay' : 'carriedForward' }
 }
 
 /** Net kcal above rest, not total/gross workout kcal. No premature rounding. */

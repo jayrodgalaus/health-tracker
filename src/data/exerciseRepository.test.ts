@@ -48,6 +48,7 @@ describe('IndexedDB exercise repository', () => {
       calorieMethod: 'manualActive', manualActiveKcal: 75, intensity: 'light' }, original.id, database, '2026-11-06')
     expect((await listExerciseForDay('2026-11-06', database)).length).toBe(0)
     const moved = (await listExerciseForDay('2026-11-04', database))[0]
+    if (!moved) throw new Error('Expected the moved exercise entry to exist.')
     expect(moved.id).toBe(original.id)
     expect(moved.estimatedEnergyKcal).toBe(75)
     expect(calculateActivityDay('2026-11-04', [moved], []).knownIncrementalKcal).toBe(75)
