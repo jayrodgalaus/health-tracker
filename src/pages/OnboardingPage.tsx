@@ -8,7 +8,7 @@ export function OnboardingPage() {
         <h1 className="mt-2 text-3xl font-bold tracking-tight">Track what matters to you.</h1>
         <p className="mt-3 text-sm leading-6 text-slate-600">
           Your records stay in this browser's IndexedDB. There is no account, server, or cloud sync.
-          Browser storage can be cleared, so please keep in mind that JSON backup and restore will arrive before v1.
+          Browser storage can be cleared. After setup, open Settings → Data to export a private JSON backup or restore an existing one.
         </p>
       </div>
       <div className="rounded-2xl bg-amber-50 p-4 text-sm leading-6 text-amber-950">
