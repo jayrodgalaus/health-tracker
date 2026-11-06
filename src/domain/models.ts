@@ -15,6 +15,8 @@ export type ServingUnit = 'g' | 'ml' | 'oz' | 'fl-oz' | 'piece' | 'serving'
 export type MealCategory = 'breakfast' | 'lunch' | 'dinner' | 'snack'
 export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'high' | 'very-high'
 export type ExerciseIntensity = 'light' | 'moderate' | 'vigorous'
+/** Net workout-energy sources. Gross or unspecified device calories are not accepted as active kcal. */
+export type ExerciseEnergyMethod = 'unknown' | 'metNet' | 'manualActive'
 /** Keep the Phase 0 spelling for backwards compatibility with locally saved profiles. */
 export type HealthGoal = 'maintain' | 'lose' | 'gain' | 'general-wellness'
 
@@ -126,8 +128,17 @@ export interface ExerciseEntry {
   activity: string
   durationMinutes: number
   intensity: ExerciseIntensity | null
+  /** Stored ONLY for an explicitly supplied manual active/incremental kcal value. */
   estimatedEnergyKcal: number | null
+  /** Legacy strings remain readable; new records use ExerciseEnergyMethod. */
   estimationMethod: string | null
+  /** User-entered MET; no unverified value is inferred from activity name or intensity. */
+  met?: number | null
+  /** Distinct logged strength days are counted from this explicit flag. */
+  isStrengthTraining?: boolean
+  /** Local clock time is independent of the day key and audit timestamp. */
+  timeOfDay?: string | null
+  notes?: string | null
   createdAt: IsoTimestamp
   updatedAt: IsoTimestamp
 }
