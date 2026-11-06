@@ -8,7 +8,7 @@ these checks pass on real devices, not only GitHub Actions.
 Run `npm ci` using the committed `package-lock.json`, then run `npm run typecheck`, `npm test`, `npm run build` and
 `npm run test:e2e` (Playwright Chromium installed). The CI workflows
 build production assets and test at 320/390/430 px, including a
-service-worker offline restart and JSON backup/reset/restore workflow.
+service-worker offline restart, cached-tab navigation and offline logging, and JSON backup/reset/restore workflow.
 
 ## Phone and offline (manual, not claimed as complete)
 

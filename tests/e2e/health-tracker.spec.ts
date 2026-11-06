@@ -112,3 +112,31 @@ test('320 px, 390 px and 430 px layouts do not force body horizontal scrolling',
     }
   }
 })
+
+test('cached tabs support offline navigation and newly saved records', async ({page, context}) => {
+  await onboard(page)
+  await page.goto('/today')
+  await page.evaluate(async () => { await navigator.serviceWorker.ready })
+  await page.reload()
+  await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true)
+
+  await context.setOffline(true)
+  for (const [url, heading] of [
+    ['/log', 'Log'],
+    ['/calendar', 'Your recorded days'],
+    ['/trends', 'Recorded history'],
+    ['/settings', 'Settings'],
+    ['/settings/data', 'Your local records']
+  ] as const) {
+    await page.goto(url, {waitUntil: 'domcontentloaded'})
+    await expect(page.getByRole('heading', {name: heading, exact: true})).toBeVisible()
+  }
+
+  await page.goto('/log', {waitUntil: 'domcontentloaded'})
+  await page.getByRole('button', {name: '+ 150'}).click()
+  await expect(page.getByText('Logged 150 ml of water.')).toBeVisible()
+  await page.goto('/today', {waitUntil: 'domcontentloaded'})
+  await expect(page.getByText('150 ml', {exact: true}).first()).toBeVisible()
+  await page.reload({waitUntil: 'domcontentloaded'})
+  await expect(page.getByText('150 ml', {exact: true}).first()).toBeVisible()
+})
