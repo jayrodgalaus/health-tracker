@@ -24,7 +24,7 @@ function TabIcon({ name }: { name: IconName }) {
   )
 }
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children, hideNavigation = false }: { children: ReactNode; hideNavigation?: boolean }) {
   return (
     <div className="min-h-dvh bg-slate-50 text-slate-900">
       <a href="#main-content" className="skip-link">Skip to content</a>
@@ -41,11 +41,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main id="main-content" className="mx-auto w-full max-w-3xl px-5 pb-32 pt-7 sm:pt-9" tabIndex={-1}>
+      <main id="main-content" className={`mx-auto w-full max-w-3xl px-5 pt-7 sm:pt-9 ${hideNavigation ? "pb-12" : "pb-32"}`} tabIndex={-1}>
         {children}
       </main>
 
-      <nav aria-label="Primary navigation" className="bottom-nav fixed bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur">
+      {!hideNavigation && <nav aria-label="Primary navigation" className="bottom-nav fixed bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto grid max-w-3xl grid-cols-5">
           {tabs.map((tab) => (
             <NavLink
@@ -60,7 +60,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </NavLink>
           ))}
         </div>
-      </nav>
+      </nav>}
     </div>
   )
 }

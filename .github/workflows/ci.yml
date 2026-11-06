@@ -1,8 +1,8 @@
-name: Verify Phase 0
+name: Verify Health Tracker
 on:
   pull_request:
   push:
-    branches: [main, feat/phase-0-foundations]
+    branches: [main, feat/phase-0-foundations, feat/phase-1-profile-weight]
 
 jobs:
   test:
@@ -12,7 +12,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      # A lockfile will be added when dependency installation can be performed.
+      # Lockfile will replace npm install with npm ci once generated.
       - run: npm install --no-audit --no-fund
       - run: npm run typecheck
       - run: npm test

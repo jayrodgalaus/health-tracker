@@ -1,42 +1,47 @@
+import { useLiveQuery } from 'dexie-react-hooks'
+import type { Profile } from '../domain/models'
+import { readGoalForDay } from '../data/profileRepository'
+import { ProfileForm } from '../features/profile/ProfileForm'
+import { toLocalDay } from '../lib/localDate'
 import type { StorageStatus } from '../App'
 
-export function SettingsPage({ storage }: { storage: StorageStatus }) {
+export function SettingsPage({ storage, profile }: { storage: StorageStatus; profile: Profile }) {
+  const activeGoal = useLiveQuery(() => readGoalForDay(toLocalDay(new Date())), [], undefined)
+
   return (
     <div className="space-y-6">
       <div>
         <p className="text-sm font-semibold uppercase tracking-wide text-evergreen-700">Personal preferences</p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="mt-3 text-sm leading-6 text-slate-600">Your profile, goals, units, and backup tools will be added in later phases.</p>
+        <p className="mt-3 text-sm leading-6 text-slate-600">Edit your profile, units and dated goals without deleting previous measurements.</p>
       </div>
-
+      {activeGoal === undefined ? (
+        <p role="status" className="rounded-2xl bg-white p-5 text-sm text-slate-600">Loading your saved settings…</p>
+      ) : (
+        <ProfileForm key={`${profile.updatedAt}:${activeGoal?.id ?? 'none'}`} mode="settings" initialProfile={profile} initialGoal={activeGoal} />
+      )}
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="storage-heading">
         <h2 id="storage-heading" className="text-lg font-semibold">On-device storage</h2>
         <p className="mt-2 text-sm text-slate-600" role="status">
-          {storage === 'ready' ? 'IndexedDB is available on this device.' :
-            storage === 'opening' ? 'Checking local storage availability…' :
-              'IndexedDB is unavailable. Data cannot be saved.'}
+          {storage === 'ready' ? 'IndexedDB is available on this device.' : storage === 'opening' ? 'Checking local storage…' : 'IndexedDB is unavailable.'}
         </p>
         <p className="mt-3 text-sm leading-6 text-slate-600">
-          This app has no account, server, analytics, or cloud sync. Data is stored only in this browser.
-          Clearing browser storage can erase records; JSON backup and restore are planned for Phase 3.
+          No account, remote server, analytics or cloud sync is used. Clearing browser data can erase records.
+          Export and import of complete JSON backups will be added in Phase 3, before v1 is complete.
         </p>
       </section>
-
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="safety-heading">
-        <h2 id="safety-heading" className="text-lg font-semibold">Important wellness notice</h2>
+        <h2 id="safety-heading" className="text-lg font-semibold">About · Health information notice</h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Health Tracker is intended for adults aged 18 and over. It is a personal wellness tool,
-          not a clinical device or a source of diagnosis or treatment. Calorie and exercise estimates
-          can be inaccurate, and evaluations may be inaccurate for users with pre-existing medical conditions.
-          Consult a qualified professional for individualized health advice.
+          This app provides general, estimated nutrition and activity evaluations for personal tracking.
+          Evaluations may be inaccurate or inappropriate for people with pre-existing medical conditions,
+          people taking medications that affect metabolism or fluid balance, and people with other
+          circumstances that alter nutritional or exercise needs. It is not a medical device and
+          does not diagnose, treat, or replace advice from a qualified healthcare professional.
         </p>
-      </section>
-
-      <section className="rounded-2xl border border-dashed border-slate-300 bg-slate-100 p-5" aria-labelledby="future-settings-heading">
-        <h2 id="future-settings-heading" className="font-semibold">Upcoming settings</h2>
-        <p className="mt-2 text-sm leading-6 text-slate-600">
-          Phase 1: profile and unit preferences. Phase 2: explainable goal evaluation.
-          Phase 3: JSON export/import backup, migrations and polish.
+        <p className="mt-3 text-sm leading-6 text-slate-600">
+          Adult-oriented energy estimates and weight-goal evaluations do not apply to users under 18.
+          Basic logging remains available. No medical-condition histories are collected.
         </p>
       </section>
     </div>
