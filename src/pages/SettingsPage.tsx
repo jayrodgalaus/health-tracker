@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { Profile } from '../domain/models'
 import { listGoalPeriods, readGoalForDay } from '../data/profileRepository'
@@ -44,8 +45,11 @@ export function SettingsPage({ storage, profile }: { storage: StorageStatus; pro
         </p>
         <p className="mt-3 text-sm leading-6 text-slate-600">
           No account, remote server, analytics or cloud sync is used. Clearing browser data can erase records.
-          Export and import of complete JSON backups will be added in Phase 3, before v1 is complete.
+          Create and store a JSON backup regularly. Imports replace all local data only after file validation and explicit confirmation.
         </p>
+        <Link to="/settings/data" className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-evergreen-600 px-4 py-2 text-sm font-semibold text-white">
+          Open Data: export, import or reset
+        </Link>
       </section>
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="safety-heading">
         <h2 id="safety-heading" className="text-lg font-semibold">About · Health information notice</h2>

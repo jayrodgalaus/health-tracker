@@ -7,7 +7,8 @@ import { readProfile } from './data/profileRepository'
 import { TodayPage } from './pages/TodayPage'
 import { LogPage } from './pages/LogPage'
 import { OnboardingPage } from './pages/OnboardingPage'
-import { ComingSoonPage } from './pages/ComingSoonPage'
+import { TrendsPage } from './pages/TrendsPage'
+import { DataPage } from './pages/DataPage'
 import { CalendarPage } from './pages/CalendarPage'
 import { DayDetailPage } from './pages/DayDetailPage'
 import { SettingsPage } from './pages/SettingsPage'
@@ -51,8 +52,9 @@ export default function App() {
         <Route path="/log" element={<LogPage profile={profile} />} />
         <Route path="/calendar" element={<CalendarPage profile={profile} />} />
         <Route path="/calendar/:dayKey" element={<DayDetailPage profile={profile} />} />
-        <Route path="/trends" element={<ComingSoonPage title="Trends" phase="3" description="History, accessible charts and filters will appear here once real entries exist." />} />
+        <Route path="/trends" element={<TrendsPage profile={profile} />} />
         <Route path="/settings" element={<SettingsPage storage={storage} profile={profile} />} />
+        <Route path="/settings/data" element={<DataPage />} />
         <Route path="*" element={<Navigate to="/today" replace />} />
       </Routes>
     </AppShell>
