@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie'
 import type {
+  AppSettings,
   DayReview,
   ExerciseEntry,
   FoodEntry,
@@ -15,6 +16,7 @@ import type {
  * A fresh database has no profile, entries, or assumed targets.
  */
 export class HealthTrackerDatabase extends Dexie {
+  appSettings!: EntityTable<AppSettings, 'id'>
   profiles!: EntityTable<Profile, 'id'>
   goalPeriods!: EntityTable<GoalPeriod, 'id'>
   savedFoods!: EntityTable<SavedFood, 'id'>
@@ -34,6 +36,8 @@ export class HealthTrackerDatabase extends Dexie {
       weightEntries: '&id, dayKey, recordedAt',
       dayReviews: '&dayKey'
     })
+    // Additive migration: keep every v1 table and record unchanged.
+    this.version(2).stores({ appSettings: '&id' })
   }
 }
 

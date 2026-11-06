@@ -147,3 +147,10 @@ export interface DayReview {
   isComplete: boolean
   markedAt: IsoTimestamp | null
 }
+
+/** Browser-only preferences, never user health metrics or remote settings. */
+export interface AppSettings {
+  id: 'local'
+  waterPresetsMl: number[]
+  updatedAt: IsoTimestamp
+}
