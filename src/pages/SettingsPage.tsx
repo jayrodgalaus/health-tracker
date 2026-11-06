@@ -1,12 +1,15 @@
+import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { Profile } from '../domain/models'
-import { readGoalForDay } from '../data/profileRepository'
+import { listGoalPeriods, readGoalForDay } from '../data/profileRepository'
 import { ProfileForm } from '../features/profile/ProfileForm'
 import { toLocalDay } from '../lib/localDate'
 import type { StorageStatus } from '../App'
 
 export function SettingsPage({ storage, profile }: { storage: StorageStatus; profile: Profile }) {
   const activeGoal = useLiveQuery(() => readGoalForDay(toLocalDay(new Date())), [], undefined)
+  const goalHistory = useLiveQuery(() => listGoalPeriods(), [], undefined)
+  const [settingsSaved, setSettingsSaved] = useState(false)
 
   return (
     <div className="space-y-6">
@@ -18,8 +21,20 @@ export function SettingsPage({ storage, profile }: { storage: StorageStatus; pro
       {activeGoal === undefined ? (
         <p role="status" className="rounded-2xl bg-white p-5 text-sm text-slate-600">Loading your saved settings…</p>
       ) : (
-        <ProfileForm key={`${profile.updatedAt}:${activeGoal?.id ?? 'none'}`} mode="settings" initialProfile={profile} initialGoal={activeGoal} />
+        <ProfileForm key={`${profile.updatedAt}:${activeGoal?.id ?? 'none'}`} mode="settings" initialProfile={profile} initialGoal={activeGoal} onSaved={() => setSettingsSaved(true)} />
       )}
+      {settingsSaved && <p role="status" className="rounded-xl bg-evergreen-50 p-3 text-sm text-evergreen-900">Profile and goal changes saved locally.</p>}
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="goal-history-heading">
+        <h2 id="goal-history-heading" className="text-lg font-semibold">Goal history</h2>
+        <p className="mt-2 text-sm leading-6 text-slate-600">Future and previous targets are kept by effective date. Old days will use the targets active on their date.</p>
+        {goalHistory === undefined && <p role="status" className="mt-2 text-sm">Loading goals…</p>}
+        {goalHistory?.length === 0 && <p className="mt-2 text-sm text-slate-600">No goals saved yet.</p>}
+        <ul className="mt-3 space-y-2">
+          {goalHistory?.map(goal => <li key={goal.id} className="rounded-xl bg-slate-50 p-3 text-sm">
+            <strong>{goal.effectiveFrom}</strong> · {goal.goalType ?? 'Unspecified legacy goal'} · Energy target: {goal.targets.energyKcal === null ? 'not set' : `${goal.targets.energyKcal} kcal/day`}
+          </li>)}
+        </ul>
+      </section>
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="storage-heading">
         <h2 id="storage-heading" className="text-lg font-semibold">On-device storage</h2>
         <p className="mt-2 text-sm text-slate-600" role="status">

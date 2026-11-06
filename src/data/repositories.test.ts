@@ -39,6 +39,15 @@ describe('profile, goals and weight repositories', () => {
     expect(await readWeightForDay('2026-11-06', reopened)).toMatchObject({ weightKg: 72.5 })
     expect((await readGoalForDay('2026-11-06', reopened))?.goalType).toBe('maintain')
   })
+  it('changing units does not modify the canonical stored weight or height', async () => {
+    const database = fresh('phase1-unit-preferences')
+    await saveProfileAndGoals(profile, goals('2026-11-06'), 72.125, database, '2026-11-06')
+    await saveProfileAndGoals({
+      ...profile, units: { mass: 'lb', height: 'ft-in', fluid: 'fl-oz' }
+    }, goals('2026-11-06'), null, database, '2026-11-06')
+    expect((await readProfile(database))?.heightCm).toBe(175)
+    expect((await readWeightForDay('2026-11-06', database))?.weightKg).toBe(72.125)
+  })
   it('rejects malformed onboarding without committing a partial profile', async () => {
     const database = fresh('phase1-atomic-rejection')
     await expect(saveProfileAndGoals(profile, goals('2026-11-06'), -50, database, '2026-11-06')).rejects.toThrow()

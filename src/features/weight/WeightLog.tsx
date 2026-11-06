@@ -12,6 +12,8 @@ export function WeightLog({ profile }: { profile: Profile }) {
   const weights = useLiveQuery(() => listWeights(), [], undefined)
   const unit = profile.units.mass
   const [editingFrom, setEditingFrom] = useState<string | null>(null)
+  const [originalKg, setOriginalKg] = useState<number | null>(null)
+  const [amountChanged, setAmountChanged] = useState(false)
   const [date, setDate] = useState(today())
   const [amount, setAmount] = useState('')
   const [error, setError] = useState('')
@@ -21,6 +23,8 @@ export function WeightLog({ profile }: { profile: Profile }) {
 
   function edit(entry: WeightEntry) {
     setEditingFrom(entry.dayKey)
+    setOriginalKg(entry.weightKg)
+    setAmountChanged(false)
     setDate(entry.dayKey)
     setAmount(displayNumber(kilogramsTo(entry.weightKg, unit), 2))
     setNotice('')
@@ -28,6 +32,8 @@ export function WeightLog({ profile }: { profile: Profile }) {
   }
   function reset() {
     setEditingFrom(null)
+    setOriginalKg(null)
+    setAmountChanged(false)
     setDate(today())
     setAmount('')
     setConfirmDelete(null)
@@ -43,7 +49,8 @@ export function WeightLog({ profile }: { profile: Profile }) {
     }
     setSaving(true)
     try {
-      const kg = kilogramsFrom(parsed, unit)
+      // Reuse canonical weight when editing only the date; display rounding must not modify storage.
+      const kg = editingFrom && !amountChanged && originalKg !== null ? originalKg : kilogramsFrom(parsed, unit)
       if (editingFrom && editingFrom !== date) await moveWeight(editingFrom, date, kg)
       else await saveWeight(date, kg)
       reset()
@@ -77,7 +84,7 @@ export function WeightLog({ profile }: { profile: Profile }) {
             <input className={inputClass} type="date" max={today()} value={date} onChange={e => setDate(e.target.value)} required />
           </label>
           <label className="text-sm font-medium">Weight ({unit})
-            <input className={inputClass} type="number" inputMode="decimal" step="any" min="0" value={amount} onChange={e => setAmount(e.target.value)} required placeholder="e.g. 70.5" />
+            <input className={inputClass} type="number" inputMode="decimal" step="any" min="0" value={amount} onChange={e => { setAmount(e.target.value); setAmountChanged(true) }} required placeholder="e.g. 70.5" />
           </label>
         </div>
         {editingFrom && date !== editingFrom && <p className="mt-2 text-xs text-slate-600">This moves the saved measurement from {editingFrom} to {date}. Existing destination dates cannot be overwritten.</p>}

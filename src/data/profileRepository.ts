@@ -7,6 +7,10 @@ export async function readProfile(database: HealthTrackerDatabase = db): Promise
   return (await database.profiles.get('primary')) ?? null
 }
 
+export async function listGoalPeriods(database: HealthTrackerDatabase = db): Promise<GoalPeriod[]> {
+  return database.goalPeriods.orderBy('effectiveFrom').reverse().toArray()
+}
+
 export async function readGoalForDay(day: string, database: HealthTrackerDatabase = db): Promise<GoalPeriod | null> {
   return (await database.goalPeriods.where('effectiveFrom').belowOrEqual(day).last()) ?? null
 }

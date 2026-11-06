@@ -17,7 +17,7 @@ export function TodayPage({ profile }: { profile: Profile }) {
   const weights = useLiveQuery(() => listWeights(), [], undefined)
   const latestWeight = weights?.[0]
   const todaysWeight = weights?.find(weight => weight.dayKey === dayKey)
-  const age = profile.heightCm === null ? null : ageOnDay({
+  const age = ageOnDay({
     birthDate: profile.birthDate, ageYears: profile.ageYears ?? null, ageAsOf: profile.ageAsOf ?? null
   }, dayKey)
 
