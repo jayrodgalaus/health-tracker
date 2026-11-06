@@ -205,7 +205,7 @@ export function ExerciseLog({ profile }: { profile: Profile }) {
         {activitiesForDay === undefined && <p role="status" className="text-sm text-slate-600">Loading workouts…</p>}
         {activitiesForDay?.length === 0 && <p className="rounded-xl bg-white p-4 text-sm text-slate-600">No workouts logged for this day. You can add a past session, or leave a rest day unlogged.</p>}
         {activitiesForDay?.map(entry => {
-          const estimated = weights ? estimateWorkout(entry, weights) : null
+          const estimated = weights ? estimateWorkout(entry, weights, adult) : null
           return <article key={entry.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>

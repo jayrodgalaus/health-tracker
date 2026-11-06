@@ -14,12 +14,12 @@ export function ActivitySummary({ dayKey, profile, dayActivities, weekActivities
   if (!dayActivities || !weekActivities || !weights) {
     return <p role="status" className="rounded-2xl bg-white p-4 text-sm text-slate-600">Loading recorded exercise…</p>
   }
-  const day = calculateActivityDay(dayKey, dayActivities, weights)
-  const week = calculateActivityWeek(dayKey, weekActivities)
   const age = ageOnDay({
     birthDate: profile.birthDate, ageYears: profile.ageYears ?? null, ageAsOf: profile.ageAsOf ?? null
   }, dayKey)
   const adult = age !== null && age >= 18
+  const day = calculateActivityDay(dayKey, dayActivities, weights, adult)
+  const week = calculateActivityWeek(dayKey, weekActivities)
   const known = day.knownIncrementalKcal
 
   return (

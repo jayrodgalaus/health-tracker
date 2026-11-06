@@ -23,7 +23,7 @@ export function weightForDay(day: LocalDay, weights: readonly WeightEntry[]): We
   if (!latest) return { weightKg: null, sourceDay: null, source: 'missing' }
   const matches = eligible.filter(entry => entry.dayKey === latest)
   const measurement = matches[0]
-  if (matches.length !== 1 || !measurement || !Number.isFinite(measurement.weightKg) || measurement.weightKg <= 0) {
+  if (matches.length !== 1 || !measurement || !Number.isFinite(measurement.weightKg) || measurement.weightKg < 10 || measurement.weightKg > 500) {
     return { weightKg: null, sourceDay: latest, source: 'ambiguous' }
   }
   return { weightKg: measurement.weightKg, sourceDay: latest, source: latest === day ? 'sameDay' : 'carriedForward' }
@@ -44,7 +44,10 @@ export interface WorkoutEstimate {
   explanation: string
 }
 
-export function estimateWorkout(entry: ExerciseEntry, weights: readonly WeightEntry[]): WorkoutEstimate {
+export function estimateWorkout(entry: ExerciseEntry, weights: readonly WeightEntry[], eligibleAdult: boolean): WorkoutEstimate {
+  if (!eligibleAdult) {
+    return { kcal: null, method: 'unknown', weight: null, explanation: 'Adult-oriented exercise energy estimate not available for a minor or unconfirmed adult age.' }
+  }
   if (!Number.isFinite(entry.durationMinutes) || entry.durationMinutes <= 0) {
     return { kcal: null, method: 'unknown', weight: null, explanation: 'Invalid or missing duration; no energy calculation.' }
   }
@@ -81,9 +84,9 @@ export interface ActivityDaySummary {
   energyCoverageComplete: boolean
 }
 
-export function calculateActivityDay(day: LocalDay, activities: readonly ExerciseEntry[], weights: readonly WeightEntry[]): ActivityDaySummary {
+export function calculateActivityDay(day: LocalDay, activities: readonly ExerciseEntry[], weights: readonly WeightEntry[], eligibleAdult: boolean): ActivityDaySummary {
   const dayEntries = activities.filter(entry => entry.dayKey === day)
-  const estimates = dayEntries.map(entry => estimateWorkout(entry, weights))
+  const estimates = dayEntries.map(entry => estimateWorkout(entry, weights, eligibleAdult))
   const known = estimates.filter((e): e is WorkoutEstimate & { kcal: number } => e.kcal !== null)
   return {
     dayKey: day,

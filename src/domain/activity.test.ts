@@ -26,27 +26,36 @@ describe('exercise energy estimates', () => {
     expect(weightForDay('2026-11-06', entries)).toMatchObject({
       source: 'carriedForward', sourceDay: '2026-11-03', weightKg: 70
     })
-    expect(estimateWorkout(exercise(), entries).kcal).toBeCloseTo(147)
+    expect(estimateWorkout(exercise(), entries, true).kcal).toBeCloseTo(147)
     expect(weightForDay('2026-11-02', entries).weightKg).toBeNull()
-    expect(estimateWorkout(exercise(), [weight('2026-11-07', 80)]).kcal).toBeNull()
+    expect(estimateWorkout(exercise(), [weight('2026-11-07', 80)], true).kcal).toBeNull()
   })
   it('does not choose between duplicate legacy measurements on the selected day', () => {
     expect(weightForDay('2026-11-06', [weight('2026-11-06', 70), { ...weight('2026-11-06', 80), id: 'duplicate' }]).source).toBe('ambiguous')
-    expect(estimateWorkout(exercise(), [weight('2026-11-06', 70), { ...weight('2026-11-06', 80), id: 'duplicate' }]).kcal).toBeNull()
+    expect(estimateWorkout(exercise(), [weight('2026-11-06', 70), { ...weight('2026-11-06', 80), id: 'duplicate' }], true).kcal).toBeNull()
   })
   it('uses manual ACTIVE values once even without a recorded weight', () => {
     const recorded = exercise({ estimationMethod: 'manualActive', estimatedEnergyKcal: 125, met: null })
-    expect(estimateWorkout(recorded, [])).toMatchObject({ kcal: 125, method: 'manualActive', weight: null })
-    const summary = calculateActivityDay('2026-11-06', [recorded], [])
+    expect(estimateWorkout(recorded, [], true)).toMatchObject({ kcal: 125, method: 'manualActive', weight: null })
+    const summary = calculateActivityDay('2026-11-06', [recorded], [], true)
     expect(summary.knownIncrementalKcal).toBe(125)
     expect(summary.knownEnergyEntries).toBe(1)
+  })
+  it('requires explicit adult applicability for manual and MET energy results', () => {
+    const session = exercise({ estimationMethod: 'manualActive', estimatedEnergyKcal: 90, met: null })
+    expect(estimateWorkout(session, [], false).kcal).toBeNull()
+    expect(calculateActivityDay('2026-11-06', [session], [], false)).toMatchObject({
+      entries: 1, loggedMinutes: 40, knownIncrementalKcal: null,
+      unknownEnergyEntries: 1, energyCoverageComplete: false
+    })
+    expect(estimateWorkout(exercise(), [weight('2026-11-06', 70)], false).kcal).toBeNull()
   })
   it('preserves unknown exercise kcal and distinguishes partial coverage', () => {
     const manual = exercise({ estimationMethod: 'manualActive', estimatedEnergyKcal: 50, met: null })
     const unknown = exercise({ id: 'unknown', estimationMethod: 'unknown', met: null })
-    const summary = calculateActivityDay('2026-11-06', [manual, unknown], [])
+    const summary = calculateActivityDay('2026-11-06', [manual, unknown], [], true)
     expect(summary).toMatchObject({ entries: 2, loggedMinutes: 80, knownIncrementalKcal: 50, knownEnergyEntries: 1, unknownEnergyEntries: 1, energyCoverageComplete: false })
-    expect(calculateActivityDay('2026-11-06', [], [])).toMatchObject({ entries: 0, loggedMinutes: null, knownIncrementalKcal: null })
+    expect(calculateActivityDay('2026-11-06', [], [], true)).toMatchObject({ entries: 0, loggedMinutes: null, knownIncrementalKcal: null })
   })
 })
 
