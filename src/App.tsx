@@ -8,6 +8,8 @@ import { TodayPage } from './pages/TodayPage'
 import { LogPage } from './pages/LogPage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { ComingSoonPage } from './pages/ComingSoonPage'
+import { CalendarPage } from './pages/CalendarPage'
+import { DayDetailPage } from './pages/DayDetailPage'
 import { SettingsPage } from './pages/SettingsPage'
 
 export type StorageStatus = 'opening' | 'ready' | 'unavailable'
@@ -47,7 +49,8 @@ export default function App() {
         <Route path="/onboarding" element={<Navigate to="/today" replace />} />
         <Route path="/today" element={<TodayPage profile={profile} />} />
         <Route path="/log" element={<LogPage profile={profile} />} />
-        <Route path="/calendar" element={<ComingSoonPage title="Calendar" phase="2" description="After logging is ready, a date-by-date view and explainable day status will appear here." />} />
+        <Route path="/calendar" element={<CalendarPage profile={profile} />} />
+        <Route path="/calendar/:dayKey" element={<DayDetailPage profile={profile} />} />
         <Route path="/trends" element={<ComingSoonPage title="Trends" phase="3" description="History, accessible charts and filters will appear here once real entries exist." />} />
         <Route path="/settings" element={<SettingsPage storage={storage} profile={profile} />} />
         <Route path="*" element={<Navigate to="/today" replace />} />

@@ -1,20 +1,24 @@
 import { useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { useSearchParams } from 'react-router-dom'
 import type { Profile, WeightEntry } from '../../domain/models'
 import { displayNumber, kilogramsFrom, kilogramsTo } from '../../domain/units'
 import { deleteWeight, listWeights, moveWeight, readWeightForDay, saveWeight } from '../../data/weightRepository'
 import { toLocalDay } from '../../lib/localDate'
+import { selectedLogDay } from '../../lib/logDate'
 
 const today = () => toLocalDay(new Date())
 const inputClass = 'mt-1 block min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base'
 
 export function WeightLog({ profile }: { profile: Profile }) {
+  const [searchParams] = useSearchParams()
+  const initialDate = selectedLogDay(searchParams.get('date'))
   const weights = useLiveQuery(() => listWeights(), [], undefined)
   const unit = profile.units.mass
   const [editingFrom, setEditingFrom] = useState<string | null>(null)
   const [originalKg, setOriginalKg] = useState<number | null>(null)
   const [amountChanged, setAmountChanged] = useState(false)
-  const [date, setDate] = useState(today())
+  const [date, setDate] = useState(initialDate)
   const [amount, setAmount] = useState('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -34,7 +38,7 @@ export function WeightLog({ profile }: { profile: Profile }) {
     setEditingFrom(null)
     setOriginalKg(null)
     setAmountChanged(false)
-    setDate(today())
+    setDate(initialDate)
     setAmount('')
     setConfirmDelete(null)
   }

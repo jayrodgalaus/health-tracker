@@ -7,6 +7,7 @@ import type { ExerciseEnergyMethod, ExerciseEntry, ExerciseIntensity, Profile } 
 import { listWeights } from '../../data/weightRepository'
 import { deleteExercise, listExerciseForDay, listExerciseForWeek, saveExercise } from '../../data/exerciseRepository'
 import { toLocalDay } from '../../lib/localDate'
+import { selectedLogDay } from '../../lib/logDate'
 import { parseNumber } from '../nutrition/NutritionFields'
 import { ActivitySummary } from './ActivitySummary'
 
@@ -149,7 +150,7 @@ function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel }: {
 
 export function ExerciseLog({ profile }: { profile: Profile }) {
   const [searchParams] = useSearchParams()
-  const [dayKey, setDayKey] = useState(today())
+  const [dayKey, setDayKey] = useState(() => selectedLogDay(searchParams.get('date')))
   const [adding, setAdding] = useState(() => searchParams.get('add') === 'exercise')
   const [editing, setEditing] = useState<ExerciseEntry | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)

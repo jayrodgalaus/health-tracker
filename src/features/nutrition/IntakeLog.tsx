@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import type { FoodEntry, SavedFood } from '../../domain/models'
 import { deleteIntake, listIntakeForDay, listRecentIntake, saveWater } from '../../data/intakeRepository'
 import { toLocalDay } from '../../lib/localDate'
+import { selectedLogDay } from '../../lib/logDate'
 import { readWaterPresets } from '../../data/settingsRepository'
 import { parseNumber } from './NutritionFields'
 import { FoodEntryForm } from './FoodEntryForm'
@@ -29,7 +30,7 @@ function defaultEditor(add: string | null): Editor | null {
 
 export function IntakeLog() {
   const [searchParams] = useSearchParams()
-  const [dayKey, setDayKey] = useState(toLocalDay(new Date()))
+  const [dayKey, setDayKey] = useState(() => selectedLogDay(searchParams.get('date')))
   const [editor, setEditor] = useState<Editor | null>(() => defaultEditor(searchParams.get('add')))
   const [waterVolume, setWaterVolume] = useState('250')
   const [waterDay, setWaterDay] = useState(dayKey)
@@ -89,7 +90,7 @@ export function IntakeLog() {
   }
 
   return (
-    <div className="space-y-6">
+    <div id="intake" className="scroll-mt-6 space-y-6">
       <section aria-labelledby="intake-section-title" className="space-y-3">
         <h2 id="intake-section-title" className="text-xl font-bold">Food and fluids</h2>
         <label className="block max-w-xs text-sm font-semibold">Log date (local)
