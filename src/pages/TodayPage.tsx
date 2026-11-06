@@ -4,17 +4,14 @@ import type { Profile } from '../domain/models'
 import { ageOnDay } from '../domain/profile'
 import { displayNumber, kilogramsTo } from '../domain/units'
 import { listWeights } from '../data/weightRepository'
+import { listIntakeForDay } from '../data/intakeRepository'
+import { NutritionSummary } from '../features/nutrition/NutritionSummary'
 import { toLocalDay } from '../lib/localDate'
-
-const placeholders = [
-  { label: 'Calories consumed', unit: 'kcal' },
-  { label: 'Estimated calories expended', unit: 'kcal' },
-  { label: 'Logged fluids', unit: 'ml' }
-] as const
 
 export function TodayPage({ profile }: { profile: Profile }) {
   const dayKey = toLocalDay(new Date())
   const weights = useLiveQuery(() => listWeights(), [], undefined)
+  const entries = useLiveQuery(() => listIntakeForDay(dayKey), [dayKey], undefined)
   const latestWeight = weights?.[0]
   const todaysWeight = weights?.find(weight => weight.dayKey === dayKey)
   const age = ageOnDay({
@@ -26,22 +23,19 @@ export function TodayPage({ profile }: { profile: Profile }) {
       <div>
         <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-evergreen-700">Today · {dayKey}</p>
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Your day, your pace.</h1>
-        <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600">Only your actual records appear here. Nutrition and exercise totals will arrive with the next logging features.</p>
+        <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600">Totals reflect your saved food and drink entries. Missing nutrients stay unknown.</p>
       </div>
-      <section aria-labelledby="overview-heading">
-        <h2 id="overview-heading" className="mb-3 text-lg font-semibold">Daily overview</h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {placeholders.map(item => (
-            <div key={item.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="text-xs font-medium text-slate-600">{item.label}</p>
-              <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-3xl font-semibold tabular-nums text-slate-400" aria-label="Not available">—</span>
-                <span className="text-xs text-slate-500">{item.unit}</span>
-              </div>
-              <p className="mt-2 text-xs text-slate-500">Not yet available</p>
-            </div>
-          ))}
-        </div>
+      <section aria-label="Quick logging actions" className="flex flex-wrap gap-2">
+        <Link to="/log?add=food" className="inline-flex min-h-11 items-center rounded-xl bg-evergreen-600 px-4 py-2 text-sm font-semibold text-white">+ Food</Link>
+        <Link to="/log?add=drink" className="inline-flex min-h-11 items-center rounded-xl bg-evergreen-600 px-4 py-2 text-sm font-semibold text-white">+ Drink</Link>
+        <Link to="/log?add=water" className="inline-flex min-h-11 items-center rounded-xl bg-evergreen-600 px-4 py-2 text-sm font-semibold text-white">+ Water</Link>
+        <Link to="/log" className="inline-flex min-h-11 items-center rounded-xl border border-evergreen-600 px-4 py-2 text-sm font-semibold text-evergreen-700">+ Weight</Link>
+      </section>
+      <NutritionSummary entries={entries} />
+      <section className="rounded-2xl border border-slate-200 bg-white p-4">
+        <h2 className="text-sm font-semibold">Estimated calories expended</h2>
+        <p className="mt-2 text-2xl font-semibold text-slate-400">— <span className="text-sm">kcal</span></p>
+        <p className="mt-1 text-xs text-slate-600">Not available. Exercise and resting-energy estimates have not been implemented.</p>
       </section>
       <section className="rounded-3xl bg-evergreen-900 p-6 text-white sm:p-8" aria-labelledby="weight-summary-title">
         <p className="text-xs font-semibold uppercase tracking-widest text-emerald-200">Recorded weight</p>

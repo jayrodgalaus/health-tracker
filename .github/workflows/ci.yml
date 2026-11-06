@@ -2,7 +2,7 @@ name: Verify Health Tracker
 on:
   pull_request:
   push:
-    branches: [main, feat/phase-0-foundations, feat/phase-1-profile-weight]
+    branches: [main, feat/phase-0-foundations, feat/phase-1-profile-weight, feat/phase-1-nutrition-logging]
 
 jobs:
   test:
