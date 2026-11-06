@@ -66,6 +66,7 @@ export async function saveProfileAndGoals(
       effectiveFrom: goalValues.effectiveFrom,
       goalType: goalValues.goalType,
       targetWeightKg: goalValues.targetWeightKg,
+      ruleSettings: goalValues.ruleSettings ?? priorGoal?.ruleSettings,
       targets: { ...goalValues.targets },
       createdAt: priorGoal?.createdAt ?? now
     }

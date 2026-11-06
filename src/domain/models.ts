@@ -55,11 +55,20 @@ export interface DailyTargets {
   activityMinutes: number | null
 }
 
+/** Adjustable, historically effective tracking-rule preferences (not clinical limits). */
+export interface EvaluationRuleSettings {
+  energyAlignedPercent: number
+  energyAttentionPercent: number
+  minimumLargeDeviationPercent: number
+  sodiumLargeDeviationPercent: number
+}
+
 export interface GoalPeriod {
   id: RecordId
   effectiveFrom: LocalDay
   goalType?: HealthGoal
   targetWeightKg?: number | null
+  ruleSettings?: EvaluationRuleSettings
   targets: DailyTargets
   createdAt: IsoTimestamp
 }

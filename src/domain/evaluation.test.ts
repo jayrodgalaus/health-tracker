@@ -61,9 +61,25 @@ describe('conservative reproducible goal alignment', () => {
     expect(assess({ goal: goal(2000, 80), intake: [protein] }).status).toBe('mixed')
     expect(assess({ goal: goal(2000, 80), intake: [{ ...protein, nutrientsSnapshot: { ...protein.nutrientsSnapshot, proteinG: 35 } }] }).status).toBe('offTarget')
   })
+  it('honors effective-dated alignment settings rather than hidden fixed bands', () => {
+    const customized = {
+      ...goal(),
+      ruleSettings: {
+        energyAlignedPercent: 25,
+        energyAttentionPercent: 45,
+        minimumLargeDeviationPercent: 40,
+        sodiumLargeDeviationPercent: 35
+      }
+    }
+    expect(assess({ goal: customized, intake: [entry(2450)] }).status).toBe('onTarget')
+    expect(assess({ goal: customized, intake: [entry(2700)] }).status).toBe('mixed')
+    expect(assess({ goal: customized, intake: [entry(3000)] }).status).toBe('offTarget')
+    expect(assess({ goal: customized }).ruleSettings.energyAlignedPercent).toBe(25)
+  })
   it('never uses a missing target or underage model to assign a score', () => {
     expect(assess({ goal: null }).status).toBe('incomplete')
     expect(assess({ profile: { ...profile, birthDate: '2013-11-06' } }).status).toBe('incomplete')
+    expect(assess({ profile: { ...profile, birthDate: '2013-11-06' } }).results).toEqual([])
   })
   it('prevents rest day or no-meal day from being off-target solely for not logging', () => {
     expect(assess({ activities: [], intake: [] }).status).toBe('incomplete')

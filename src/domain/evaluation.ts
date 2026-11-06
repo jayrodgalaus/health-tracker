@@ -1,4 +1,4 @@
-import type { DayReview, DailyTargets, ExerciseEntry, FoodEntry, GoalPeriod, LocalDay, Profile, WeightEntry } from './models'
+import type { DayReview, DailyTargets, EvaluationRuleSettings, ExerciseEntry, FoodEntry, GoalPeriod, LocalDay, Profile, WeightEntry } from './models'
 import { aggregateIntake, type IntakeSummary, type MetricCoverage } from './nutrition'
 import { calculateActivityDay, type ActivityDaySummary } from './activity'
 import { ageOnDay } from './profile'
@@ -28,6 +28,7 @@ export interface DayEvaluation {
   keyObservations: string[]
   calculatedAt: string
   evaluationRuleVersion: string
+  ruleSettings: EvaluationRuleSettings
 }
 export interface DayCalculationContext {
   dayKey: LocalDay
@@ -49,14 +50,12 @@ export interface DailySummary {
 }
 
 /** Centralized *product alignment* heuristics, not medical cutoffs. */
-export const ALIGNMENT_RULES = {
+export const ALIGNMENT_RULES: EvaluationRuleSettings = {
   energyAlignedPercent: 15,
   energyAttentionPercent: 30,
-  minimumApproachingPercent: 80,
   minimumLargeDeviationPercent: 50,
-  sodiumAttentionPercent: 15,
   sodiumLargeDeviationPercent: 30
-} as const
+}
 
 type GoalMetric = keyof Pick<DailyTargets, 'energyKcal' | 'proteinG' | 'fiberG' | 'fluidMl' | 'sodiumMg'>
 const dailyChecks: { key: GoalMetric; label: string; unit: string; direction: 'range' | 'minimum' | 'maximum' }[] = [
@@ -71,7 +70,7 @@ function metricFor(key: GoalMetric, intake: IntakeSummary): MetricCoverage {
   return key === 'fluidMl' ? intake.fluids : intake.nutrients[key]
 }
 
-function ruleFor(check: (typeof dailyChecks)[number], target: number, metric: MetricCoverage, enoughEntries: boolean): RuleResult {
+function ruleFor(check: (typeof dailyChecks)[number], target: number, metric: MetricCoverage, enoughEntries: boolean, rules: EvaluationRuleSettings): RuleResult {
   const actual = metric.knownAmount
   const common = {
     label: check.label, actual, target, unit: check.unit,
@@ -88,20 +87,20 @@ function ruleFor(check: (typeof dailyChecks)[number], target: number, metric: Me
   let difference: number
   if (check.direction === 'range') {
     difference = Math.abs(actual - target) / target * 100
-    state = difference <= ALIGNMENT_RULES.energyAlignedPercent ? 'pass' :
-      difference <= ALIGNMENT_RULES.energyAttentionPercent ? 'attention' : 'significantDeviation'
+    state = difference <= rules.energyAlignedPercent ? 'pass' :
+      difference <= rules.energyAttentionPercent ? 'attention' : 'significantDeviation'
   } else if (check.direction === 'maximum') {
     difference = target === 0 ? (actual === 0 ? 0 : Infinity) : (actual - target) / target * 100
     state = actual <= target ? 'pass' :
-      difference <= ALIGNMENT_RULES.sodiumLargeDeviationPercent ? 'attention' : 'significantDeviation'
+      difference <= rules.sodiumLargeDeviationPercent ? 'attention' : 'significantDeviation'
   } else {
     difference = target === 0 ? 100 : actual / target * 100
     state = actual >= target ? 'pass' :
-      difference >= ALIGNMENT_RULES.minimumLargeDeviationPercent ? 'attention' : 'significantDeviation'
+      difference >= rules.minimumLargeDeviationPercent ? 'attention' : 'significantDeviation'
   }
-  const description = check.direction === 'range' ? 'compared within ±15%/±30% bands of'
+  const description = check.direction === 'range' ? 'compared within ±' + rules.energyAlignedPercent + '% / ±' + rules.energyAttentionPercent + '% bands of'
     : check.direction === 'maximum' ? 'compared as a user-selected upper tracking limit against'
-      : 'compared as a user-selected minimum tracking goal against'
+      : 'compared as a user-selected minimum tracking goal (' + rules.minimumLargeDeviationPercent + '% severe-deviation threshold) against'
   return {
     ...common, code: check.key + '.' + state, state,
     explanation: check.label + ': recorded ' + Number(actual.toFixed(2)) + ' ' + check.unit +
@@ -118,7 +117,9 @@ export function evaluateDay(context: DayCalculationContext, intake: IntakeSummar
   }, context.dayKey)
   const adult = age !== null && age >= 18
   const targets = context.goal?.targets
-  const results = targets ? dailyChecks.flatMap(check => {
+  const ruleSettings: EvaluationRuleSettings = { ...ALIGNMENT_RULES, ...(context.goal?.ruleSettings ?? {}) }
+  // Never surface even provisional adult-oriented goal judgments for minors or unknown adult age.
+  const results = adult && targets ? dailyChecks.flatMap(check => {
     const target = targets[check.key]
     if (target === null || target === undefined || !Number.isFinite(target) || target < 0 ||
       (check.direction === 'range' && target === 0)) return []
@@ -126,7 +127,7 @@ export function evaluateDay(context: DayCalculationContext, intake: IntakeSummar
       context.intake.some(entry => entry.dayKey === context.dayKey && entry.beverageType !== 'water') :
         check.key === 'fluidMl' ? context.intake.some(entry => entry.dayKey === context.dayKey && entry.kind === 'beverage') :
           context.intake.some(entry => entry.dayKey === context.dayKey)
-    return [ruleFor(check, target, metricFor(check.key, intake), relevant)]
+    return [ruleFor(check, target, metricFor(check.key, intake), relevant, ruleSettings)]
   }) : []
   const assessed = results.filter(rule => rule.state !== 'notEvaluated')
   const isAssessable = complete && adult && results.length > 0 && assessed.length === results.length
@@ -151,7 +152,7 @@ export function evaluateDay(context: DayCalculationContext, intake: IntakeSummar
   return {
     status, isComplete: complete, isAssessable, assessedRuleCount: assessed.length,
     expectedRuleCount: results.length, results, keyObservations: keyObservations.slice(0, 3),
-    calculatedAt, evaluationRuleVersion: EVALUATION_RULE_VERSION
+    calculatedAt, evaluationRuleVersion: EVALUATION_RULE_VERSION, ruleSettings
   }
 }
 

@@ -1,4 +1,4 @@
-import type { ActivityLevel, DailyTargets, HealthGoal, LocalDay, UnitPreferences } from './models'
+import type { ActivityLevel, DailyTargets, EvaluationRuleSettings, HealthGoal, LocalDay, UnitPreferences } from './models'
 import { parseLocalDay } from '../lib/localDate'
 
 export interface ProfileValues {
@@ -17,6 +17,7 @@ export interface GoalValues {
   effectiveFrom: LocalDay
   goalType: HealthGoal
   targetWeightKg: number | null
+  ruleSettings?: EvaluationRuleSettings
   targets: DailyTargets
 }
 
@@ -111,6 +112,17 @@ export function validateGoal(goal: GoalValues, today: LocalDay, existing: boolea
   if (existing && goal.effectiveFrom < today) throw new Error('New goal changes cannot be backdated; historical goals are preserved.')
   if (!['maintain', 'lose', 'gain', 'general-wellness'].includes(goal.goalType)) throw new Error('Choose a goal.')
   if (goal.targetWeightKg !== null) assertWeight(goal.targetWeightKg)
+  const rules = goal.ruleSettings
+  if (rules) {
+    const valid = (value: number, min: number, max: number) => Number.isFinite(value) && value >= min && value <= max
+    if (!valid(rules.energyAlignedPercent, 5, 30) ||
+        !valid(rules.energyAttentionPercent, 15, 60) ||
+        rules.energyAttentionPercent <= rules.energyAlignedPercent ||
+        !valid(rules.minimumLargeDeviationPercent, 10, 80) ||
+        !valid(rules.sodiumLargeDeviationPercent, 10, 70)) {
+      throw new Error('Enter valid tracking bands: energy alignment 5–30%, significant beyond 15–60% (larger than aligned), minimum-goal significant below 10–80%, sodium significant above 10–70%.')
+    }
+  }
   for (const field of Object.keys(TARGET_LIMITS) as (keyof DailyTargets)[]) {
     const value = goal.targets[field]
     if (value !== null) {

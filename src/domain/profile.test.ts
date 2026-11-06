@@ -33,6 +33,15 @@ describe('profile and goal validation', () => {
     expect(() => validateProfile({ ...base, backgroundActivityMultiplier: 1.9 }, '2026-11-06')).toThrow()
     expect(() => validateProfile({ ...base, backgroundActivityMultiplier: NaN }, '2026-11-06')).toThrow()
   })
+  it('validates user-adjusted tracking bands before saving the goal', () => {
+    const good = { effectiveFrom: '2026-11-06', goalType: 'maintain' as const, targetWeightKg: null,
+      targets: EMPTY_TARGETS, ruleSettings: {
+        energyAlignedPercent: 20, energyAttentionPercent: 40,
+        minimumLargeDeviationPercent: 55, sodiumLargeDeviationPercent: 35
+      } }
+    expect(() => validateGoal(good, '2026-11-06', false)).not.toThrow()
+    expect(() => validateGoal({ ...good, ruleSettings: { ...good.ruleSettings, energyAttentionPercent: 15 } }, '2026-11-06', false)).toThrow()
+  })
   it('rejects target backdating and nonfinite numeric targets', () => {
     const goals = { effectiveFrom: '2026-11-06', goalType: 'maintain' as const, targetWeightKg: null, targets: EMPTY_TARGETS }
     expect(() => validateGoal({ ...goals, effectiveFrom: '2026-10-01' }, '2026-11-06', true)).toThrow()
