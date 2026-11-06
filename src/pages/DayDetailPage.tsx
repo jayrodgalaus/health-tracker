@@ -30,7 +30,7 @@ export function DayDetailPage({ profile }: { profile: Profile }) {
       <p className="text-sm font-semibold uppercase tracking-wide text-evergreen-700">Day detail · Phase 2</p>
       <h1 className="text-3xl font-bold tracking-tight">{dayKey}</h1>
       <nav aria-label="Nearby dates" className="flex flex-wrap gap-3">
-        <Link to={'/calendar/' + previous} className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold">‹ Previous day</Link>
+        {dayKey > '1900-01-01' && <Link to={'/calendar/' + previous} className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold">‹ Previous day</Link>}
         <Link to={'/calendar/' + last} className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold">Today</Link>
         {dayKey < '2100-12-31' && <Link to={'/calendar/' + next} className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold">Next day ›</Link>}
       </nav>

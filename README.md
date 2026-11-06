@@ -2,7 +2,7 @@
 
 A personal, mobile-first, offline-capable nutrition and activity tracker built with **React + TypeScript + Vite, Tailwind CSS and Dexie/IndexedDB**. No cloud account, server, remote personal-data storage, AI, analytics, or health integrations.
 
-## Phase 1: usable local logging (exercise slice included)
+## Phase 2: explainable daily evaluation and calendar (in review)
 
 - **Phase 0:** Five-tab mobile navigation, installable PWA shell and service worker, typed models and local IndexedDB.
 - **Phase 1 profile/weight:** First-launch local profile, age/DOB, height, initial weight, editable unit preferences, user-selected targets with effective-date history, per-day weight add/edit/move/delete.
@@ -11,7 +11,10 @@ A personal, mobile-first, offline-capable nutrition and activity tracker built w
 - **Live activity summaries:** Today and Log share pure `calculateActivityDay()` and `calculateActivityWeek()`; logged minutes, weekly moderate/vigorous/light minutes, and distinct logged strength days are visible, without scoring rest days. Historical weight corrections dynamically update MET estimates.
 - **Live Today + Log summaries:** One shared pure `aggregateIntake()` implementation for calories, protein, carbs, fat, fiber, sugars, sodium, potassium and fluids, with explicit known/unknown coverage and “at least” partial totals.
 
-**Pending verification:** Manual mobile, accessibility and offline restart QA remain. **Phase 2:** Resting/background daily expenditure where applicable, mark-day-complete, deterministic evaluation and monthly calendar. **Phase 3:** Trends, mandatory validated JSON backup/restore, and phone/offline QA. Total daily energy expenditure is **not shown** yet: only separate logged-workout increments are available, to avoid double-counting.
+**Phase 2 implemented:** Local Monday-first monthly calendar with explicit on-target/mixed/off-target/incomplete symbols and accessible legend; tap any date for its full recorded entries, explanation of every rule, edit/delete links back to its selected Log day, and complete/reopen controls. Today also supports historical date switching and shares the exact same pure `calculateDay()` evaluation engine with the calendar.
+- Day evaluations use *only* targets in the effective-dated goal period. User-adjustable energy, minimum-nutrient/fluid and sodium alignment bands are stored with the goal period. Completing an empty or partially known day cannot make it red or green, and unknown calorie labels remain unknown.
+- Optional adult RMR estimation uses Mifflin–St Jeor when measured/current or historical weight, age, height and explicit equation constant are present. **Estimated total daily expenditure** is shown only with an explicitly selected 1.00–1.60 **non-workout** background multiplier and a marked-complete day with complete workout incremental-energy data. Consumed−expended difference requires complete recorded intake; no deficit or weight change is prescribed.
+- **Phase 3 remains:** 7/30/90-day charts, historical trend views, mandatory JSON export/validated import, local reset, further mobile/offline QA and a reproducible npm lockfile. No production deployment or phone-browser E2E test is claimed.
 
 Source of truth: *Personal Health Tracker — Development Guide v1.0* (November 6, 2026), especially §§4.4–4.7, 5, 6.2–6.3, 9.2, 10, 11.
 
@@ -41,6 +44,7 @@ The production PWA works offline after a successful initial load where supported
 - **Drinks:** Every drink has one nutrient record and optional known fluid volume. Plain water has known 0 kcal; other beverages with unknown kcal contribute volume but not fictitious zero calories. Fluid tracking is not a medical hydration assessment.
 - **Days and goals:** Local calendar day keys are independent from UTC audit timestamps. Historical weights and targets remain dated; unlogged days have no assumed values or scores.
 - **Workout energy:** An optional manually selected MET gives *net above-rest* kcal `max(0, MET − 1) × 3.5 × recorded weightKg / 200 × minutes`, never gross kcal. The latest recorded weight on or before the workout date may be carried forward with disclosure; future weights are never used. Ambiguous legacy duplicate weight days prevent estimation. Manual values must explicitly be *active/incremental*, so gross device totals are not silently counted twice.
+- **Goal evaluations:** Only a completed, confirmed adult day with at least one configured daily target and complete evidence for **all configured evaluated targets** receives an on/mixed/off status. Unmarked, unlogged, missing-field and under-18 days remain gray. Daily rules cover selected energy, protein, fiber, fluid and sodium tracking targets. Activity is reviewed weekly and weight is not used as a daily score. Bands are user-adjustable with future-effective goals and rule version 1.0.0. See `docs/evaluation-rules.md`.
 - **Weekly activity:** Monday–Sunday local weeks, unclassified exercise remains visible, strength days count distinct dates. Unlogged rest days are neutral.
 - **Privacy/safety:** Adult-oriented needs and weight-goal evaluation are not used for people under 18. The app is a personal wellness tracker, not a medical device; estimates may be inappropriate for people with medical conditions or medications affecting metabolism/fluid balance. No clinical history is collected.
 
@@ -54,6 +58,8 @@ The production PWA works offline after a successful initial load where supported
 6. Log exercise on a prior day with a known manual ACTIVE calorie amount; verify kcal appears once in the separate workout-increment summary, not as total daily expenditure. Edit, move, delete and restart.
 7. Enter a manually sourced MET with a dated prior weight; verify the net increment and source-day explanation. Correct the prior weight, verify recomputation; no future weight can fill a historical gap. Add an unestimated session and check partial coverage.
 8. Check Monday–Sunday intensity minutes and distinct strength-training days, including a week spanning a month boundary. Under-18 dates permit simple logging without adult workout-energy estimates.
-9. Check touch targets, screen readers and viewport widths of 320, 360, 390 and 430px, plus desktop.
+9. Calendar: navigate across leap dates and year boundaries; inspect an unmarked day, a completed unassessable day, an assessable aligned/mixed/off-target day; verify the legend and date detail explanations. Edit a saved meal from Log, then confirm Today and Calendar status recompute with identical raw totals. Reopen a day and confirm neutral status. Verify historic rule thresholds and targets remain stable after Settings revisions.
+10. Configure a non-workout multiplier, equation constant and dated weight; check RMR, background, incremental workout and total separately. Missing calorie coverage, an unknown workout, unconfirmed adult age or unmarked day must withhold total/difference. Test historical weight edits never use future values.
+11. Check touch targets, screen readers and viewport widths of 320, 360, 390 and 430px, plus desktop.
 
 No real personal records or backup exports are included.
