@@ -14,6 +14,7 @@ export type VolumeUnit = 'ml' | 'l' | 'fl-oz' | 'cup'
 export type ServingUnit = 'g' | 'ml' | 'oz' | 'fl-oz' | 'piece' | 'serving'
 export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'high' | 'very-high'
 export type ExerciseIntensity = 'light' | 'moderate' | 'vigorous'
+/** Keep the Phase 0 spelling for backwards compatibility with locally saved profiles. */
 export type HealthGoal = 'maintain' | 'lose' | 'gain' | 'general-wellness'
 
 export interface UnitPreferences {
@@ -23,10 +24,15 @@ export interface UnitPreferences {
 }
 
 export interface Profile {
+  /** Phase 0 used 'primary'; changing the key would orphan previously saved profiles. */
   id: 'primary'
-  /** No birth date or height should be assumed until the user supplies one. */
   birthDate: LocalDay | null
+  /** Optional alternative to DOB, with a dated age rather than an undated approximation. */
+  ageYears?: number | null
+  ageAsOf?: LocalDay | null
   heightCm: number | null
+  /** Equation parameter is deliberately optional and never inferred. */
+  sexForEquation?: 'male' | 'female' | null
   activityLevel: ActivityLevel | null
   goal: HealthGoal | null
   units: UnitPreferences
@@ -50,6 +56,9 @@ export interface GoalPeriod {
   id: RecordId
   /** Effective date allows history to use the target in effect at that time. */
   effectiveFrom: LocalDay
+  /** Added in Phase 1; optional on pre-existing Phase 0 records. */
+  goalType?: HealthGoal
+  targetWeightKg?: number | null
   targets: DailyTargets
   createdAt: IsoTimestamp
 }
@@ -116,6 +125,7 @@ export interface ExerciseEntry {
 }
 
 export interface WeightEntry {
+  /** Retained legacy id primary key; repository enforces one primary record/day. */
   id: RecordId
   dayKey: LocalDay
   recordedAt: IsoTimestamp
