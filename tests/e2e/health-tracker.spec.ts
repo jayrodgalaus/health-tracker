@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test'
 async function onboard(page: Page) {
   await page.goto('/')
   await expect(page.getByRole('heading',{name:'Track what matters to you.'})).toBeVisible()
-  await page.getByLabel('Date of birth').fill('1990-03-12')
+  await page.getByRole('textbox',{name:'Date of birth'}).fill('1990-03-12')
   await page.getByLabel('Height (cm)').fill('170')
   await page.getByLabel(/Initial measured weight/).fill('70')
   await page.getByLabel('Primary goal').selectOption('maintain')
@@ -76,7 +76,7 @@ test('backup export, confirmed reset and replace restore preserve local entries'
 })
 
 async function onboardAfterReset(page:Page){
-  await page.getByLabel('Date of birth').fill('1990-03-12')
+  await page.getByRole('textbox',{name:'Date of birth'}).fill('1990-03-12')
   await page.getByLabel('Height (cm)').fill('170')
   await page.getByLabel(/Initial measured weight/).fill('72')
   await page.getByLabel('Primary goal').selectOption('maintain')
