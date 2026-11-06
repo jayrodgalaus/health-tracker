@@ -28,6 +28,11 @@ describe('profile and goal validation', () => {
     expect(() => validateProfile({ ...base, birthDate: '2014-03-01' }, '2026-11-06')).not.toThrow()
     expect(ageOnDay({ ...base, birthDate: '2014-03-01' }, '2026-11-06')).toBe(12)
   })
+  it('requires explicit non-workout multiplier and validates its range', () => {
+    expect(() => validateProfile({ ...base, backgroundActivityMultiplier: 1.1 }, '2026-11-06')).not.toThrow()
+    expect(() => validateProfile({ ...base, backgroundActivityMultiplier: 1.9 }, '2026-11-06')).toThrow()
+    expect(() => validateProfile({ ...base, backgroundActivityMultiplier: NaN }, '2026-11-06')).toThrow()
+  })
   it('rejects target backdating and nonfinite numeric targets', () => {
     const goals = { effectiveFrom: '2026-11-06', goalType: 'maintain' as const, targetWeightKg: null, targets: EMPTY_TARGETS }
     expect(() => validateGoal({ ...goals, effectiveFrom: '2026-10-01' }, '2026-11-06', true)).toThrow()

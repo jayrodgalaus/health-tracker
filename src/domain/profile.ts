@@ -8,6 +8,7 @@ export interface ProfileValues {
   heightCm: number
   sexForEquation: 'male' | 'female' | null
   activityLevel: ActivityLevel | null
+  backgroundActivityMultiplier?: number | null
   goal: HealthGoal
   units: UnitPreferences
 }
@@ -82,6 +83,11 @@ export function validateProfile(values: ProfileValues, asOfDay: LocalDay): void 
       !['ml', 'fl-oz'].includes(values.units.fluid)) throw new Error('Unsupported unit preference.')
   if (values.sexForEquation !== null && !['male', 'female'].includes(values.sexForEquation)) {
     throw new Error('Unknown equation parameter.')
+  }
+  if (values.backgroundActivityMultiplier != null &&
+    (!Number.isFinite(values.backgroundActivityMultiplier) ||
+     values.backgroundActivityMultiplier < 1 || values.backgroundActivityMultiplier > 1.6)) {
+    throw new Error('Non-workout background multiplier must be 1.00–1.60 or not set.')
   }
   if (values.activityLevel !== null &&
     !['sedentary', 'light', 'moderate', 'high', 'very-high'].includes(values.activityLevel)) {

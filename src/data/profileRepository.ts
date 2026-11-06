@@ -52,6 +52,7 @@ export async function saveProfileAndGoals(
       heightCm: profileValues.heightCm,
       sexForEquation: profileValues.sexForEquation,
       activityLevel: profileValues.activityLevel,
+      backgroundActivityMultiplier: profileValues.backgroundActivityMultiplier ?? null,
       goal: goalValues.effectiveFrom > today && prior ? prior.goal : profileValues.goal,
       units: profileValues.units,
       createdAt: prior?.createdAt ?? now,

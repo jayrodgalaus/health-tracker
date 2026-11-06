@@ -51,9 +51,11 @@ export function ProfileForm({ mode, initialProfile, initialGoal, onSaved }: Prop
   const [targetWeightTouched, setTargetWeightTouched] = useState(false)
   const [sexForEquation, setSexForEquation] = useState(initialProfile?.sexForEquation ?? '')
   const [activityLevel, setActivityLevel] = useState(initialProfile?.activityLevel ?? '')
+  const [backgroundMultiplier, setBackgroundMultiplier] = useState(initialProfile?.backgroundActivityMultiplier == null ? '' : String(initialProfile.backgroundActivityMultiplier))
   const [energyTarget, setEnergyTarget] = useState(initialGoal?.targets.energyKcal?.toString() ?? '')
   const [proteinTarget, setProteinTarget] = useState(initialGoal?.targets.proteinG?.toString() ?? '')
   const [fiberTarget, setFiberTarget] = useState(initialGoal?.targets.fiberG?.toString() ?? '')
+  const [sodiumTarget, setSodiumTarget] = useState(initialGoal?.targets.sodiumMg?.toString() ?? '')
   const [fluidTarget, setFluidTarget] = useState(initialGoal?.targets.fluidMl == null ? '' : displayNumber(fluidTo(initialGoal.targets.fluidMl, units.fluid), 2))
   const [fluidTargetTouched, setFluidTargetTouched] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -128,6 +130,7 @@ export function ProfileForm({ mode, initialProfile, initialGoal, onSaved }: Prop
         heightCm,
         sexForEquation: sexForEquation === 'male' || sexForEquation === 'female' ? sexForEquation : null,
         activityLevel: activityLevel ? activityLevel as ActivityLevel : null,
+        backgroundActivityMultiplier: parseNumber(backgroundMultiplier, 'background multiplier', true),
         goal: goalType,
         units
       }
@@ -138,9 +141,11 @@ export function ProfileForm({ mode, initialProfile, initialGoal, onSaved }: Prop
           targetWeight.trim() ? kilogramsFrom(parseNumber(targetWeight, 'target weight')!, units.mass) : null,
         targets: {
           ...EMPTY_TARGETS,
+          ...(initialGoal?.targets ?? {}),
           energyKcal: parseNumber(energyTarget, 'calorie target', true),
           proteinG: parseNumber(proteinTarget, 'protein target', true),
           fiberG: parseNumber(fiberTarget, 'fiber target', true),
+          sodiumMg: parseNumber(sodiumTarget, 'sodium upper tracking limit', true),
           fluidMl: !fluidTargetTouched && initialGoal?.targets.fluidMl != null ? initialGoal.targets.fluidMl :
             fluidTarget.trim() ? fluidFrom(parseNumber(fluidTarget, 'fluid target')!, units.fluid) : null
         }
@@ -228,7 +233,11 @@ export function ProfileForm({ mode, initialProfile, initialGoal, onSaved }: Prop
             </select>
           </label>
         </div>
-        <p className="mt-3 text-xs leading-5 text-slate-600">No automatic calorie need is calculated in this phase. If you prefer not to specify the equation parameter, a future resting-energy estimate will remain unavailable.</p>
+        <label className={`${labelClass} mt-4`}>Non-workout background multiplier (optional, 1.00–1.60)
+          <input className={inputClass} type="number" min="1" max="1.6" step="any" inputMode="decimal" value={backgroundMultiplier} onChange={e => setBackgroundMultiplier(e.target.value)} placeholder="Not set" />
+          <span className="mt-1 block text-xs font-normal text-slate-600">An optional, broad approximation for ordinary activity and thermic effects, excluding separately logged workouts. 1.00 means resting-only baseline; larger values allow for more everyday non-workout movement. This is <strong>not</strong> a conventional exercise-inclusive activity multiplier. No multiplier is selected automatically.</span>
+        </label>
+        <p className="mt-3 text-xs leading-5 text-slate-600">An adult resting estimate requires a recorded current/prior weight, age, height and equation constant. A total daily estimate also needs this explicit background multiplier and known workout increments on a marked-complete day. If inputs are missing, no total is shown.</p>
       </fieldset>
 
       <fieldset className="rounded-2xl border border-slate-200 bg-white p-5">
@@ -256,6 +265,9 @@ export function ProfileForm({ mode, initialProfile, initialGoal, onSaved }: Prop
           </label>
           <label className={labelClass}>Optional fiber target (g/day)
             <input className={inputClass} type="number" step="any" inputMode="decimal" value={fiberTarget} onChange={e => setFiberTarget(e.target.value)} placeholder="Not set" />
+          </label>
+          <label className={labelClass}>Optional sodium upper tracking limit (mg/day)
+            <input className={inputClass} type="number" step="any" min="0" inputMode="decimal" value={sodiumTarget} onChange={e => setSodiumTarget(e.target.value)} placeholder="Not set" />
           </label>
           <label className={labelClass}>Fluid tracking target ({units.fluid}/day)
             <input className={inputClass} type="number" step="any" inputMode="decimal" value={fluidTarget} onChange={e => { setFluidTarget(e.target.value); setFluidTargetTouched(true) }} placeholder="Not set" />
