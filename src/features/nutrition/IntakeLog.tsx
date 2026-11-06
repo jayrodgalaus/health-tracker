@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import type { FoodEntry, SavedFood } from '../../domain/models'
 import { deleteIntake, listIntakeForDay, listRecentIntake, saveWater } from '../../data/intakeRepository'
 import { toLocalDay } from '../../lib/localDate'
+import { readWaterPresets } from '../../data/settingsRepository'
 import { parseNumber } from './NutritionFields'
 import { FoodEntryForm } from './FoodEntryForm'
 import { SavedFoodLibrary } from './SavedFoodLibrary'
@@ -38,6 +39,7 @@ export function IntakeLog() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const entries = useLiveQuery(() => listIntakeForDay(dayKey), [dayKey], undefined)
   const recent = useLiveQuery(() => listRecentIntake(), [], undefined)
+  const waterPresets = useLiveQuery(() => readWaterPresets(), [], undefined)
 
   function showEditor(next: Editor) {
     setError('')
@@ -102,7 +104,8 @@ export function IntakeLog() {
         <div className="rounded-2xl bg-evergreen-50 p-4">
           <p className="text-sm font-semibold text-evergreen-900">Quick water (ml)</p>
           <div className="mt-3 flex flex-wrap gap-2">
-            {[150, 250, 350, 500].map(volume => (
+            {waterPresets === undefined && <span className="text-sm text-slate-600">Loading water presets…</span>}
+            {waterPresets?.map(volume => (
               <button type="button" key={volume} disabled={savingWater}
                 className="min-h-11 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-evergreen-900 disabled:opacity-50"
                 onClick={() => { void addWater(volume) }}>+ {volume}</button>
@@ -114,7 +117,7 @@ export function IntakeLog() {
             <form onSubmit={submitWater} className="space-y-4 rounded-2xl border border-evergreen-100 bg-white p-4">
               <h3 className="text-lg font-bold">{editor.entry ? 'Edit water' : 'Log plain water'}</h3>
               <p className="text-sm text-slate-600">Plain water is recorded as 0 kcal and the measured fluid amount. Other nutrients are not inferred from an unknown water label.</p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="block text-sm font-medium">Date
                   <input type="date" max={toLocalDay(new Date())} value={waterDay} onChange={event => setWaterDay(event.target.value)} className={dateInput} required />
                 </label>

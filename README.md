@@ -1,57 +1,52 @@
 # Health Tracker
 
-A mobile-first, offline-first personal wellness PWA built with **React, TypeScript, Vite, Tailwind CSS and Dexie/IndexedDB**. All personal logs are saved only in the current browser's local IndexedDB; no account, backend, cloud sync, telemetry, AI or remote nutrition services.
+A personal, mobile-first, offline-capable nutrition and activity tracker built with **React + TypeScript + Vite, Tailwind CSS and Dexie/IndexedDB**. No cloud account, server, remote personal-data storage, AI, analytics, or health integrations.
 
-## Development state
+## Implemented through Phase 1 (nutrition slice)
 
-**Phase 0 foundation:** React + Vite shell, five accessible navigation tabs, PWA manifest/service worker/icons, typed models, Dexie schema and local-day helpers.
+- **Phase 0:** Five-tab mobile navigation, installable PWA shell and service worker, typed models and local IndexedDB.
+- **Phase 1 profile/weight:** First-launch local profile, age/DOB, height, initial weight, editable unit preferences, user-selected targets with effective-date history, per-day weight add/edit/move/delete.
+- **Phase 1 food/fluids:** Food and beverage logging with named amounts, optional meal category, nutrition fields, per-serving / per-piece / per-100-g / per-100-ml / custom label basis, saved reusable labels with favorites, recent entries, water presets and custom water volume, and edit/delete. Settings allows four local water-preset amounts.
+- **Live Today + Log summaries:** One shared pure `aggregateIntake()` implementation for calories, protein, carbs, fat, fiber, sugars, sodium, potassium and fluids, with explicit known/unknown coverage and “at least” partial totals.
 
-**Phase 1 in progress — first usable slice:** First-launch onboarding with date of birth **or** dated age, height, initial measured weight and a personal goal. Optional equation parameter and background activity setting are never inferred. Settings supports profile edits, kg/lb and cm/ft-in, ml/fl-oz preferences, user-selected targets, and effective-dated goal history. Log supports one primary weight per local date: create, edit, move to another vacant date, delete with confirmation and review chronological measurements. Today displays actual recent weight and does not invent calorie totals.
+**Remaining Phase 1:** Exercise type/intensity/duration, optional transparent energy estimates, and activity aggregation. **Phase 2:** Mark-day-complete, deterministic evaluation and monthly calendar. **Phase 3:** Trends, mandatory validated JSON backup/restore, and phone/offline QA.
 
-**Still planned in Phase 1:** Food/saved-label logging, water and drinks, exercise, and nutrient/fluid/activity aggregation. **Phase 2:** deterministic evaluation and calendar. **Phase 3:** trends and mandatory JSON backup/restore (before v1).
+Source of truth: *Personal Health Tracker — Development Guide v1.0* (November 6, 2026), especially §§4.4–4.7, 5, 6.2–6.3, 9.2, 10, 11.
 
-The source of truth is *Personal Health Tracker — Development Guide v1.0* (November 6, 2026), §§2–6, 9–11, 15.
+## Run and verify
 
-## Development
-
-Node.js 22 or a supported LTS and npm:
+Requires Node.js 22 (or supported LTS) and npm.
 
 ```sh
 npm install
 npm run dev
-```
-
-Checks:
-
-```sh
 npm run typecheck
 npm test
 npm run build
 npm run preview
 ```
 
-For an offline smoke test, load a production preview once while connected, switch the browser offline, reload and edit a measurement. Service workers are intentionally disabled in Vite dev mode. Check mobile PWA installation and service worker behavior on the target platform separately.
+The production PWA works offline after a successful initial load where supported. Dev mode does not register the service worker. To test, build/preview, open online once, then simulate offline and reload. Actual iOS/Android home-screen and browser-storage behavior still needs manual validation.
 
-> This project does not yet have a committed package-lock.json. Generate and commit one from a verified npm installation before production releases. CI temporarily uses `npm install` instead of `npm ci`.
+> A committed `package-lock.json` is outstanding. CI installs packages using `npm install`; switch to `npm ci` once the lockfile is generated and verified.
 
-## Data integrity and privacy
+## Data integrity guarantees
 
-- **Single persistent store:** Dexie/IndexedDB, in this browser and origin. No user health information belongs in this public repository.
-- **Phase 0 compatibility:** Existing `profiles`, `goalPeriods` and `weightEntries` tables and their primary keys are preserved. The v1 schema remains unchanged because Phase 1 adds optional fields, not new indexes or stores. The weight repository enforces at most one entry per local day transactionally; if legacy duplicates are found it fails safely, without deleting them.
-- **Unit handling:** All weights are stored in kg and heights in cm. User preference changes never rewrite those canonical quantities. Rounding is for display only.
-- **Historical goals:** New target revisions take effect on a chosen current or future local day. Previous periods remain stored and can be retrieved per date.
-- **Unknown is not zero:** No missing meals, nutrient labels, energy estimates, or weights are fabricated. Missing entries do not imply bad days.
-- **Logged day boundaries:** `YYYY-MM-DD` is the explicitly selected local date; audit timestamps are independent UTC ISO values. Backdating does not relocate another day's record.
-- **No destructive migrations:** Future Dexie schema upgrades must be versioned, tested against existing synthetic records, and preserve personal data.
-- **Data loss warning:** Browser/device cleanup or eviction can erase IndexedDB. Export/import backup is mandatory before v1.
-- **Wellness only:** This is not a clinical device or diagnosis tool. Evaluations may be inaccurate for people with pre-existing conditions or taking medicines affecting metabolism/fluid balance. No adult calorie-needs or weight-goal evaluation is provided to users under 18; only basic logging.
+- **Only IndexedDB persists data.** No user wellness records, backups, or credentials may be committed to the public repository.
+- **Compatibility and upgrades:** Dexie v1 tables, keys and data are retained. Dexie v2 adds only the `appSettings` table for water preferences; migrations are tested with a synthetic v1 database containing dated food and weight records.
+- **Historical nutrition:** Every intake entry preserves both the consumed nutrient snapshot and the original label reference values, basis, quantity and unit. Editing/deleting a saved product does **not** change previous log entries. Legacy entries lacking a label-reference snapshot reconstruct it from their consumed snapshot when edited.
+- **Quantities:** gram↔ounce and ml↔US fluid ounce conversions are supported; no ml↔g or piece↔gram conversions without a supplied equivalence. Unknown label values are `null`, not 0. Nutrient calculations retain precision until display. Incorrect, nonfinite, negative or out-of-range inputs are rejected before persistence.
+- **Drinks:** Every drink has one nutrient record and optional known fluid volume. Plain water has known 0 kcal; other beverages with unknown kcal contribute volume but not fictitious zero calories. Fluid tracking is not a medical hydration assessment.
+- **Days and goals:** Local calendar day keys are independent from UTC audit timestamps. Historical weights and targets remain dated; unlogged days have no assumed values or scores.
+- **Privacy/safety:** Adult-oriented needs and weight-goal evaluation are not used for people under 18. The app is a personal wellness tracker, not a medical device; estimates may be inappropriate for people with medical conditions or medications affecting metabolism/fluid balance. No clinical history is collected.
 
-## Manual verification before merging
+## Manual checks still required
 
-1. Fresh browser profile → onboarding → fill DOB (or age with as-of date), height, weight and goal → reopen the browser and confirm profile and first weight persist.
-2. Settings → change units → check original kg/cm values remain identical in IndexedDB, not rounded.
-3. Log → add historical weight → edit → move to empty date → reject occupied-date move → delete after confirmation.
-4. Settings → revise manual energy target today → ensure prior historical goal remains unchanged.
-5. Repeat offline after a successful initial production PWA load; check 320/360/390/430px and desktop widths.
+1. Fresh onboarding → save profile and initial weight → close/reopen browser.
+2. Log 1.5 servings of a 230 kcal/serving saved food → expect 345 kcal. Log 75 g of a 100 g label → expect correctly scaled values. Invalid mass/volume conversions must display an error.
+3. Log a 300 ml drink with 120 kcal and 250 ml plain water → expect 120 kcal, 550 ml. Add an unknown-calorie drink → calories become partially known (“At least…”), fluids remain fully logged.
+4. Change a saved product's label, then inspect an earlier recorded meal: label snapshot and calories must stay unchanged. Edit or delete the meal and inspect instant updates on Today and Log.
+5. Set four new water quick-add amounts in Settings, close/reopen and use them offline. Check a legacy v1 database upgrades to v2 without losing logs.
+6. Check touch targets, screen readers and viewport widths of 320, 360, 390 and 430px, plus desktop.
 
-No real health data or backup exports are stored in the repository.
+No real personal records or backup exports are included.

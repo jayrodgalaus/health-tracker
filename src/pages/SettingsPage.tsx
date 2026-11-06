@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import type { Profile } from '../domain/models'
 import { listGoalPeriods, readGoalForDay } from '../data/profileRepository'
 import { ProfileForm } from '../features/profile/ProfileForm'
+import { WaterPresetSettings } from '../features/nutrition/WaterPresetSettings'
 import { toLocalDay } from '../lib/localDate'
 import type { StorageStatus } from '../App'
 
@@ -35,6 +36,7 @@ export function SettingsPage({ storage, profile }: { storage: StorageStatus; pro
           </li>)}
         </ul>
       </section>
+      <WaterPresetSettings />
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="storage-heading">
         <h2 id="storage-heading" className="text-lg font-semibold">On-device storage</h2>
         <p className="mt-2 text-sm text-slate-600" role="status">
