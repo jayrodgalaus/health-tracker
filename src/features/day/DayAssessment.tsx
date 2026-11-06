@@ -74,10 +74,10 @@ export function DayAssessment({ summary, fullRules = false }: { summary?: DailyS
             </li>)}
           </ol>}
         <p className="mt-3 text-xs leading-5 text-slate-500">
-          Energy alignment: within ±15% / attention through ±30% / large deviation beyond 30%.
-          Minimum-goal metrics: aligned at or above target; approaching between 50% and 100%;
-          large deviation below 50%. Sodium is an optional user-defined upper tracking limit,
-          not a diagnosis. Incomplete measurements cannot yield an overall on/off-target status.
+          Energy alignment: within ±{evalResult.ruleSettings.energyAlignedPercent}% / attention through ±{evalResult.ruleSettings.energyAttentionPercent}% / large deviation beyond that.
+          Minimum-goal metrics: aligned at or above target; attention when below target but at least {evalResult.ruleSettings.minimumLargeDeviationPercent}%;
+          large deviation below {evalResult.ruleSettings.minimumLargeDeviationPercent}%. Sodium significant above {evalResult.ruleSettings.sodiumLargeDeviationPercent}% over the chosen upper tracking limit.
+          Incomplete measurements cannot yield an overall on/off-target status.
           Current rules may recompute historical days; raw entries and effective-dated goals are preserved.
         </p>
       </details>

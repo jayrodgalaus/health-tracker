@@ -48,6 +48,19 @@ describe('profile, goals and weight repositories', () => {
     expect((await readProfile(database))?.heightCm).toBe(175)
     expect((await readWeightForDay('2026-11-06', database))?.weightKg).toBe(72.125)
   })
+  it('persists per-goal rules at their effective dates without changing prior choices', async () => {
+    const database = fresh('phase2-dated-rules')
+    await saveProfileAndGoals(profile, { ...goals('2026-10-01'), ruleSettings: {
+      energyAlignedPercent: 15, energyAttentionPercent: 30,
+      minimumLargeDeviationPercent: 50, sodiumLargeDeviationPercent: 30
+    } }, 70, database, '2026-10-01')
+    await saveProfileAndGoals(profile, { ...goals('2026-11-06'), ruleSettings: {
+      energyAlignedPercent: 20, energyAttentionPercent: 40,
+      minimumLargeDeviationPercent: 60, sodiumLargeDeviationPercent: 35
+    } }, null, database, '2026-11-06')
+    expect((await readGoalForDay('2026-10-25', database))?.ruleSettings?.energyAlignedPercent).toBe(15)
+    expect((await readGoalForDay('2026-11-06', database))?.ruleSettings?.energyAlignedPercent).toBe(20)
+  })
   it('rejects malformed onboarding without committing a partial profile', async () => {
     const database = fresh('phase1-atomic-rejection')
     await expect(saveProfileAndGoals(profile, goals('2026-11-06'), -50, database, '2026-11-06')).rejects.toThrow()

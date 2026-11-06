@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { ActivityLevel, GoalPeriod, HealthGoal, Profile, UnitPreferences } from '../../domain/models'
 import { EMPTY_TARGETS, type GoalValues, type ProfileValues } from '../../domain/profile'
+import { ALIGNMENT_RULES } from '../../domain/evaluation'
 import { centimetersFromInches, displayNumber, fluidFrom, fluidTo, inchesFromCentimeters, kilogramsFrom, kilogramsTo } from '../../domain/units'
 import { saveProfileAndGoals } from '../../data/profileRepository'
 import { toLocalDay } from '../../lib/localDate'
@@ -56,6 +57,10 @@ export function ProfileForm({ mode, initialProfile, initialGoal, onSaved }: Prop
   const [proteinTarget, setProteinTarget] = useState(initialGoal?.targets.proteinG?.toString() ?? '')
   const [fiberTarget, setFiberTarget] = useState(initialGoal?.targets.fiberG?.toString() ?? '')
   const [sodiumTarget, setSodiumTarget] = useState(initialGoal?.targets.sodiumMg?.toString() ?? '')
+  const [energyAligned, setEnergyAligned] = useState(String(initialGoal?.ruleSettings?.energyAlignedPercent ?? ALIGNMENT_RULES.energyAlignedPercent))
+  const [energyAttention, setEnergyAttention] = useState(String(initialGoal?.ruleSettings?.energyAttentionPercent ?? ALIGNMENT_RULES.energyAttentionPercent))
+  const [minimumLarge, setMinimumLarge] = useState(String(initialGoal?.ruleSettings?.minimumLargeDeviationPercent ?? ALIGNMENT_RULES.minimumLargeDeviationPercent))
+  const [sodiumLarge, setSodiumLarge] = useState(String(initialGoal?.ruleSettings?.sodiumLargeDeviationPercent ?? ALIGNMENT_RULES.sodiumLargeDeviationPercent))
   const [fluidTarget, setFluidTarget] = useState(initialGoal?.targets.fluidMl == null ? '' : displayNumber(fluidTo(initialGoal.targets.fluidMl, units.fluid), 2))
   const [fluidTargetTouched, setFluidTargetTouched] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -137,6 +142,12 @@ export function ProfileForm({ mode, initialProfile, initialGoal, onSaved }: Prop
       const goalValues: GoalValues = {
         effectiveFrom: onboarding ? today() : goalStart,
         goalType,
+        ruleSettings: {
+          energyAlignedPercent: parseNumber(energyAligned, 'energy aligned band')!,
+          energyAttentionPercent: parseNumber(energyAttention, 'energy significant-deviation band')!,
+          minimumLargeDeviationPercent: parseNumber(minimumLarge, 'minimum-goal large deviation band')!,
+          sodiumLargeDeviationPercent: parseNumber(sodiumLarge, 'sodium large deviation band')!
+        },
         targetWeightKg: !targetWeightTouched && initialWeightGoal !== null ? initialWeightGoal :
           targetWeight.trim() ? kilogramsFrom(parseNumber(targetWeight, 'target weight')!, units.mass) : null,
         targets: {
@@ -278,6 +289,24 @@ export function ProfileForm({ mode, initialProfile, initialGoal, onSaved }: Prop
             </select>
           </label>
         </div>
+        <fieldset className="mt-5 rounded-xl border border-slate-200 p-4">
+          <legend className="px-1 text-base font-semibold">Adjustable calendar alignment rules</legend>
+          <p className="mt-1 text-xs leading-5 text-slate-600">Optional tracking heuristics, not medical reference ranges. Changes take effect with this dated goal revision; older days keep their prior rules. Days with incomplete data are never evaluated overall.</p>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <label className={labelClass}>Calories aligned within ±%
+              <input className={inputClass} type="number" min="5" max="30" step="any" inputMode="decimal" value={energyAligned} onChange={e => setEnergyAligned(e.target.value)} required />
+            </label>
+            <label className={labelClass}>Calories large deviation beyond ±%
+              <input className={inputClass} type="number" min="15" max="60" step="any" inputMode="decimal" value={energyAttention} onChange={e => setEnergyAttention(e.target.value)} required />
+            </label>
+            <label className={labelClass}>Minimum goal large deviation below % of target
+              <input className={inputClass} type="number" min="10" max="80" step="any" inputMode="decimal" value={minimumLarge} onChange={e => setMinimumLarge(e.target.value)} required />
+            </label>
+            <label className={labelClass}>Sodium large deviation beyond % over limit
+              <input className={inputClass} type="number" min="10" max="70" step="any" inputMode="decimal" value={sodiumLarge} onChange={e => setSodiumLarge(e.target.value)} required />
+            </label>
+          </div>
+        </fieldset>
         <p className="mt-4 text-xs leading-5 text-slate-600">Targets are chosen by you, not prescribed by the app. A weight goal does not automatically set a calorie target.</p>
       </fieldset>
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}
