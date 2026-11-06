@@ -108,9 +108,19 @@ export function ProfileForm({ mode, initialProfile, initialGoal, onSaved }: Prop
     setSaving(true)
     try {
       if (!goalType) throw new Error('Select your primary goal.')
-      const heightCm = !heightTouched && baseHeight !== null ? baseHeight :
-        units.height === 'cm' ? parseNumber(heightMetric, 'height')! :
-          centimetersFromInches((parseNumber(feet, 'feet')! * 12) + (parseNumber(inches, 'inches')!))
+      let heightCm: number
+      if (!heightTouched && baseHeight !== null) {
+        heightCm = baseHeight
+      } else if (units.height === 'cm') {
+        heightCm = parseNumber(heightMetric, 'height')!
+      } else {
+        const footValue = parseNumber(feet, 'feet')!
+        const inchValue = parseNumber(inches, 'additional inches')!
+        if (!Number.isInteger(footValue) || inchValue >= 12) {
+          throw new Error('Enter whole feet and additional inches below 12.')
+        }
+        heightCm = centimetersFromInches(footValue * 12 + inchValue)
+      }
       const profileValues: ProfileValues = {
         birthDate: dateMode === 'dob' ? birthDate : null,
         ageYears: dateMode === 'age' ? parseNumber(age, 'age') : null,

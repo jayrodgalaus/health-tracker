@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { Profile, WeightEntry } from '../../domain/models'
 import { displayNumber, kilogramsFrom, kilogramsTo } from '../../domain/units'
-import { deleteWeight, listWeights, moveWeight, saveWeight } from '../../data/weightRepository'
+import { deleteWeight, listWeights, moveWeight, readWeightForDay, saveWeight } from '../../data/weightRepository'
 import { toLocalDay } from '../../lib/localDate'
 
 const today = () => toLocalDay(new Date())
@@ -51,6 +51,9 @@ export function WeightLog({ profile }: { profile: Profile }) {
     try {
       // Reuse canonical weight when editing only the date; display rounding must not modify storage.
       const kg = editingFrom && !amountChanged && originalKg !== null ? originalKg : kilogramsFrom(parsed, unit)
+      if (!editingFrom && await readWeightForDay(date)) {
+        throw new Error('A measurement already exists for this date. Choose Edit in the history below to update it.')
+      }
       if (editingFrom && editingFrom !== date) await moveWeight(editingFrom, date, kg)
       else await saveWeight(date, kg)
       reset()
