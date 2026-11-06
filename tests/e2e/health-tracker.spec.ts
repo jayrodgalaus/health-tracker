@@ -88,6 +88,7 @@ test('malformed import never alters existing IndexedDB data',async({page})=>{
   await onboard(page)
   await page.goto('/log')
   await page.getByRole('button',{name:'+ 500'}).click()
+  await expect(page.getByText('Logged 500 ml of water.')).toBeVisible()
   await page.goto('/settings/data')
   await page.getByLabel('Choose JSON file').setInputFiles({
     name:'invalid.json',mimeType:'application/json',buffer:Buffer.from('{"formatVersion":999}')
