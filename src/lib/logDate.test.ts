@@ -10,4 +10,4 @@ describe('log date deep linking', () => {
     expect(selectedLogDay('2026-02-30', '2026-11-06')).toBe('2026-11-06')
     expect(selectedLogDay(null, '2026-11-06')).toBe('2026-11-06')
   })
-}
+})
