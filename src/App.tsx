@@ -33,7 +33,7 @@ export default function App() {
       Local IndexedDB could not be opened. Check browser storage permissions or free device space, then reload. No changes can be saved until this is resolved.
     </div></AppShell>
   }
-  if (profile === null) {
+  if (!profile) {
     return <AppShell hideNavigation><Routes>
       <Route path="/onboarding" element={<OnboardingPage />} />
       <Route path="*" element={<Navigate to="/onboarding" replace />} />
