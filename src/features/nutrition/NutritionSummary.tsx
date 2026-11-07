@@ -49,7 +49,7 @@ export function NutritionSummary({
           </div>
         ))}
       </div>
-      {summary.entries > 0 && (
+      {summary.nutrients.energyKcal.totalEntryCount > 0 && (
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
           <h3 className="font-semibold">Nutrients</h3>
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
