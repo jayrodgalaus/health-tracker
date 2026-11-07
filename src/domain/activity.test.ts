@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ExerciseEntry, WeightEntry } from './models'
-import { calculateActivityDay, calculateActivityWeek, estimateWorkout, netMetKcal, weekBounds, weightForDay } from './activity'
+import { calculateActivityDay, calculateActivityWeek, estimateWorkout, netDistanceKcal, netMetKcal, weekBounds, weightForDay } from './activity'
 
 const timestamp = '2026-11-06T12:00:00.000Z'
 const weight = (dayKey: string, weightKg: number): WeightEntry => ({
@@ -49,6 +49,51 @@ describe('exercise energy estimates', () => {
       unknownEnergyEntries: 1, energyCoverageComplete: false
     })
     expect(estimateWorkout(exercise(), [weight('2026-11-06', 70)], false).kcal).toBeNull()
+  })
+  it('prioritizes distance without counting time twice for walking and running', () => {
+    const weights = [weight('2026-11-03', 70)]
+    const walk = exercise({
+      estimationMethod: 'distanceNet', durationMinutes: null, distanceKm: 5, met: null
+    })
+    expect(netDistanceKcal('Walking', 70, 5)).toBe(210)
+    expect(estimateWorkout(walk, weights, true)).toMatchObject({
+      kcal: 210, method: 'distanceNet', weight: { source: 'carriedForward' }
+    })
+    expect(estimateWorkout({ ...walk, durationMinutes: 40 }, weights, true).kcal).toBe(210)
+    const run = exercise({ ...walk, activity: 'Running', distanceKm: 3, durationMinutes: 25 })
+    expect(estimateWorkout(run, weights, true).kcal).toBeCloseTo(189)
+    expect(netDistanceKcal('Running', 70, 0)).toBeNull()
+    expect(netDistanceKcal('Running', 70, Number.NaN)).toBeNull()
+    expect(netDistanceKcal('Walking', 70, 301)).toBeNull()
+    // Energy remains unknown without a valid previous/same-day weight.
+    expect(estimateWorkout(walk, [weight('2026-11-07', 77)], true).kcal).toBeNull()
+    expect(estimateWorkout(walk, weights, false).kcal).toBeNull()
+  })
+  it('uses explicit default walking/running time MET only without a recorded distance', () => {
+    const weights = [weight('2026-11-06', 70)]
+    const walk = exercise({ estimationMethod: 'activityTimeNet', durationMinutes: 30, distanceKm: null, met: null })
+    const run = exercise({ ...walk, activity: 'Running' })
+    expect(estimateWorkout(walk, weights, true).kcal).toBeCloseTo(102.9)
+    expect(estimateWorkout(run, weights, true).kcal).toBeCloseTo(305.025)
+    expect(estimateWorkout({ ...walk, durationMinutes: null }, weights, true).kcal).toBeNull()
+    expect(estimateWorkout(walk, weights, false).kcal).toBeNull()
+  })
+  it('does not invent workout minutes for distance-only sessions in day or week totals', () => {
+    const walk = exercise({ estimationMethod: 'distanceNet', durationMinutes: null, distanceKm: 3, met: null })
+    const run = exercise({ id: 'timed', activity: 'Running', estimationMethod: 'activityTimeNet',
+      durationMinutes: 20, distanceKm: null, met: null, intensity: 'vigorous' })
+    const weights = [weight('2026-11-06', 70)]
+    expect(calculateActivityDay('2026-11-06', [walk], weights, true)).toMatchObject({
+      entries: 1, loggedMinutes: null, missingDurationEntries: 1,
+      knownIncrementalKcal: 126, knownEnergyEntries: 1
+    })
+    expect(calculateActivityWeek('2026-11-06', [walk])).toMatchObject({
+      entries: 1, loggedMinutes: null, missingDurationEntries: 1, moderateMinutes: null
+    })
+    expect(calculateActivityWeek('2026-11-06', [walk, run])).toMatchObject({
+      entries: 2, loggedMinutes: 20, missingDurationEntries: 1,
+      moderateMinutes: null, vigorousMinutes: 20
+    })
   })
   it('preserves unknown exercise kcal and distinguishes partial coverage', () => {
     const manual = exercise({ estimationMethod: 'manualActive', estimatedEnergyKcal: 50, met: null })
