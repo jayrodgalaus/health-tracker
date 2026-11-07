@@ -57,6 +57,8 @@ export function DayDetailPage({ profile }: { profile: Profile }) {
         isComplete={locked} compact />}
     </section>}
     <CalendarGoalChecklist summary={summary} />
-    {records && <CalendarSectionCards dayKey={dayKey} summary={summary} />}
+    {records && <CalendarSectionCards dayKey={dayKey} summary={summary}
+      massUnit={records.review?.isComplete && records.review.frozen
+        ? records.review.frozen.profile.units.mass : profile.units.mass} />}
   </div>
 }
