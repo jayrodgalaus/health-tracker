@@ -157,6 +157,8 @@ export function evaluateDay(context: DayCalculationContext, intake: IntakeSummar
 }
 
 export function calculateDay(context: DayCalculationContext, calculatedAt: string): DailySummary {
+  // Frozen completions are historical records, not live recalculations.
+  if (context.review?.isComplete && context.review.frozen?.version === 1) return context.review.frozen.summary
   const food = context.intake.filter(entry => entry.dayKey === context.dayKey)
   const activities = context.activities.filter(entry => entry.dayKey === context.dayKey)
   const intake = aggregateIntake(food)
