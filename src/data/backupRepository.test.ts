@@ -87,7 +87,9 @@ describe('complete local JSON backup and restore',()=>{
     expect((await readLocalBackup(database)).tables.foodEntries[0]?.nutritionSource)
       .toEqual(withSource.tables.foodEntries[0]?.nutritionSource)
     const malformed = structuredClone(withSource)
-    malformed.tables.foodEntries[0]!.nutritionSource!.productCode = '../../wrong'
+    const invalidSource = malformed.tables.foodEntries[0]!.nutritionSource
+    if (invalidSource?.provider !== 'open-food-facts') throw new Error('Expected an Open Food Facts fixture')
+    invalidSource.productCode = '../../wrong'
     await expect(replaceLocalData(malformed, database)).rejects.toThrow(/invalid barcode/)
     expect((await readLocalBackup(database)).tables.foodEntries[0]?.nutritionSource)
       .toEqual(withSource.tables.foodEntries[0]?.nutritionSource)

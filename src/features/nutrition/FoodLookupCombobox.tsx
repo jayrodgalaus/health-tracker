@@ -216,9 +216,11 @@ export function FoodLookupCombobox({ name, kind, inputClass, onNameChange, onCho
       {choices.map((choice, index) => {
         const item = choice.product
         const text = choice.type === 'saved'
-          ? item.name + (item.brand ? ' · '+item.brand : '') + ' — Saved on device'
-          : choice.product.name + (choice.product.brand ? ' · '+choice.product.brand : '') +
-            ' — Open Food Facts / 100 '+choice.product.basisUnit
+          ? choice.product.name + (choice.product.brand ? ' · '+choice.product.brand : '') + ' — Saved on device'
+          : choice.type === 'remote'
+            ? choice.product.name + (choice.product.brand ? ' · '+choice.product.brand : '') +
+              ' — Open Food Facts / 100 '+choice.product.basisUnit
+            : choice.product.name + ' — USDA ingredient / 100 g'
         return <li key={choice.type+':'+item.id} id={listId+'-choice-'+index}
           role="option" aria-selected={active === index} tabIndex={-1}
           className={'cursor-pointer border-b border-slate-100 px-3 py-3 text-sm last:border-0 '+

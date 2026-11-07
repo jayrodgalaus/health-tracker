@@ -25,7 +25,7 @@ let catalogPromise: Promise<CatalogData> | null = null
 const loadCatalog = (): Promise<CatalogData> => {
   // Dynamic import keeps the 7,793-food reference dataset out of the initial JS chunk.
   // Vite precaches the generated chunk for offline access after installation.
-  catalogPromise ??= import('./usdaSrLegacy.json').then(module => module.default as CatalogData)
+  catalogPromise ??= import('./usdaSrLegacy.json').then(module => module.default as unknown as CatalogData)
   return catalogPromise
 }
 
