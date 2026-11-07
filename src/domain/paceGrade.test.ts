@@ -37,7 +37,7 @@ describe('walking/running pace and uphill grade (net above-rest kcal)', () => {
     expect(paceGradeNetKcal('Walking', 70, 5, null, 12, 0)).toBeNull()
     expect(paceGradeNetKcal('Running', 70, 5, null, 3, 0)).toBeNull()
     expect(paceGradeNetKcal('Running', 70, 5, null, 10, -5)).toBeNull()
-    expect(paceGradeNetKcal('Running', 70, 5, null, 10, 20)).toBeNull()
+    expect(paceGradeNetKcal('Running', 70, 5, null, 10, degreesToGradePercent(16))).toBeNull()
     expect(paceGradeNetKcal('Walking', Number.NaN, 5, null, 5, 0)).toBeNull()
     expect(paceGradeNetKcal('Walking', 70, 5, 0, 5, 0)).toBeNull()
     expect(paceGradeNetKcal('Walking', 70, 5, 30, null, 0)).toBeNull() // 10 km/h derived walking speed is outside model
