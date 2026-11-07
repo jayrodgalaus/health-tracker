@@ -4,7 +4,7 @@ import type { StorageStatus } from '../App'
 const items = [
   { path: '/settings/profile', title: 'Profile', description: 'Age, height, preferred units and everyday movement' },
   { path: '/settings/goals', title: 'Goals and targets', description: 'Daily targets, calendar rules and goal history' },
-  { path: '/settings/preferences', title: 'Preferences', description: 'Quick-add water amounts' },
+  { path: '/settings/preferences', title: 'Preferences', description: 'Water quick-add amounts and Calendar sugar/sodium limits' },
   { path: '/settings/data', title: 'Data and backups', description: 'Export, restore and erase local records' },
   { path: '/settings/docs', title: 'Docs', description: 'Definitions, calculations, food sources and how to use the tracker' },
   { path: '/settings/about', title: 'About and health notice', description: 'Privacy, limitations and safety information' }
