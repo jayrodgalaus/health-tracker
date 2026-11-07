@@ -74,6 +74,13 @@ export interface GoalPeriod {
 }
 
 /** Numeric values are in the explicit units in their property names. */
+/** Provenance accompanies the immutable recorded nutrient snapshot, not a live API reference. */
+export interface NutritionSource {
+  provider: 'open-food-facts'
+  productCode: string
+  fetchedAt: IsoTimestamp
+}
+
 export interface NutrientSnapshot {
   energyKcal: number | null
   proteinG: number | null
@@ -126,6 +133,7 @@ export interface FoodEntry {
   nutrientsSnapshot: NutrientSnapshot
   /** Reference label before scaling; preserved for transparent historical edits. */
   referenceNutrientsSnapshot?: NutrientSnapshot
+  nutritionSource?: NutritionSource | null
   servingDescription?: string | null
   fluidMl: number | null
   createdAt: IsoTimestamp

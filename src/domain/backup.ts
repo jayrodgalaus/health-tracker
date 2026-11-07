@@ -146,7 +146,7 @@ function validateRecord(table:BackupTableName,raw:unknown,field:string){
     const r=shape(raw,field,[
       'id','dayKey','recordedAt','kind','beverageType','meal','name','savedFoodId',
       'quantity','unit','labelBasis','nutrientsSnapshot','referenceNutrientsSnapshot',
-      'servingDescription','fluidMl',...dates
+      'servingDescription','fluidMl','nutritionSource',...dates
     ],['id','dayKey','recordedAt','kind','name','savedFoodId','quantity','unit','labelBasis','nutrientsSnapshot','fluidMl',...dates])
     common(r,field);day(r.dayKey,field+'.dayKey');iso(r.recordedAt,field+'.recordedAt')
     choice(r.kind,field+'.kind',['food','beverage']);choice(r.beverageType,field+'.beverageType',['water','other'],true)
@@ -155,6 +155,14 @@ function validateRecord(table:BackupTableName,raw:unknown,field:string){
     numeric(r.quantity,field+'.quantity',0.000001,100000);choice(r.unit,field+'.unit',units)
     basis(r.labelBasis,field+'.labelBasis')
     portionRatio(r.labelBasis as FoodEntry['labelBasis'],r.quantity as number,r.unit as FoodEntry['unit'])
+    if(r.nutritionSource!==undefined&&r.nutritionSource!==null){
+      const origin=shape(r.nutritionSource,field+'.nutritionSource',
+        ['provider','productCode','fetchedAt'],['provider','productCode','fetchedAt'])
+      if(origin.provider!=='open-food-facts')invalid(field+'.nutritionSource','unsupported provider')
+      text(origin.productCode,field+'.nutritionSource.productCode',14)
+      if(!/^\\d{8,14}$/.test(origin.productCode as string))invalid(field+'.nutritionSource.productCode','invalid barcode')
+      iso(origin.fetchedAt,field+'.nutritionSource.fetchedAt')
+    }
     nutrition(r.nutrientsSnapshot,field+'.nutrientsSnapshot')
     if(r.referenceNutrientsSnapshot!==undefined) {
       nutrition(r.referenceNutrientsSnapshot,field+'.referenceNutrientsSnapshot')

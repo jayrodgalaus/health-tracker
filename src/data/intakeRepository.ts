@@ -1,5 +1,5 @@
 import { db, type HealthTrackerDatabase } from '../db/database'
-import type { FoodEntry, LabelBasis, LocalDay, MealCategory, NutrientSnapshot, SavedFood, ServingUnit } from '../domain/models'
+import type { FoodEntry, LabelBasis, LocalDay, MealCategory, NutrientSnapshot, NutritionSource, SavedFood, ServingUnit } from '../domain/models'
 import {
   emptyNutrition, fluidMlFromPortion, portionRatio, scaleNutrition,
   validateNutrition, validatePortion, waterNutrition
@@ -29,6 +29,7 @@ export interface IntakeDraft {
   unit: ServingUnit
   labelBasis: LabelBasis
   referenceNutrients: NutrientSnapshot
+  nutritionSource?: NutritionSource | null
   servingDescription?: string | null
   /** Required only when volume cannot be derived from consumed amount units. */
   fluidMl?: number | null
@@ -106,6 +107,7 @@ function prepareEntry(draft: IntakeDraft, previous: FoodEntry | undefined, today
     labelBasis: { ...draft.labelBasis },
     servingDescription: validOptionalText(draft.servingDescription),
     referenceNutrientsSnapshot: { ...emptyNutrition(), ...draft.referenceNutrients },
+    nutritionSource: draft.nutritionSource ?? null,
     nutrientsSnapshot: scaled,
     fluidMl,
     createdAt: previous?.createdAt ?? now,
