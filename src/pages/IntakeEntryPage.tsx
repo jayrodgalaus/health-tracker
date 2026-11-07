@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { db } from '../db/database'
 import { deleteIntake, listRecentIntake, saveWater } from '../data/intakeRepository'
 import { readWaterPresets } from '../data/settingsRepository'
+import { readDayLocked } from '../data/dayRepository'
 import { PageInfoLink } from '../components/PageInfoLink'
 import { useToast } from '../components/ToastProvider'
 import { FoodEntryForm } from '../features/nutrition/FoodEntryForm'
@@ -24,6 +25,8 @@ export function IntakeEntryPage({kind}: {kind:'food'|'beverage'}) {
   const saved=useLiveQuery(async()=>savedId?await db.savedFoods.get(savedId):null,[savedId],undefined)
   const recent=useLiveQuery(async()=>recentId?await db.foodEntries.get(recentId):null,[recentId],undefined)
   const waterMode=kind==='beverage' && (params.get('water')==='1'||entry?.beverageType==='water')
+  const editingDay = entry?.dayKey ?? dayKey
+  const locked = useLiveQuery(() => readDayLocked(editingDay), [editingDay], undefined)
   const [volume,setVolume]=useState('')
   const [waterDay,setWaterDay]=useState(dayKey)
   const [busy,setBusy]=useState(false)
@@ -83,6 +86,13 @@ export function IntakeEntryPage({kind}: {kind:'food'|'beverage'}) {
       <Link to={back} className="font-semibold text-evergreen-700 underline">Back to Log</Link>
     </div>
   }
+  if (locked === undefined) return <p role="status" className="rounded-xl bg-white p-4">Checking day status…</p>
+  if (locked) return <section aria-label="Locked day" className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
+    <h1 className="text-xl font-bold">Completed day · Read only</h1>
+    <p className="text-sm text-slate-600">This date is locked. Reopen the day from its Calendar details before adding, editing, or deleting an entry.</p>
+    <Link className="inline-flex min-h-11 items-center font-semibold text-evergreen-700 underline"
+      to={'/calendar/' + editingDay}>View locked day</Link>
+  </section>
   const infoTopic=kind==='food'?'food':'log'
   return <div className="space-y-6">
     <header>
