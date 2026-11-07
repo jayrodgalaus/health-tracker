@@ -28,6 +28,43 @@ test('shared branding banner is absent on onboarding and every main page', async
 })
 
 
+test('Today is exactly the current local Calendar day overview, never a selectable historical dashboard', async ({page}) => {
+  await onboard(page)
+  const day = await page.evaluate(() => {
+    const date = new Date()
+    return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') +
+      '-' + String(date.getDate()).padStart(2, '0')
+  })
+
+  await page.goto('/today')
+  await expect(page.getByRole('heading',{name:day,exact:true})).toBeVisible()
+  await expect(page.getByRole('heading',{name:'Daily goal alignment'})).toBeVisible()
+  await expect(page.getByRole('region',{name:'Day completion status'})).toBeVisible()
+  const cards = page.getByRole('region',{name:'Day details by section'})
+  await expect(cards.getByRole('link')).toHaveCount(5)
+  await expect(page.getByRole('navigation',{name:'Nearby dates'}).getByRole('link')).toHaveCount(3)
+  await expect(page.getByRole('navigation',{name:'Primary navigation'})
+    .getByRole('link',{name:'Today'})).toHaveAttribute('aria-current','page')
+  await expect(page.getByRole('heading',{name:'Your day, your pace.'})).toHaveCount(0)
+  await expect(page.getByRole('navigation',{name:'Day navigation'})).toHaveCount(0)
+  await expect(page.getByRole('region',{name:'Quick logging actions'})).toHaveCount(0)
+  const todayMarkup = await page.locator('#main-content').innerText()
+
+  await page.goto('/calendar/' + day)
+  await expect(page.getByRole('region',{name:'Day details by section'}).getByRole('link')).toHaveCount(5)
+  expect(await page.locator('#main-content').innerText()).toBe(todayMarkup)
+
+  await page.goto('/today?date=2026-01-15')
+  await expect(page.getByRole('heading',{name:day,exact:true})).toBeVisible()
+  await expect(page.getByRole('heading',{name:'2026-01-15',exact:true})).toHaveCount(0)
+  await page.getByRole('navigation',{name:'Nearby dates'})
+    .getByRole('link',{name:'Previous day'}).click()
+  await expect(page).toHaveURL(/\/calendar\/\d{4}-\d{2}-\d{2}$/)
+  await page.getByRole('navigation',{name:'Primary navigation'}).getByRole('link',{name:'Today'}).click()
+  await expect(page).toHaveURL('/today')
+  await expect(page.getByRole('heading',{name:day,exact:true})).toBeVisible()
+})
+
 test('completing a day requires confirmation, locks every form, and reopening restores editing', async({page}) => {
   await onboard(page)
   await page.goto('/log?date=2026-01-15')
@@ -975,7 +1012,7 @@ test('Settings is a navigation list with dedicated pages and contextual Docs lin
   await page.goto('/today')
   await page.getByRole('link',{name:'About this page: day-detail'}).click()
   await expect(page).toHaveURL(/\/settings\/docs\/day-detail$/)
-  await expect(page.getByRole('heading',{name:'Day details'})).toBeVisible()
+  await expect(page.getByRole('heading',{name:'Day details and explainable rules'})).toBeVisible()
   await page.goto('/log')
   await page.getByRole('link',{name:'About this page: log'}).click()
   await expect(page).toHaveURL(/\/settings\/docs\/log$/)
