@@ -80,14 +80,22 @@ describe('complete local JSON backup and restore',()=>{
     const legacyBackup = await readLocalBackup(database)
     // Previously exported settings contain only water presets; they remain valid.
     expect(validateBackup(legacyBackup).tables.appSettings[0]?.sugarLimitG).toBeUndefined()
+    expect(validateBackup(legacyBackup).tables.appSettings[0]?.carbohydrateLimitG).toBeUndefined()
     const withLimits = structuredClone(legacyBackup)
+    withLimits.tables.appSettings[0]!.carbohydrateLimitG = 180
     withLimits.tables.appSettings[0]!.sugarLimitG = 38.5
     withLimits.tables.appSettings[0]!.sodiumLimitMg = 2100
     await replaceLocalData(withLimits, database)
     const restored = await readLocalBackup(database)
     expect(restored.tables.appSettings[0]).toMatchObject({
-      waterPresetsMl: [100, 250, 400, 600], sugarLimitG: 38.5, sodiumLimitMg: 2100
+      waterPresetsMl: [100, 250, 400, 600], carbohydrateLimitG: 180, sugarLimitG: 38.5, sodiumLimitMg: 2100
     })
+    const invalidCarbs = structuredClone(restored)
+    invalidCarbs.tables.appSettings[0]!.carbohydrateLimitG = 0
+    await expect(replaceLocalData(invalidCarbs, database)).rejects.toThrow(/invalid number/)
+    const invalidHugeCarbs = structuredClone(restored)
+    invalidHugeCarbs.tables.appSettings[0]!.carbohydrateLimitG = 2001
+    await expect(replaceLocalData(invalidHugeCarbs, database)).rejects.toThrow(/invalid number/)
     const invalidSugar = structuredClone(restored)
     invalidSugar.tables.appSettings[0]!.sugarLimitG = 0
     await expect(replaceLocalData(invalidSugar, database)).rejects.toThrow(/invalid number/)
