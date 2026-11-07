@@ -8,7 +8,8 @@ import { readDayRecords } from '../data/dayRepository'
 import { readNutrientComparisonLimits } from '../data/settingsRepository'
 import { listExerciseForWeek } from '../data/exerciseRepository'
 import { parseLocalDay, toLocalDay } from '../lib/localDate'
-import { DayAssessment } from '../features/day/DayAssessment'
+import { CalendarGoalChecklist } from '../features/day/CalendarGoalChecklist'
+import { DayCompletionControl } from '../features/day/DayCompletionControl'
 import { ExpenditurePanel } from '../features/day/ExpenditurePanel'
 import { DayEntries } from '../features/day/DayEntries'
 import { NutritionSummary } from '../features/nutrition/NutritionSummary'
@@ -36,15 +37,35 @@ export function DayDetailPage({ profile }: { profile: Profile }) {
       <Link className="text-sm font-semibold text-evergreen-700 underline" to={'/calendar?month=' + dayKey.slice(0, 7)}>Back to {dayKey.slice(0, 7)} calendar</Link>
       <p className="text-sm font-semibold uppercase tracking-wide text-evergreen-700">Day detail · Phase 2</p>
       <h1 className="text-3xl font-bold tracking-tight">{dayKey}</h1>
-      <nav aria-label="Nearby dates" className="flex flex-wrap gap-3">
-        {dayKey > '1900-01-01' && <Link to={'/calendar/' + previous} className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold">‹ Previous day</Link>}
-        <Link to={'/calendar/' + last} className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold">Today</Link>
-        {dayKey < '2100-12-31' && <Link to={'/calendar/' + next} className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold">Next day ›</Link>}
+      <nav aria-label="Nearby dates" className="flex w-full flex-nowrap gap-2">
+        {dayKey > '1900-01-01'
+          ? <Link to={'/calendar/' + previous} aria-label="Previous day"
+              className="flex min-h-11 min-w-0 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-1 text-center text-sm font-semibold">
+              ‹ Previous<span className="hidden sm:inline">&nbsp;day</span>
+            </Link>
+          : <span aria-hidden="true" className="min-w-0 flex-1" />}
+        <Link to={'/calendar/' + last}
+          className="flex min-h-11 min-w-0 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-1 text-center text-sm font-semibold">
+          Today
+        </Link>
+        {dayKey < '2100-12-31'
+          ? <Link to={'/calendar/' + next} aria-label="Next day"
+              className="flex min-h-11 min-w-0 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-1 text-center text-sm font-semibold">
+              Next<span className="hidden sm:inline">&nbsp;day</span> ›
+            </Link>
+          : <span aria-hidden="true" className="min-w-0 flex-1" />}
       </nav>
     </header>
     {records === undefined && <p role="status" className="rounded-xl bg-white p-4 text-sm text-slate-600">Loading records for {dayKey}…</p>}
-    {locked && <p role="status" className="rounded-xl border border-slate-300 bg-slate-100 p-3 text-sm font-semibold text-slate-800">Completed day · Read only. Reopen to make corrections.</p>}
-    <DayAssessment summary={summary} fullRules />
+    {summary && <section aria-label="Day completion status"
+      className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+      <p className="min-w-0 text-sm font-semibold text-slate-800">
+        {locked ? 'Day completed.' : 'Day not completed.'}
+      </p>
+      {dayKey <= last && <DayCompletionControl key={dayKey} dayKey={dayKey}
+        isComplete={locked} compact />}
+    </section>}
+    <CalendarGoalChecklist summary={summary} />
     <ExpenditurePanel summary={summary} />
     <NutritionSummary entries={records?.intake} loading={archivedLimits === undefined}
       reniProfile={archivedProfile} reniDayKey={dayKey} comparisonLimits={archivedLimits} detailDayKey={dayKey} />
