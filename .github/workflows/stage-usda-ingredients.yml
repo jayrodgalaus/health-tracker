@@ -1,0 +1,27 @@
+name: Stage official USDA SR Legacy ingredient catalog
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/build_usda_sr_legacy.py
+permissions:
+  contents: write
+jobs:
+  stage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/build_usda_sr_legacy.py
+      - name: Create unattached Git blob for verified data
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          python3 -c 'import json; print(json.dumps({"content":open("src/data/usdaSrLegacy.json",encoding="utf-8").read(),"encoding":"utf-8"}))' > /tmp/sr-blob.json
+          blob=$(gh api -X POST "repos/$GH_REPO/git/blobs" --input /tmp/sr-blob.json --jq '.sha')
+          echo "USDA_CATALOG_BLOB_SHA=$blob"
+          echo "The workflow does not change main; attach the vetted Git blob via the connected GitHub workflow."
