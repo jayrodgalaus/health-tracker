@@ -16,7 +16,7 @@ export type MealCategory = 'breakfast' | 'lunch' | 'dinner' | 'snack'
 export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'high' | 'very-high'
 export type ExerciseIntensity = 'light' | 'moderate' | 'vigorous'
 /** Net workout-energy sources. Gross or unspecified device calories are not accepted as active kcal. */
-export type ExerciseEnergyMethod = 'unknown' | 'metNet' | 'manualActive'
+export type ExerciseEnergyMethod = 'unknown' | 'metNet' | 'manualActive' | 'distanceNet' | 'activityTimeNet'
 /** Keep the Phase 0 spelling for backwards compatibility with locally saved profiles. */
 export type HealthGoal = 'maintain' | 'lose' | 'gain' | 'general-wellness'
 
@@ -144,7 +144,10 @@ export interface ExerciseEntry {
   dayKey: LocalDay
   startedAt: IsoTimestamp
   activity: string
-  durationMinutes: number
+  /** Null means no duration was recorded (e.g. a distance-only walk/run). */
+  durationMinutes: number | null
+  /** Optional measured distance for walking/running, always stored in km. */
+  distanceKm?: number | null
   intensity: ExerciseIntensity | null
   /** Stored ONLY for an explicitly supplied manual active/incremental kcal value. */
   estimatedEnergyKcal: number | null
