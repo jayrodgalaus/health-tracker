@@ -73,6 +73,28 @@ describe('complete local JSON backup and restore',()=>{
     expect(restored.tables.foodEntries[0]?.nutrientsSnapshot.energyKcal).toBe(300)
     reopened.close()
   })
+  it('keeps completion snapshots on restore and archives completed legacy backups', async () => {
+    const database = newDb('archive-backup-roundtrip')
+    await seed(database)
+    const backup = await readLocalBackup(database)
+    const original = backup.tables.dayReviews[0]!.frozen
+    expect(original?.summary.evaluation.results[0]?.target).toBe(2100)
+    await replaceLocalData(backup, database)
+    expect((await readLocalBackup(database)).tables.dayReviews[0]?.frozen).toEqual(original)
+
+    const old = structuredClone(backup)
+    old.app.schemaVersion = 2
+    delete old.tables.dayReviews[0]!.frozen
+    await replaceLocalData(old, database)
+    const recovered = await readLocalBackup(database)
+    expect(recovered.tables.dayReviews[0]?.frozen?.summary.evaluation.results[0]?.target).toBe(2100)
+    const malformed = structuredClone(recovered)
+    malformed.tables.dayReviews[0]!.frozen!.summary.evaluation.status = 'not-a-real-status' as never
+    await expect(replaceLocalData(malformed, database)).rejects.toThrow(/unknown option/)
+    expect((await readLocalBackup(database)).tables.dayReviews).toEqual(recovered.tables.dayReviews)
+    database.close()
+  })
+
   it('round-trips optional nutrient comparison limits and rejects corrupt limits atomically', async () => {
     const database = newDb('backup-nutrient-limits')
     await seed(database)
