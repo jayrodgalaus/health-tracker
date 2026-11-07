@@ -95,6 +95,28 @@ describe('complete local JSON backup and restore',()=>{
       .toEqual(withSource.tables.foodEntries[0]?.nutritionSource)
     database.close()
   })
+  it('preserves a USDA ingredient record ID in JSON backup/restore without recalculating old food logs', async () => {
+    const database = newDb('usda-provenance')
+    await seed(database)
+    const base = await readLocalBackup(database)
+    const withUsda = structuredClone(base)
+    withUsda.tables.foodEntries[0]!.nutritionSource = {
+      provider: 'usda-sr-legacy', fdcId: 169976, release: '2018-04'
+    }
+    await replaceLocalData(withUsda, database)
+    const restored = await readLocalBackup(database)
+    expect(restored.tables.foodEntries[0]?.nutritionSource)
+      .toEqual({provider:'usda-sr-legacy',fdcId:169976,release:'2018-04'})
+    expect(restored.tables.foodEntries[0]?.nutrientsSnapshot.energyKcal).toBe(300)
+    const invalid = structuredClone(withUsda)
+    invalid.tables.foodEntries[0]!.nutritionSource = {
+      provider:'usda-sr-legacy', fdcId:-1, release:'2018-04'
+    }
+    await expect(replaceLocalData(invalid,database)).rejects.toThrow(/invalid number/)
+    expect((await readLocalBackup(database)).tables.foodEntries[0]?.nutritionSource)
+      .toEqual(restored.tables.foodEntries[0]?.nutritionSource)
+    database.close()
+  })
   it('rejects malformed, future versions, invalid values, and unknown fields with no data loss',async()=>{
     const database=newDb('backup-invalid')
     await seed(database)

@@ -325,3 +325,86 @@ test('saved beverage combobox scales both volume and calories once', async ({pag
   await expect(page.getByText('100 kcal',{exact:true}).first()).toBeVisible()
   await expect(page.getByText('500 ml',{exact:true}).first()).toBeVisible()
 })
+
+test('offline USDA cabbage preparation dropdown autofills per-100-g and scales the eaten weight', async ({page, context}) => {
+  await onboard(page)
+  await page.goto('/today')
+  await page.evaluate(async () => { await navigator.serviceWorker.ready })
+  await page.reload()
+  await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true)
+  await context.setOffline(true)
+  await page.goto('/log', {waitUntil:'domcontentloaded'})
+  await page.getByRole('button', {name:'+ Food',exact:true}).click()
+  await page.getByRole('combobox', {name:'Name'}).fill('cabbage')
+  const preparation = page.getByRole('combobox', {name:'Ingredient variety / preparation'})
+  await expect(preparation).toBeVisible()
+  await expect(preparation.locator('option[value="169975"]')).toContainText('Cabbage, raw')
+  await expect(preparation.locator('option[value="169976"]')).toContainText('Cabbage, cooked, boiled, drained, without salt')
+  await preparation.selectOption('169976')
+  await page.getByRole('button', {name:'Use ingredient nutrition'}).click()
+  await expect(page.getByRole('combobox', {name:'Name'})).toHaveValue('Cabbage, cooked, boiled, drained, without salt')
+  await expect(page.getByRole('combobox', {name:'Nutrition is per'})).toHaveValue('100g')
+  await expect(page.getByLabel('Calories (kcal)')).toHaveValue('23')
+  await expect(page.getByLabel('Protein (g)')).toHaveValue('1.27')
+  await expect(page.getByLabel('Sodium (mg)')).toHaveValue('8')
+  await expect(page.getByRole('link', {name:/USDA FoodData Central SR Legacy/})).toHaveAttribute('href', /169976/)
+  await page.getByLabel('Amount consumed').fill('75')
+  await page.getByRole('button', {name:'Add to log'}).click()
+  await expect(page.getByText('Intake entry saved on this device.')).toBeVisible()
+
+  const logged = await page.evaluate(async () => {
+    const open = indexedDB.open('health-tracker')
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      open.onsuccess = () => resolve(open.result)
+      open.onerror = () => reject(open.error)
+    })
+    try {
+      return await new Promise<unknown[]>((resolve, reject) => {
+        const request = db.transaction('foodEntries','readonly').objectStore('foodEntries').getAll()
+        request.onsuccess = () => resolve(request.result as unknown[])
+        request.onerror = () => reject(request.error)
+      })
+    } finally {db.close()}
+  }) as Array<{
+    nutritionSource: {provider:string; fdcId:number}
+    nutrientsSnapshot: {energyKcal:number; sodiumMg:number; proteinG:number}
+    referenceNutrientsSnapshot: {energyKcal:number}
+    quantity:number; labelBasis:{quantity:number;unit:string}
+  }>
+  const cabbage = logged.find(item => item.nutritionSource?.fdcId === 169976)
+  expect(cabbage?.nutritionSource.provider).toBe('usda-sr-legacy')
+  expect(cabbage?.nutrientsSnapshot.energyKcal).toBe(17.25)
+  expect(cabbage?.nutrientsSnapshot.sodiumMg).toBe(6)
+  expect(cabbage?.nutrientsSnapshot.proteinG).toBeCloseTo(0.9525)
+  expect(cabbage?.referenceNutrientsSnapshot.energyKcal).toBe(23)
+  expect(cabbage?.labelBasis).toEqual({quantity:100,unit:'g'})
+})
+
+test('USDA rice variants distinguish cooked white and brown rice in the ingredient dropdown', async ({page}) => {
+  await onboard(page)
+  await page.goto('/log')
+  await page.getByRole('button', {name:'+ Food',exact:true}).click()
+  const name = page.getByRole('combobox', {name:'Name'})
+  await name.fill('rice')
+  const preparation = page.getByRole('combobox', {name:'Ingredient variety / preparation'})
+  await expect(preparation.locator('option[value="169704"]')).toContainText('brown, long-grain, cooked')
+  await expect(preparation.locator('option[value="168878"]')).toContainText('white, long-grain, regular, enriched, cooked')
+  await preparation.selectOption('169704')
+  await page.getByRole('button', {name:'Use ingredient nutrition'}).click()
+  await expect(page.getByLabel('Calories (kcal)')).toHaveValue('123')
+  await name.fill('rice')
+  await expect(preparation.locator('option[value="168878"]')).toBeVisible()
+  await preparation.selectOption('168878')
+  await page.getByRole('button', {name:'Use ingredient nutrition'}).click()
+  await expect(page.getByLabel('Calories (kcal)')).toHaveValue('130')
+  await expect(page.getByLabel('Carbs (g)')).toHaveValue('28.17')
+})
+
+test('blanched cabbage query explains the nearest USDA boiled reference is not the same method', async ({page}) => {
+  await onboard(page)
+  await page.goto('/log')
+  await page.getByRole('button', {name:'+ Food',exact:true}).click()
+  await page.getByRole('combobox', {name:'Name'}).fill('blanched cabbage')
+  await expect(page.getByText(/not an exact measurement of blanched cabbage/)).toBeVisible()
+  await expect(page.getByRole('combobox', {name:'Ingredient variety / preparation'}).locator('option[value="169976"]')).toBeAttached()
+})
