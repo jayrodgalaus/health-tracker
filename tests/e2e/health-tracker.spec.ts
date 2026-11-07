@@ -148,6 +148,7 @@ test('Calendar nutrient percentages remain visible as minimums when entries have
   await page.goto('/settings/profile')
   await page.getByRole('combobox',{name:'Sex-based reference for energy equation and RENI'}).selectOption('')
   await page.getByRole('button',{name:'Save profile'}).click()
+  await expect(page.getByTestId('app-toast')).toContainText('Profile saved.')
   await page.goto('/calendar/2026-01-15')
   const after=page.getByRole('heading',{name:'Nutrients',exact:true}).locator('..')
   await expect(after).not.toContainText('79.2%')
