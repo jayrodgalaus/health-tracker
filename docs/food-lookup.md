@@ -46,7 +46,9 @@ automatic background search or synchronization is introduced.
 An imported suggestion sets the name, known nutrition-label fields and an
 explicit reference basis (100 g or, for products explicitly presented by
 volume, 100 ml). For drinks, the fluid amount remains separate from
-calories. The user chooses and can edit the **consumed quantity**, compatible
+calories. Selecting a locally saved drink with a declared fluid volume per
+serving will scale the logged fluid amount from its selected serving count;
+missing volumes remain unknown and no density conversion is assumed. The user chooses and can edit the **consumed quantity**, compatible
 unit and each nutrient before committing. No grams-to-ml conversion is
 invented. Unknown nutrient fields remain null, while explicitly known
 zero stays zero.

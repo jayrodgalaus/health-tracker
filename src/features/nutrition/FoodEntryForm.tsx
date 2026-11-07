@@ -42,6 +42,8 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
   const [nutrition, setNutrition] = useState(inputsFromNutrition(reference))
   const [fluid, setFluid] = useState(source?.fluidMl == null ? '' : String(source.fluidMl))
   const [fluidChanged, setFluidChanged] = useState(false)
+  const [lookupApplied, setLookupApplied] = useState(false)
+  const [lookupFluidPerBasis, setLookupFluidPerBasis] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -49,6 +51,15 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
   const compatibleUnits: ServingUnit[] = basis.unit === 'g' || basis.unit === 'oz' ? ['g', 'oz'] :
     basis.unit === 'ml' || basis.unit === 'fl-oz' ? ['ml', 'fl-oz'] : [basis.unit]
   const effectiveUnit = compatibleUnits.includes(unit) ? unit : basis.unit
+  const calculatedLookupFluid = (() => {
+    if (kind !== 'beverage' || fluidChanged || !lookupApplied || lookupFluidPerBasis === null ||
+      effectiveUnit === 'ml' || effectiveUnit === 'fl-oz') return fluid
+    try {
+      return String(lookupFluidPerBasis * portionRatio(basis, Number(quantity), effectiveUnit))
+    } catch {
+      return ''
+    }
+  })()
 
   function chooseLookup(choice: FoodLookupChoice) {
     const item = choice.product
@@ -74,6 +85,8 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
     setNutrition(inputsFromNutrition(selected.nutrients))
     setSelectedSavedFoodId(selected.savedId)
     setNutritionSource(selected.nutritionSource)
+    setLookupApplied(true)
+    setLookupFluidPerBasis(choice.type === 'saved' ? choice.product.fluidMlPerBasis ?? null : null)
     setFluid('')
     setFluidChanged(false)
     setError('')
@@ -101,6 +114,9 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
       if (kind === 'beverage' && effectiveUnit !== 'ml' && effectiveUnit !== 'fl-oz') {
         if (fluidChanged) {
           fluidMl = parseNumber(fluid, 'drink fluid volume', true)
+        } else if (lookupApplied) {
+          fluidMl = lookupFluidPerBasis === null ? null :
+            lookupFluidPerBasis * portionRatio(resolvedBasis, amount, effectiveUnit)
         } else if (source?.fluidMl != null) {
           fluidMl = source.fluidMl * portionRatio(resolvedBasis, amount, effectiveUnit) /
             portionRatio(source.labelBasis, source.quantity, source.unit)
@@ -182,8 +198,12 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
           <input className={input} maxLength={150} placeholder="e.g. 1 bowl, 2 cookies" value={servingDescription} onChange={event => setServingDescription(event.target.value)} />
         </label>
         {kind === 'beverage' && effectiveUnit !== 'ml' && effectiveUnit !== 'fl-oz' && <label className="block text-sm font-medium">Total drink volume in logged portion (ml)
-          <input className={input} type="number" step="any" min="0" inputMode="decimal" placeholder="Unknown" value={fluid} onChange={event => { setFluid(event.target.value); setFluidChanged(true) }} />
-          <span className="mt-1 block text-xs text-slate-500">If you do not know the volume, leave blank. A serving count is not automatically converted to ml.</span>
+          <input className={input} type="number" step="any" min="0" inputMode="decimal" placeholder="Unknown" value={calculatedLookupFluid} onChange={event => { setFluid(event.target.value); setFluidChanged(true) }} />
+          <span className="mt-1 block text-xs text-slate-500">
+            {lookupApplied && lookupFluidPerBasis !== null
+              ? 'Calculated from the saved drink’s declared volume per reference portion; you can adjust it.'
+              : 'If you do not know the volume, leave blank. A serving count is not automatically converted to ml.'}
+          </span>
         </label>}
       </div>
       {kind === 'beverage' && (effectiveUnit === 'ml' || effectiveUnit === 'fl-oz') && <p className="text-xs text-slate-600">Logged fluid volume will be calculated from the entered {effectiveUnit}. Drink calories are counted only once.</p>}
