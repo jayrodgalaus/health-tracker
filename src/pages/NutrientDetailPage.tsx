@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Link, useParams } from 'react-router-dom'
 import { PageInfoLink } from '../components/PageInfoLink'
 import { listIntakeForDay } from '../data/intakeRepository'
+import { readDayLocked } from '../data/dayRepository'
 import type { FoodEntry } from '../domain/models'
 import { aggregateIntake, isPlainWaterEntry } from '../domain/nutrition'
 import { NUTRIENT_LABELS } from '../features/nutrition/NutritionFields'
@@ -11,12 +12,13 @@ import {
 import { parseLocalDay } from '../lib/localDate'
 
 function IntakeGroup({
-  title, entries, field, dayKey
+  title, entries, field, dayKey, locked
 }: {
   title: string
   entries: readonly FoodEntry[]
   field: DisplayNutrientField
   dayKey: string
+  locked: boolean
 }) {
   const dateQuery = '?date=' + encodeURIComponent(dayKey)
   return <section className="space-y-3" aria-label={title}>
@@ -32,10 +34,10 @@ function IntakeGroup({
                 <p className="mt-1 text-sm text-slate-600">
                   {entry.quantity} {entry.unit}{entry.kind === 'food' && entry.meal ? ' · ' + entry.meal : ''}
                 </p>
-                <Link className="mt-2 inline-flex min-h-10 items-center text-sm font-semibold text-evergreen-700 underline"
+                {!locked &&                 <Link className="mt-2 inline-flex min-h-10 items-center text-sm font-semibold text-evergreen-700 underline"
                   to={`/log/${entry.kind === 'food' ? 'food' : 'drink'}${dateQuery}&edit=${encodeURIComponent(entry.id)}`}>
                   Edit entry
-                </Link>
+                </Link>}
               </div>
               <span className="shrink-0 text-right text-base font-bold tabular-nums text-slate-900"
                 aria-label={amount === null || amount === undefined ? 'Unknown nutrient amount' : undefined}>
@@ -57,6 +59,7 @@ export function NutrientDetailPage() {
     () => dayKey && field ? listIntakeForDay(dayKey) : Promise.resolve([]),
     [dayKey, field], undefined
   )
+  const locked = useLiveQuery(() => dayKey ? readDayLocked(dayKey) : Promise.resolve(false), [dayKey], undefined)
 
   if (!dayKey || !field) {
     return <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-5">
@@ -91,7 +94,7 @@ export function NutrientDetailPage() {
       {foods.length + drinks.length === 0 ?
         <p className="rounded-xl bg-white p-4 text-sm text-slate-600">No foods or nutrient-bearing drinks recorded for this date.</p> :
         <div className="space-y-6">
-          <IntakeGroup title="Foods" entries={foods} field={field} dayKey={dayKey} />
+          <IntakeGroup title="Foods" entries={foods} field={field} dayKey={dayKey} locked={locked !== false} />
           <IntakeGroup title="Other drinks" entries={drinks} field={field} dayKey={dayKey} />
         </div>}
     </>}
