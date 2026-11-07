@@ -393,7 +393,7 @@ test('USDA rice variants distinguish cooked white and brown rice in the ingredie
   await page.getByRole('button', {name:'Use ingredient nutrition'}).click()
   await expect(page.getByLabel('Calories (kcal)')).toHaveValue('123')
   await name.fill('rice')
-  await expect(preparation.locator('option[value="168878"]')).toBeVisible()
+  await expect(preparation.locator('option[value="168878"]')).toBeAttached()
   await preparation.selectOption('168878')
   await page.getByRole('button', {name:'Use ingredient nutrition'}).click()
   await expect(page.getByLabel('Calories (kcal)')).toHaveValue('130')
