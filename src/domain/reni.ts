@@ -32,7 +32,7 @@ export function reniReferenceForDay(
   profile: Pick<Profile, 'birthDate' | 'ageYears' | 'ageAsOf' | 'sexForEquation'>,
   dayKey: LocalDay
 ): ReniReference | null {
-  const age = ageOnDay(profile, dayKey)
+  const age = ageOnDay({birthDate:profile.birthDate,ageYears:profile.ageYears??null,ageAsOf:profile.ageAsOf??null},dayKey)
   // The tracker does not provide pediatric reference-based evaluations.
   if (age === null || age < 18 || age > 120) return null
   if (field === 'proteinG') {
