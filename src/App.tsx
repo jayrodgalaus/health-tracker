@@ -17,6 +17,7 @@ import { GoalsSettingsPage } from './pages/GoalsSettingsPage'
 import { PreferencesPage } from './pages/PreferencesPage'
 import { AboutPage } from './pages/AboutPage'
 import { DocsPage } from './pages/DocsPage'
+import { DocsTopicPage } from './pages/DocsTopicPage'
 
 export type StorageStatus = 'opening' | 'ready' | 'unavailable'
 
@@ -64,6 +65,7 @@ export default function App() {
         <Route path="/settings/preferences" element={<PreferencesPage />} />
         <Route path="/settings/about" element={<AboutPage />} />
         <Route path="/settings/docs" element={<DocsPage />} />
+        <Route path="/settings/docs/:topic" element={<DocsTopicPage />} />
         <Route path="/settings/data" element={<DataPage />} />
         <Route path="*" element={<Navigate to="/today" replace />} />
       </Routes>
