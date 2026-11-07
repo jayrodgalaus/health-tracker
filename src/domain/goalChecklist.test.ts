@@ -30,11 +30,11 @@ describe('Calendar daily-goal checklist', () => {
       result('sodiumMg.pass', 'pass', 1905.3, 2000, 'mg', 'Sodium')
     ]))
     expect(rows[0]).toMatchObject({
-      label: 'Calories', icon: '✅', statusLabel: 'Aligned',
+      label: 'Calories', status: 'pass', statusLabel: 'Aligned',
       comparison: '1,499.5 kcal / 1,600 kcal'
     })
     expect(rows[1]).toMatchObject({
-      label: 'Sodium', icon: '✅', comparison: '1,905.3 mg / 2,000 mg'
+      label: 'Sodium', status: 'pass', comparison: '1,905.3 mg / 2,000 mg'
     })
   })
 
@@ -44,11 +44,11 @@ describe('Calendar daily-goal checklist', () => {
       result('proteinG.significantDeviation', 'significantDeviation', 10, 100, 'g', 'Protein')
     ]))
     expect(rows[0]).toMatchObject({
-      label: 'Fluid', icon: '⚠️', statusLabel: 'Needs attention',
+      label: 'Fluid', status: 'attention', statusLabel: 'Needs attention',
       comparison: '1,850 ml / 2,300 ml'
     })
     expect(rows[1]).toMatchObject({
-      label: 'Protein', icon: '❌', statusLabel: 'Significant deviation'
+      label: 'Protein', status: 'significantDeviation', statusLabel: 'Significant deviation'
     })
   })
 
@@ -56,7 +56,7 @@ describe('Calendar daily-goal checklist', () => {
     const partial = checklistItem(result('sodiumMg.notEvaluated', 'notEvaluated',
       1905.3, 2000, 'mg', 'Sodium'), summary(true, [], true))
     expect(partial).toMatchObject({
-      icon: '➖', statusLabel: 'Not evaluated',
+      status: 'notEvaluated', statusLabel: 'Not evaluated',
       comparison: '≥1,905.3 mg / 2,000 mg'
     })
     const missing = checklistItem(result('sodiumMg.notEvaluated', 'notEvaluated',
@@ -69,7 +69,7 @@ describe('Calendar daily-goal checklist', () => {
       result('energyKcal.pass', 'pass', 1600, 1600, 'kcal', 'Calories consumed'),
       summary(false, []))
     expect(provisional).toMatchObject({
-      icon: '➖', statusLabel: 'Not evaluated',
+      status: 'notEvaluated', statusLabel: 'Not evaluated',
       comparison: '1,600 kcal / 1,600 kcal'
     })
     expect(goalChecklist(summary(true, []))).toEqual([])
