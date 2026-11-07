@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useSearchParams } from 'react-router-dom'
-import { estimateWorkout } from '../../domain/activity'
+import { estimateWorkout, isDistanceActivity } from '../../domain/activity'
 import { ageOnDay } from '../../domain/profile'
 import type { ExerciseEnergyMethod, ExerciseEntry, ExerciseIntensity, Profile } from '../../domain/models'
 import { listWeights } from '../../data/weightRepository'
@@ -16,6 +16,13 @@ const inputClass = 'mt-1 block min-h-11 w-full rounded-xl border border-slate-30
 const buttonClass = 'min-h-11 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold'
 const activities = ['Walking', 'Running', 'Cycling', 'Strength training', 'Table tennis', 'Other'] as const
 const today = () => toLocalDay(new Date())
+
+/** A malformed unfinished input is unassessable, never silently used as zero. */
+function previewNumber(raw: string): number | null {
+  try { return parseNumber(raw, 'preview amount', true) }
+  catch { return Number.NaN }
+}
+
 
 function isAdult(profile: Profile, day: string): boolean {
   const age = ageOnDay({
@@ -36,12 +43,14 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
   const [custom, setCustom] = useState(editing && !match ? editing.activity : '')
   const [date, setDate] = useState(editing?.dayKey ?? selectedDay)
   const [time, setTime] = useState(editing?.timeOfDay ?? '')
-  const [duration, setDuration] = useState(editing ? String(editing.durationMinutes) : '')
+  const [duration, setDuration] = useState(editing?.durationMinutes == null ? '' : String(editing.durationMinutes))
+  const [distance, setDistance] = useState(editing?.distanceKm == null ? '' : String(editing.distanceKm))
   const [intensity, setIntensity] = useState<ExerciseIntensity | ''>(editing?.intensity ?? '')
   const [strength, setStrength] = useState(editing?.isStrengthTraining ?? (editing?.activity === 'Strength training'))
-  const [method, setMethod] = useState<ExerciseEnergyMethod>(
-    editing?.estimationMethod === 'metNet' || editing?.estimationMethod === 'manualActive'
-      ? editing.estimationMethod : 'unknown'
+  const [method, setMethod] = useState<'auto' | 'unknown' | 'metNet' | 'manualActive'>(
+    editing?.estimationMethod === 'distanceNet' || editing?.estimationMethod === 'activityTimeNet'
+      ? 'auto' : editing?.estimationMethod === 'metNet' || editing?.estimationMethod === 'manualActive'
+        ? editing.estimationMethod : editing ? 'unknown' : 'auto'
   )
   const [met, setMet] = useState(editing?.met == null ? '' : String(editing.met))
   const [manual, setManual] = useState(editing?.estimatedEnergyKcal == null ? '' : String(editing.estimatedEnergyKcal))
@@ -49,10 +58,30 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const adult = isAdult(profile, date)
-  const effectiveMethod = adult ? method : 'unknown'
+  const walkRun = isDistanceActivity(type)
+  const effectiveMethod: ExerciseEnergyMethod = !adult ? 'unknown'
+    : method === 'auto' && walkRun
+      ? distance.trim() ? 'distanceNet' : 'activityTimeNet'
+      : method === 'auto' ? 'unknown' : method
+  const weights = useLiveQuery(() => listWeights(), [], undefined)
+  const previewEntry: ExerciseEntry = {
+    id: 'preview', dayKey: date, startedAt: '', createdAt: '', updatedAt: '',
+    activity: type === 'Other' ? custom : type, durationMinutes: previewNumber(duration),
+    distanceKm: walkRun ? previewNumber(distance) : null,
+    intensity: intensity || null, estimationMethod: effectiveMethod,
+    estimatedEnergyKcal: effectiveMethod === 'manualActive' ? previewNumber(manual) : null,
+    met: effectiveMethod === 'metNet' ? previewNumber(met) : null
+  }
+  const preview = weights === undefined ? null : estimateWorkout(previewEntry, weights, adult)
+  const estimateText = preview?.kcal === null || preview?.kcal === undefined
+    ? 'Unavailable' : '≈ ' + Number(preview.kcal.toFixed(1)).toLocaleString() + ' kcal'
 
   function changeActivity(value: string) {
+    const switchingToWalkRun = isDistanceActivity(value) && !isDistanceActivity(type)
+    const switchingAway = !isDistanceActivity(value) && isDistanceActivity(type)
     setType(value)
+    if (switchingToWalkRun && method === 'unknown') setMethod('auto')
+    if (switchingAway && method === 'auto') setMethod('unknown')
     if (value === 'Strength training') setStrength(true)
     else if (type === 'Strength training') setStrength(false)
   }
@@ -66,7 +95,8 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
       await saveExercise({
         dayKey: date,
         activity,
-        durationMinutes: parseNumber(duration, 'duration')!,
+        durationMinutes: parseNumber(duration, 'duration', walkRun),
+        distanceKm: walkRun ? parseNumber(distance, 'distance (km)', true) : null,
         intensity: intensity || null,
         calorieMethod: effectiveMethod,
         met: effectiveMethod === 'metNet' ? parseNumber(met, 'MET') : null,
@@ -101,9 +131,12 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
         <label className="block text-sm font-semibold">Local time (optional)
           <input className={inputClass} type="time" value={time} onChange={event => setTime(event.target.value)} />
         </label>
-        <label className="block text-sm font-semibold">Duration (minutes)
-          <input className={inputClass} type="number" inputMode="decimal" min="0.1" max="1440" step="any" value={duration} onChange={event => setDuration(event.target.value)} placeholder="e.g. 30" required />
+        <label className="block text-sm font-semibold">Duration (minutes){walkRun ? ' (optional with distance)' : ''}
+          <input className={inputClass} type="number" inputMode="decimal" min="0.1" max="1440" step="any" value={duration} onChange={event => setDuration(event.target.value)} placeholder="e.g. 30" required={!walkRun} />
         </label>
+        {walkRun && <label className="block text-sm font-semibold">Distance (km, optional with duration)
+          <input className={inputClass} type="number" inputMode="decimal" min="0.01" max="300" step="any" value={distance} onChange={event => setDistance(event.target.value)} placeholder="e.g. 3.5" />
+        </label>}
         <label className="block text-sm font-semibold">Intensity (optional)
           <select className={inputClass} value={intensity} onChange={event => setIntensity(event.target.value as ExerciseIntensity | '')}>
             <option value="">Not classified</option>
@@ -118,12 +151,12 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
       <fieldset className="space-y-3 rounded-xl border border-slate-200 p-4">
         <legend className="px-1 text-sm font-bold">Additional workout-energy estimate (optional)</legend>
         <p className="text-xs leading-5 text-slate-600">
-          Activity duration is tracked regardless of energy method. No MET values or calories are inferred from a workout name or intensity.
-          Choose manual only if the source explicitly reports ACTIVE/incremental kcal, not total/gross calories.
+          Estimates are incremental above rest. Manual calories must be ACTIVE, not total/gross. Formulas and assumptions are in Docs.
         </p>
         {!adult ? <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900">
           This date has no confirmed adult age. Simple exercise logging is available, but adult-oriented energy estimates are not.
         </p> : <div className="space-y-2 text-sm">
+          {walkRun && <label className="flex min-h-11 items-center gap-2"><input type="radio" name="exercise-method" checked={method === 'auto'} onChange={() => setMethod('auto')} /> Estimate automatically (distance preferred, otherwise time)</label>}
           <label className="flex min-h-11 items-center gap-2"><input type="radio" name="exercise-method" checked={effectiveMethod === 'unknown'} onChange={() => setMethod('unknown')} /> No energy estimate</label>
           <label className="flex min-h-11 items-center gap-2"><input type="radio" name="exercise-method" checked={effectiveMethod === 'metNet'} onChange={() => setMethod('metNet')} /> Calculate net incremental kcal from a MET I provide</label>
           <label className="flex min-h-11 items-center gap-2"><input type="radio" name="exercise-method" checked={effectiveMethod === 'manualActive'} onChange={() => setMethod('manualActive')} /> Enter active/incremental kcal manually</label>
@@ -138,6 +171,19 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
       <label className="block text-sm font-semibold">Notes (optional, max 500 characters)
         <textarea className={inputClass} rows={2} maxLength={500} value={notes} onChange={event => setNotes(event.target.value)} />
       </label>
+      <section role="status" aria-live="polite" aria-atomic="true"
+        className="rounded-xl border border-evergreen-200 bg-evergreen-50 p-4">
+        <h4 className="text-sm font-semibold text-evergreen-900">Estimated additional burned kcal</h4>
+        <p className="mt-1 text-2xl font-bold tabular-nums text-evergreen-900">{weights === undefined ? 'Calculating…' : estimateText}</p>
+        <p className="mt-1 text-xs text-evergreen-800">
+          {!adult ? 'Adult-oriented estimate unavailable for this date.'
+            : effectiveMethod === 'distanceNet' ? 'Based on distance and recorded weight.'
+            : effectiveMethod === 'activityTimeNet' ? 'Based on time, a typical activity MET and recorded weight.'
+            : effectiveMethod === 'metNet' ? 'Based on supplied MET, time and recorded weight.'
+            : effectiveMethod === 'manualActive' ? 'Manually entered active kcal.'
+            : 'No estimate selected.'}
+        </p>
+      </section>
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}
       <div className="flex flex-wrap gap-2">
         <button type="submit" disabled={saving} className="min-h-11 rounded-xl bg-evergreen-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{saving ? 'Saving…' : editing ? 'Save changes' : 'Save exercise'}</button>
@@ -206,7 +252,7 @@ export function ExerciseLog({ profile }: { profile: Profile }) {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h4 className="font-semibold">{entry.activity}</h4>
-                <p className="mt-1 text-xs text-slate-600">{entry.timeOfDay ? `${entry.timeOfDay} · ` : ''}{entry.durationMinutes} min · {entry.intensity ?? 'Unclassified intensity'}{entry.isStrengthTraining ? ' · Strength' : ''}</p>
+                <p className="mt-1 text-xs text-slate-600">{entry.timeOfDay ? `${entry.timeOfDay} · ` : ''}{entry.durationMinutes === null ? 'Duration not recorded' : entry.durationMinutes + ' min'}{entry.distanceKm != null ? ' · ' + entry.distanceKm + ' km' : ''} · {entry.intensity ?? 'Unclassified intensity'}{entry.isStrengthTraining ? ' · Strength' : ''}</p>
                 <p className="mt-2 text-sm">
                   Additional workout kcal: {!adult ? 'Not evaluated (adult model)' : estimated?.kcal == null ? 'Unknown' : `≈ ${Number(estimated.kcal.toFixed(1))} kcal`}
                 </p>

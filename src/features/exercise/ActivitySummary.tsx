@@ -30,7 +30,7 @@ export function ActivitySummary({ dayKey, profile, dayActivities, weekActivities
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h3 className="text-xs font-semibold text-slate-600">Workout minutes</h3>
-          <p className="mt-3 text-xl font-bold">{day.loggedMinutes === null ? 'Not logged' : `${Number(day.loggedMinutes.toFixed(1))} min`}</p>
+          <p className="mt-3 text-xl font-bold">{day.loggedMinutes === null ? 'Not recorded' : `${day.missingDurationEntries ? 'At least ' : ''}${Number(day.loggedMinutes.toFixed(1))} min`}</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h3 className="text-xs font-semibold text-slate-600">Estimated additional workout kcal</h3>
@@ -46,16 +46,17 @@ export function ActivitySummary({ dayKey, profile, dayActivities, weekActivities
       <div className="rounded-2xl border border-slate-200 bg-white p-4">
         <h3 className="font-semibold">This week's logged sessions</h3>
         {week.loggedMinutes === null ? (
-          <p className="mt-3 text-sm text-slate-600">No exercise logged this week. This is not a judgment about your activity.</p>
+          <p className="mt-3 text-sm text-slate-600">{week.entries > 0 ? `${week.entries} session(s) recorded without duration; minutes remain unknown.` : 'No exercise logged this week. This is not a judgment about your activity.'}</p>
         ) : (
+          <>{week.missingDurationEntries > 0 && <p className="mt-2 text-xs text-slate-600">{week.missingDurationEntries} distance-only session(s) have no recorded minutes.</p>}
           <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-            <div><dt className="text-xs text-slate-600">Total logged</dt><dd className="mt-1 font-semibold">{week.loggedMinutes} min</dd></div>
-            <div><dt className="text-xs text-slate-600">Moderate</dt><dd className="mt-1 font-semibold">{week.moderateMinutes} min</dd></div>
-            <div><dt className="text-xs text-slate-600">Vigorous</dt><dd className="mt-1 font-semibold">{week.vigorousMinutes} min</dd></div>
-            <div><dt className="text-xs text-slate-600">Light</dt><dd className="mt-1 font-semibold">{week.lightMinutes} min</dd></div>
-            <div><dt className="text-xs text-slate-600">Unclassified intensity</dt><dd className="mt-1 font-semibold">{week.unclassifiedMinutes} min</dd></div>
+            <div><dt className="text-xs text-slate-600">Total logged</dt><dd className="mt-1 font-semibold">{week.missingDurationEntries ? 'At least ' : ''}{week.loggedMinutes} min</dd></div>
+            <div><dt className="text-xs text-slate-600">Moderate</dt><dd className="mt-1 font-semibold">{week.moderateMinutes === null ? 'Not recorded' : `${week.moderateMinutes} min`}</dd></div>
+            <div><dt className="text-xs text-slate-600">Vigorous</dt><dd className="mt-1 font-semibold">{week.vigorousMinutes === null ? 'Not recorded' : `${week.vigorousMinutes} min`}</dd></div>
+            <div><dt className="text-xs text-slate-600">Light</dt><dd className="mt-1 font-semibold">{week.lightMinutes === null ? 'Not recorded' : `${week.lightMinutes} min`}</dd></div>
+            <div><dt className="text-xs text-slate-600">Unclassified intensity</dt><dd className="mt-1 font-semibold">{week.unclassifiedMinutes === null ? 'Not recorded' : `${week.unclassifiedMinutes} min`}</dd></div>
             <div><dt className="text-xs text-slate-600">Strength days recorded</dt><dd className="mt-1 font-semibold">{week.loggedStrengthDays} days</dd></div>
-          </dl>
+          </dl></>
         )}
       </div>
     </section>

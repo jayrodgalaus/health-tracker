@@ -56,11 +56,55 @@ describe('IndexedDB exercise repository', () => {
     expect(await database.exerciseEntries.count()).toBe(0)
   })
 
+  it('persists distance-only walking, edits it to timed running, and retains genuine unknown minutes', async () => {
+    const name = 'walk-run-distance-persistence'
+    const first = make(name)
+    const distanceOnly = await saveExercise({
+      ...base, activity: 'Walking', durationMinutes: null, distanceKm: 5,
+      calorieMethod: 'distanceNet', intensity: 'light'
+    }, undefined, first, '2026-11-06')
+    expect(distanceOnly).toMatchObject({
+      durationMinutes: null, distanceKm: 5, estimationMethod: 'distanceNet',
+      estimatedEnergyKcal: null
+    })
+    first.close()
+    const reopened = make(name)
+    const stored = (await listExerciseForDay('2026-11-06', reopened))[0]
+    expect(stored).toMatchObject({ durationMinutes: null, distanceKm: 5 })
+    await saveWeight('2026-11-05', 70, reopened, '2026-11-06')
+    expect(calculateActivityDay('2026-11-06', [stored!], await listWeights(reopened), true)).toMatchObject({
+      loggedMinutes: null, missingDurationEntries: 1, knownIncrementalKcal: 210
+    })
+    const changed = await saveExercise({
+      ...base, activity: 'Running', durationMinutes: 30, distanceKm: 4,
+      calorieMethod: 'distanceNet'
+    }, distanceOnly.id, reopened, '2026-11-06')
+    expect(changed.id).toBe(distanceOnly.id)
+    expect(calculateActivityDay('2026-11-06', [changed], await listWeights(reopened), true))
+      .toMatchObject({ loggedMinutes: 30, knownIncrementalKcal: 252 })
+    const timeOnly = await saveExercise({
+      ...base, activity: 'Walking', durationMinutes: 25, distanceKm: null,
+      calorieMethod: 'activityTimeNet'
+    }, changed.id, reopened, '2026-11-06')
+    expect(timeOnly).toMatchObject({
+      durationMinutes: 25, distanceKm: null, estimationMethod: 'activityTimeNet'
+    })
+  })
+
   it('rejects impossible duration, timestamps, future day, gross/ambiguous method and bad numbers', async () => {
     const database = make('activity-validation')
     const invalid: ExerciseDraft[] = [
       { ...base, durationMinutes: -1 },
       { ...base, durationMinutes: Infinity },
+      { ...base, durationMinutes: null },
+      { ...base, activity: 'Running', durationMinutes: null, distanceKm: null },
+      { ...base, activity: 'Cycling', distanceKm: 3 },
+      { ...base, activity: 'Walking', distanceKm: -1 },
+      { ...base, activity: 'Running', distanceKm: Number.NaN },
+      { ...base, activity: 'Walking', distanceKm: 301 },
+      { ...base, activity: 'Running', durationMinutes: null, distanceKm: 3, calorieMethod: 'metNet', met: 3 },
+      { ...base, activity: 'Walking', distanceKm: null, calorieMethod: 'distanceNet' },
+      { ...base, activity: 'Running', distanceKm: 3, calorieMethod: 'activityTimeNet' },
       { ...base, dayKey: '2026-11-07' },
       { ...base, timeOfDay: '25:00' },
       { ...base, intensity: 'maximal' as ExerciseDraft['intensity'] },

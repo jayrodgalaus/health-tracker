@@ -1,6 +1,6 @@
 import { db, type HealthTrackerDatabase } from '../db/database'
 import type { ExerciseEnergyMethod, ExerciseEntry, ExerciseIntensity, LocalDay } from '../domain/models'
-import { weekBounds } from '../domain/activity'
+import { isDistanceActivity, weekBounds } from '../domain/activity'
 import { assertLocalDay } from '../domain/profile'
 import { toLocalDay } from '../lib/localDate'
 
@@ -8,7 +8,9 @@ import { toLocalDay } from '../lib/localDate'
 export interface ExerciseDraft {
   dayKey: LocalDay
   activity: string
-  durationMinutes: number
+  /** Optional for walking/running when distance is recorded. */
+  durationMinutes: number | null
+  distanceKm?: number | null
   intensity: ExerciseIntensity | null
   calorieMethod: ExerciseEnergyMethod
   /** Only for method=metNet, chosen and supplied by the user. */
@@ -25,8 +27,18 @@ export function validateExerciseDraft(draft: ExerciseDraft, today: LocalDay): vo
   if (draft.dayKey > today) throw new Error('Cannot log exercise on a future date.')
   const activity = draft.activity.trim()
   if (!activity || activity.length > 120) throw new Error('Exercise name must be 1 to 120 characters.')
-  if (!Number.isFinite(draft.durationMinutes) || draft.durationMinutes <= 0 || draft.durationMinutes > 1440) {
+  if (draft.durationMinutes !== null &&
+      (!Number.isFinite(draft.durationMinutes) || draft.durationMinutes <= 0 || draft.durationMinutes > 1440)) {
     throw new Error('Duration must be greater than zero and no more than 1,440 minutes.')
+  }
+  const distance = draft.distanceKm ?? null
+  const walkRun = isDistanceActivity(activity)
+  if (distance !== null && (!Number.isFinite(distance) || distance <= 0 || distance > 300)) {
+    throw new Error('Distance must be greater than zero and no more than 300 km.')
+  }
+  if (!walkRun && distance !== null) throw new Error('Distance is supported for walking and running only.')
+  if (draft.durationMinutes === null && (!walkRun || distance === null)) {
+    throw new Error(walkRun ? 'Enter duration or distance for walking/running.' : 'Enter a duration for this activity.')
   }
   if (draft.intensity !== null && !['light', 'moderate', 'vigorous'].includes(draft.intensity)) {
     throw new Error('Choose a valid intensity or leave it unspecified.')
@@ -41,9 +53,16 @@ export function validateExerciseDraft(draft: ExerciseDraft, today: LocalDay): vo
       throw new Error('Unknown energy method must not contain calorie or MET data.')
     }
   } else if (draft.calorieMethod === 'metNet') {
+    if (draft.durationMinutes === null) throw new Error('A duration is required for MET calculations.')
     if (draft.met === null || !Number.isFinite(draft.met) || draft.met < 1 || draft.met > 25 ||
         draft.manualActiveKcal !== null) {
       throw new Error('MET estimate requires a user-selected MET from 1 to 25 and no manual calories.')
+    }
+  } else if (draft.calorieMethod === 'distanceNet' || draft.calorieMethod === 'activityTimeNet') {
+    if (!walkRun || draft.manualActiveKcal !== null || draft.met !== null ||
+        (draft.calorieMethod === 'distanceNet' && distance === null) ||
+        (draft.calorieMethod === 'activityTimeNet' && (draft.durationMinutes === null || distance !== null))) {
+      throw new Error('Automatic walk/run estimate needs the matching distance or time input, without manual calories or MET.')
     }
   } else if (draft.calorieMethod === 'manualActive') {
     if (draft.manualActiveKcal === null || !Number.isFinite(draft.manualActiveKcal) ||
@@ -87,6 +106,7 @@ export async function saveExercise(
       dayKey: draft.dayKey,
       activity: draft.activity.trim(),
       durationMinutes: draft.durationMinutes,
+      distanceKm: draft.distanceKm ?? null,
       intensity: draft.intensity,
       estimatedEnergyKcal: draft.calorieMethod === 'manualActive' ? draft.manualActiveKcal : null,
       estimationMethod: draft.calorieMethod,

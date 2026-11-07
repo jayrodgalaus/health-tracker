@@ -111,12 +111,31 @@ Only for a confirmed adult date with required inputs:
   Its intent is non-exercise routine movement/thermic effects, not the
   conventional exercise-inclusive activity factor; `activityLevel`
   alone never selects it. Missing multiplier means unknown background.
-- **Estimated additional workouts** = sum of manually designated
-  **active/incremental** kcal or net MET kcal:
-  `max(0, MET−1) × 3.5 × recordedKg / 200 × minutes`.
-  Never infer MET from the activity name. For MET, use recorded
+- **Estimated additional workouts** = sum of exactly one method per entry:
+  manually designated **active/incremental** kcal, user-provided net MET kcal
+  (`max(0, MET−1) × 3.5 × recordedKg / 200 × minutes`), or for specifically
+  selected walking/running the new approximate **automatic** estimate.
+  Walking/running distance (when supplied) wins over time:
+  walking `0.6 × recordedKg × distanceKm`, running
+  `0.9 × recordedKg × distanceKm`. Without distance but with duration,
+  walking uses 3.8 MET and running 9.3 MET in the net MET equation.
+  The flat-ground distance factors are rounded representative adult activity
+  costs derived from the 2024 Adult Compendium
+  (https://pacompendium.com/walking/ and https://pacompendium.com/running/).
+  These defaults are explicit exceptions to the rule against inferring MET
+  from arbitrary activity names. They are rough estimates; pace, grade,
+  body mechanics and terrain matter. Only one calorie method is counted.
+  For all calculated methods, use recorded
   weight on or before the workout day, explicitly identifying any
   carried-forward older weight. Future or duplicate legacy weights are rejected.
+- **Distance-only sessions** retain `durationMinutes: null`; the user has
+  recorded distance, not time. Daily/weekly minute summaries show known
+  minutes as partial when such a session exists. No guessed minutes or
+  synthetic energy measurements are stored. The exercise preview calls the
+  same pure calculation as the saved day and charts, updating immediately
+  as inputs change. New `distanceKm`, `distanceNet` and `activityTimeNet`
+  fields/methods are backward compatible with Dexie v2 and legacy JSON
+  backups (the old mandatory numeric-duration records remain accepted).
 - **Estimated total daily expenditure** = background + additional workouts,
   only for a marked-complete day where every logged workout has known incremental
   energy. A marked-complete day with no workouts recorded contributes a

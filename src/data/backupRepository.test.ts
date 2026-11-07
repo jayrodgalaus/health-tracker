@@ -105,6 +105,36 @@ describe('complete local JSON backup and restore',()=>{
     expect((await readLocalBackup(database)).tables.appSettings).toEqual(restored.tables.appSettings)
     database.close()
   })
+  it('round-trips distance-only workout energy metadata, preserves legacy logs and rejects invalid distance', async () => {
+    const database = newDb('backup-walk-distance')
+    await seed(database)
+    const original = await readLocalBackup(database)
+    expect(validateBackup(original).tables.exerciseEntries[0]?.durationMinutes).toBe(30)
+    const withDistance = structuredClone(original)
+    const exercise = withDistance.tables.exerciseEntries[0]!
+    exercise.activity = 'Walking'
+    exercise.durationMinutes = null
+    exercise.distanceKm = 4.5
+    exercise.estimationMethod = 'distanceNet'
+    exercise.met = null
+    await replaceLocalData(withDistance, database)
+    const roundtrip = parseBackupJson(JSON.stringify(await readLocalBackup(database)))
+    expect(roundtrip.tables.exerciseEntries[0]).toMatchObject({
+      durationMinutes: null, distanceKm: 4.5, estimationMethod: 'distanceNet',
+      estimatedEnergyKcal: null
+    })
+    const invalidDistance = structuredClone(roundtrip)
+    invalidDistance.tables.exerciseEntries[0]!.distanceKm = 0
+    await expect(replaceLocalData(invalidDistance, database)).rejects.toThrow(/invalid number/)
+    const incompatibleActivity = structuredClone(roundtrip)
+    incompatibleActivity.tables.exerciseEntries[0]!.activity = 'Cycling'
+    await expect(replaceLocalData(incompatibleActivity, database)).rejects.toThrow(/distance/)
+    const invalidTime = structuredClone(roundtrip)
+    invalidTime.tables.exerciseEntries[0]!.estimationMethod = 'activityTimeNet'
+    await expect(replaceLocalData(invalidTime, database)).rejects.toThrow(/duration/)
+    expect((await readLocalBackup(database)).tables.exerciseEntries).toEqual(roundtrip.tables.exerciseEntries)
+    database.close()
+  })
   it('round-trips lookup provenance and rejects a forged source code', async () => {
     const database = newDb('lookup-provenance')
     await seed(database)

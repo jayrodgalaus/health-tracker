@@ -23,16 +23,17 @@ export function WeekActivityChart({ weeks }: { weeks:readonly WeekTrend[] }) {
       {weeks.map(week=><li key={week.start} className="space-y-2">
         <div className="flex flex-wrap justify-between gap-2 text-xs text-slate-700">
           <strong>{week.start} – {week.end}</strong>
-          <span>{week.loggedMinutes===null?'No activity logged':week.loggedMinutes+' min logged'} · {week.strengthDays===null?'Strength days unknown':week.strengthDays+' strength days logged'}</span>
+          <span>{week.loggedMinutes===null?(week.missingDurationEntries?'Minutes not recorded':'No activity logged'):(week.missingDurationEntries?'At least ':'')+week.loggedMinutes+' min logged'} · {week.strengthDays===null?'Strength days unknown':week.strengthDays+' strength days logged'}</span>
         </div>
         {week.loggedMinutes!==null?
           <div className="flex h-4 overflow-hidden rounded-full bg-slate-100" role="img"
-            aria-label={parts.map(part=>part.name+': '+(week[part.key]??0)+' minutes').join('; ')}>
+            aria-label={parts.map(part=>part.name+': '+(week[part.key]===null?'unknown':week[part.key]+' known minutes')).join('; ')+(week.missingDurationEntries?'; missing durations for '+week.missingDurationEntries+' sessions':'')}>
             {parts.map(part=><span key={part.key} className={part.color}
               style={{width:((week[part.key]??0)/Math.max(week.loggedMinutes!,1)*100)+'%'}} />)}
           </div>:<div className="h-3 rounded-full border border-dashed border-slate-300" aria-hidden="true" />}
+        {week.loggedMinutes===null&&week.missingDurationEntries>0&&<p className="text-xs text-slate-600">{week.missingDurationEntries} session(s) with unknown minutes.</p>}
         {week.loggedMinutes!==null&&<p className="text-xs text-slate-600">
-          {parts.map(part=>part.name+' '+week[part.key]+' min').join(' · ')}
+          {parts.map(part=>part.name+' '+(week[part.key]===null?'unknown':week[part.key]+' min')).join(' · ')}{week.missingDurationEntries?' · '+week.missingDurationEntries+' distance-only session(s) without recorded minutes':''}
         </p>}
       </li>)}
     </ul>

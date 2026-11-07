@@ -34,6 +34,7 @@ export interface WeekTrend {
   start: LocalDay
   end: LocalDay
   loggedMinutes: number | null
+  missingDurationEntries: number
   lightMinutes: number | null
   moderateMinutes: number | null
   vigorousMinutes: number | null
@@ -139,7 +140,7 @@ export function buildTrends(
     const summary = calculateActivityWeek(weekStart, sources.activities)
     return {
       start: summary.start, end: summary.end,
-      loggedMinutes: summary.loggedMinutes, lightMinutes: summary.lightMinutes,
+      loggedMinutes: summary.loggedMinutes, missingDurationEntries: summary.missingDurationEntries, lightMinutes: summary.lightMinutes,
       moderateMinutes: summary.moderateMinutes, vigorousMinutes: summary.vigorousMinutes,
       unclassifiedMinutes: summary.unclassifiedMinutes, strengthDays: summary.loggedStrengthDays
     }

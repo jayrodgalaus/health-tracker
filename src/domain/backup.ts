@@ -201,19 +201,27 @@ function validateRecord(table:BackupTableName,raw:unknown,field:string){
       invalid(field,'water must have known zero kcal')
   } else if(table==='exerciseEntries'){
     const r=shape(raw,field,[
-      'id','dayKey','startedAt','activity','durationMinutes','intensity','estimatedEnergyKcal',
+      'id','dayKey','startedAt','activity','durationMinutes','distanceKm','intensity','estimatedEnergyKcal',
       'estimationMethod','met','isStrengthTraining','timeOfDay','notes',...dates
     ],['id','dayKey','startedAt','activity','durationMinutes','intensity','estimatedEnergyKcal','estimationMethod',...dates])
     common(r,field);day(r.dayKey,field+'.dayKey');iso(r.startedAt,field+'.startedAt')
-    text(r.activity,field+'.activity',120);numeric(r.durationMinutes,field+'.durationMinutes',0.000001,1440)
+    text(r.activity,field+'.activity',120)
+    numeric(r.durationMinutes,field+'.durationMinutes',0.000001,1440,true)
+    numeric(r.distanceKm,field+'.distanceKm',0.000001,300,true)
+    const walkRun=r.activity==='Walking'||r.activity==='Running'
+    if(r.distanceKm!=null&&!walkRun)invalid(field,'distance supported only for walking/running')
+    if(r.durationMinutes==null&&(!walkRun||r.distanceKm==null))invalid(field,'duration or walking/running distance required')
     choice(r.intensity,field+'.intensity',['light','moderate','vigorous'],true)
-    choice(r.estimationMethod,field+'.estimationMethod',['unknown','metNet','manualActive'],true)
+    choice(r.estimationMethod,field+'.estimationMethod',['unknown','metNet','manualActive','distanceNet','activityTimeNet'],true)
     numeric(r.estimatedEnergyKcal,field+'.estimatedEnergyKcal',0,6000,true)
     numeric(r.met,field+'.met',1,25,true)
     if(r.estimationMethod==='manualActive'&&r.estimatedEnergyKcal==null)invalid(field,'manual active kcal missing')
-    if(r.estimationMethod==='metNet'&&r.met==null)invalid(field,'MET missing')
+    if(r.estimationMethod==='metNet'&&(r.met==null||r.durationMinutes==null))invalid(field,'MET and duration required')
     if(r.estimationMethod==='manualActive'&&r.met!=null)invalid(field,'manual active kcal cannot also contain a MET')
     if(r.estimationMethod==='metNet'&&r.estimatedEnergyKcal!=null)invalid(field,'MET method cannot also store manual kcal')
+    if(r.estimationMethod==='distanceNet'&&(!walkRun||r.distanceKm==null))invalid(field,'distance method needs walking/running distance')
+    if(r.estimationMethod==='activityTimeNet'&&(!walkRun||r.durationMinutes==null||r.distanceKm!=null))invalid(field,'time method needs walking/running duration without distance')
+    if((r.estimationMethod==='distanceNet'||r.estimationMethod==='activityTimeNet')&&(r.met!=null||r.estimatedEnergyKcal!=null))invalid(field,'automatic method cannot store MET or manual kcal')
     if(r.estimationMethod==='unknown'&&(r.met!=null||r.estimatedEnergyKcal!=null))invalid(field,'unknown energy method cannot contain an energy figure')
     if(r.isStrengthTraining!==undefined&&typeof r.isStrengthTraining!=='boolean')invalid(field,'invalid strength flag')
     if(r.timeOfDay!=null&&!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(r.timeOfDay as string))invalid(field,'invalid time')

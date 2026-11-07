@@ -286,6 +286,57 @@ test('nutrient cards open per-entry food and drink pages with dash for unknown a
   await expect(page.getByRole('alert')).toContainText('Invalid date or nutrient')
 })
 
+test('walking and running prefer distance or fall back to time with live kcal and editable distance-only sessions', async ({page}) => {
+  await onboard(page)
+  await page.goto('/log/exercise')
+  const day = await page.getByLabel('Date', {exact: true}).inputValue()
+  const duration = page.getByLabel(/Duration \(minutes\)/)
+  const distance = page.getByLabel(/Distance \(km/)
+
+  await expect(page.getByRole('heading', {name:'Estimated additional burned kcal'})).toBeVisible()
+  await expect(page.getByText('Unavailable', {exact:true})).toBeVisible()
+  await distance.fill('3')
+  await expect(page.getByText('≈ 126 kcal', {exact:true})).toBeVisible()
+  await duration.fill('30')
+  await expect(page.getByText('≈ 126 kcal', {exact:true})).toBeVisible()
+  await distance.fill('4')
+  await expect(page.getByText('≈ 168 kcal', {exact:true})).toBeVisible()
+  await duration.fill('')
+  await expect(page.getByText('≈ 168 kcal', {exact:true})).toBeVisible()
+  await page.getByRole('button', {name:'Save exercise'}).click()
+  await expect(page.getByTestId('app-toast')).toContainText('Exercise saved.')
+
+  await page.goto('/calendar/' + day)
+  await expect(page.getByText('Duration not recorded')).toBeVisible()
+  await expect(page.getByText('4 km')).toBeVisible()
+  await expect(page.getByRole('heading',{name:'Estimated additional workout kcal'}).locator('..').getByText('168 kcal',{exact:true})).toBeVisible()
+  await page.getByRole('heading', {name:'Walking',exact:true}).locator('..')
+    .getByRole('link',{name:'Edit / delete'}).click()
+  await expect(page.getByLabel(/Distance \(km/)).toHaveValue('4')
+  await expect(page.getByLabel(/Duration \(minutes\)/)).toHaveValue('')
+  await expect(page.getByText('≈ 168 kcal', {exact:true})).toBeVisible()
+  await page.getByLabel(/Distance \(km/).fill('5')
+  await expect(page.getByText('≈ 210 kcal',{exact:true})).toBeVisible()
+  await page.getByRole('button',{name:'Save changes'}).click()
+  await expect(page.getByTestId('app-toast')).toContainText('Exercise updated.')
+
+  await page.goto('/log/exercise?date=' + day)
+  await page.getByLabel('Activity').selectOption('Running')
+  await page.getByLabel(/Duration \(minutes\)/).fill('30')
+  await expect(page.getByText('≈ 305 kcal',{exact:true})).toBeVisible()
+  await page.getByLabel(/Distance \(km/).fill('3')
+  await expect(page.getByText('≈ 189 kcal',{exact:true})).toBeVisible()
+  await page.getByLabel(/Distance \(km/).fill('')
+  await expect(page.getByText('≈ 305 kcal',{exact:true})).toBeVisible()
+  await page.getByRole('button',{name:'Save exercise'}).click()
+  await expect(page.getByTestId('app-toast')).toContainText('Exercise saved.')
+
+  await page.goto('/calendar/' + day)
+  await expect(page.getByText('Estimated additional workout kcal')).toBeVisible()
+  // 5 km walking (210) + 30-minute running (305.025); no duplicate distance/time energy.
+  await expect(page.getByText('515 kcal',{exact:true})).toBeVisible()
+})
+
 test('save confirmations appear as dismissible transient toasts outside the Log form', async ({page}) => {
   await onboard(page)
   // Onboarding records today's initial weight; use an unlogged historical date.
