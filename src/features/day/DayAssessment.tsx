@@ -37,7 +37,6 @@ export function DayAssessment({ summary, fullRules = false }: { summary?: DailyS
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 id="day-assessment-heading" className="text-lg font-bold">Daily goal alignment</h2>
-          <p className="mt-1 text-xs text-slate-600">Rule version {evalResult.evaluationRuleVersion} · User-selected tracking targets, not medical advice</p>
         </div>
         <span className={'inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold ' + style.className}>
           <span aria-hidden="true">{style.symbol}</span>{style.label}
@@ -56,7 +55,6 @@ export function DayAssessment({ summary, fullRules = false }: { summary?: DailyS
           className="min-h-11 rounded-xl bg-evergreen-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
           {pending ? 'Saving…' : evalResult.isComplete ? 'Reopen day' : 'Mark day complete'}
         </button> : <p className="text-sm text-slate-600">Future dates cannot be marked complete.</p>}
-        {evalResult.isComplete && <span className="text-xs text-slate-600">Editing logs recalculates this result immediately.</span>}
       </div>
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}
       {notice && <p role="status" className="text-sm text-evergreen-800">{notice}</p>}
@@ -73,13 +71,6 @@ export function DayAssessment({ summary, fullRules = false }: { summary?: DailyS
               <p className="mt-1 text-xs text-slate-500">Recorded: {result.actual === null ? 'unknown' : result.actual + ' ' + result.unit} · Target: {result.target === null ? 'not configured' : result.target + ' ' + result.unit}</p>
             </li>)}
           </ol>}
-        <p className="mt-3 text-xs leading-5 text-slate-500">
-          Energy alignment: within ±{evalResult.ruleSettings.energyAlignedPercent}% / attention through ±{evalResult.ruleSettings.energyAttentionPercent}% / large deviation beyond that.
-          Minimum-goal metrics: aligned at or above target; attention when below target but at least {evalResult.ruleSettings.minimumLargeDeviationPercent}%;
-          large deviation below {evalResult.ruleSettings.minimumLargeDeviationPercent}%. Sodium significant above {evalResult.ruleSettings.sodiumLargeDeviationPercent}% over the chosen upper tracking limit.
-          Incomplete measurements cannot yield an overall on/off-target status.
-          Current rules may recompute historical days; raw entries and effective-dated goals are preserved.
-        </p>
       </details>
     </section>
   )

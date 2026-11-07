@@ -173,7 +173,7 @@ export function FoodLookupCombobox({ name, kind, inputClass, onNameChange, onCho
         {loading ? 'Searching…' : 'Search online'}
       </button>
     </div>
-    <p id={listId+'-hint'} className="text-xs leading-5 text-slate-600">
+    <p id={listId+'-hint'} className="sr-only">
       Saved foods and USDA ingredient varieties appear as you type, including offline.
       Branded products require clicking Search online; only that query is sent to Open Food Facts,
       never your profile or logs.
@@ -202,11 +202,6 @@ export function FoodLookupCombobox({ name, kind, inputClass, onNameChange, onCho
         {name.toLowerCase().includes('blanch') && <p className="text-xs text-amber-900">
           USDA has cooked boiled/drained cabbage; that is a comparison, not an exact measurement of blanched cabbage.
         </p>}
-        <p className="text-xs text-slate-700">
-          USDA FoodData Central SR Legacy (2018). All amounts are per 100 g of the
-          named raw or prepared food. Pick the actual variety and preparation, then enter
-          the grams you ate. Reference values are estimates.
-        </p>
       </section>
     )}
     {ingredientLoadError && <p role="alert" className="text-sm text-rose-800">{ingredientLoadError}</p>}
@@ -234,13 +229,5 @@ export function FoodLookupCombobox({ name, kind, inputClass, onNameChange, onCho
     {loading && <p role="status" className="text-sm text-slate-600">Looking up products…</p>}
     {message && <p role="status" className="text-sm text-slate-600">{message}</p>}
     {searchError && <p role="alert" className="text-sm text-rose-800">{searchError}</p>}
-    <p className="text-xs text-slate-600">
-      Product information from <a href="https://world.openfoodfacts.org/" target="_blank"
-        rel="noopener noreferrer" className="font-semibold text-evergreen-700 underline">Open Food Facts</a>
-      {' '}(<a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank"
-        rel="noopener noreferrer" className="underline">ODbL</a>).
-      Community data may be incomplete or inaccurate; check the actual package label.
-      USDA ingredients use a separate, bundled offline reference catalog.
-    </p>
   </div>
 }

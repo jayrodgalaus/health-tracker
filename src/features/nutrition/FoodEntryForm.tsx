@@ -199,31 +199,24 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
         </label>
         {kind === 'beverage' && effectiveUnit !== 'ml' && effectiveUnit !== 'fl-oz' && <label className="block text-sm font-medium">Total drink volume in logged portion (ml)
           <input className={input} type="number" step="any" min="0" inputMode="decimal" placeholder="Unknown" value={calculatedLookupFluid} onChange={event => { setFluid(event.target.value); setFluidChanged(true) }} />
-          <span className="mt-1 block text-xs text-slate-500">
-            {lookupApplied && lookupFluidPerBasis !== null
-              ? 'Calculated from the saved drink’s declared volume per reference portion; you can adjust it.'
-              : 'If you do not know the volume, leave blank. A serving count is not automatically converted to ml.'}
-          </span>
         </label>}
       </div>
-      {kind === 'beverage' && (effectiveUnit === 'ml' || effectiveUnit === 'fl-oz') && <p className="text-xs text-slate-600">Logged fluid volume will be calculated from the entered {effectiveUnit}. Drink calories are counted only once.</p>}
       {nutritionSource && <p className="text-xs leading-5 text-slate-600">
         Nutrition source: {nutritionSource.provider === 'usda-sr-legacy' ? (
           <>
             <a className="font-semibold text-evergreen-700 underline" target="_blank" rel="noopener noreferrer"
               href={usdaFoodUrl(nutritionSource.fdcId) ?? 'https://fdc.nal.usda.gov/'}>
               USDA FoodData Central SR Legacy · #{nutritionSource.fdcId}</a>
-            {' '}(April 2018; per 100 g as prepared in the named record).
-            These are reference averages. Blanched, boiled and steamed preparations can differ.
+            {' '}(April 2018).
           </>
         ) : (
           <>
             <a className="font-semibold text-evergreen-700 underline" target="_blank" rel="noopener noreferrer"
               href={externalFoodUrl(nutritionSource.productCode) ?? 'https://world.openfoodfacts.org/'}>
               Open Food Facts product {nutritionSource.productCode}</a>.
-            Community-contributed label values may be incomplete or inaccurate.
+            {' '}
           </>
-        )} Review the values before logging.
+        )}
       </p>}
       <NutritionFields values={nutrition} onChange={(field, value) => setNutrition(previous => ({ ...previous, [field]: value }))} />
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}

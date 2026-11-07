@@ -12,9 +12,6 @@ export function WeekActivityChart({ weeks }: { weeks:readonly WeekTrend[] }) {
     aria-labelledby="activity-week-heading">
     <div>
       <h3 id="activity-week-heading" className="font-bold">Weekly recorded activity</h3>
-      <p className="mt-1 text-xs leading-5 text-slate-600">
-        Full Monday–Sunday weeks overlapping the selected range. Strength days are distinct dates with logged strength training. Unlogged rest days are neutral.
-      </p>
     </div>
     <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs">
       {parts.map(part=><span key={part.key} className="flex items-center gap-2">

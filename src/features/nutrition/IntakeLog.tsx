@@ -117,7 +117,6 @@ export function IntakeLog() {
           {editor.type === 'water' ? (
             <form onSubmit={submitWater} className="space-y-4 rounded-2xl border border-evergreen-100 bg-white p-4">
               <h3 className="text-lg font-bold">{editor.entry ? 'Edit water' : 'Log plain water'}</h3>
-              <p className="text-sm text-slate-600">Plain water is recorded as 0 kcal and the measured fluid amount. Other nutrients are not inferred from an unknown water label.</p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="block text-sm font-medium">Date
                   <input type="date" max={toLocalDay(new Date())} value={waterDay} onChange={event => setWaterDay(event.target.value)} className={dateInput} required />
@@ -185,7 +184,6 @@ export function IntakeLog() {
 
       <section aria-labelledby="recent-intake-title" className="space-y-3">
         <h2 id="recent-intake-title" className="text-lg font-bold">Recent entries</h2>
-        <p className="text-xs text-slate-600">Reuse a previous label snapshot without relying on a changed saved product.</p>
         {recent === undefined && <p role="status" className="text-sm text-slate-600">Loading recent entries…</p>}
         {recent?.filter(entry => entry.beverageType !== 'water').length === 0 && <p className="text-sm text-slate-600">Nothing to repeat yet.</p>}
         <div className="flex flex-wrap gap-2">

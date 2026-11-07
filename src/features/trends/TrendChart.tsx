@@ -80,9 +80,6 @@ export function TrendChart({ days, metric, profile }: Props) {
       </div>
       <p className="text-xs leading-5 text-slate-600">
         Known {unit} values range from {format(convert(summary.minimum!))} to {format(convert(summary.maximum!))}.
-        {metric==='weightKg'?' The line joins actual weight measurements only; no missing-date weights were created.':
-          ' Missing dates have no bar. Amber dashed bars represent partial known totals, not complete amounts.'}
-        {' '}Horizontally scroll to inspect dates; touch or hover bars/points for values.
       </p>
     </>}
     <details className="text-sm">

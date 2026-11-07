@@ -58,11 +58,6 @@ export function ActivitySummary({ dayKey, profile, dayActivities, weekActivities
           </dl>
         )}
       </div>
-      <p className="text-xs leading-5 text-slate-500">
-        MET-derived values use (MET − 1) × 3.5 × recorded weight in kg ÷ 200 × minutes, estimating energy above rest.
-        Manual values must represent active/incremental calories rather than gross burn.
-        These are approximate workout increments, **not total daily calories expended**; resting/background expenditure is not yet implemented.
-      </p>
     </section>
   )
 }
