@@ -86,6 +86,55 @@ describe('conservative reproducible goal alignment', () => {
     const water = { ...entry(0), id: 'water', kind: 'beverage' as const, beverageType: 'water' as const, fluidMl: 250 }
     expect(assess({ intake: [water] }).status).toBe('incomplete')
   })
+  it('assesses sodium at 1,905.3/2,000 mg when the other 3 of 16 entries are plain water', () => {
+    const items = Array.from({ length: 13 }, (_, i): FoodEntry => ({
+      ...entry(150, 'Food ' + i),
+      nutrientsSnapshot: { ...emptyNutrition(), energyKcal: 150, sodiumMg: i === 12 ? 105.3 : 150 }
+    }))
+    const water = Array.from({ length: 3 }, (_, i): FoodEntry => ({
+      ...entry(0, 'Water ' + i), kind: 'beverage', beverageType: 'water',
+      fluidMl: 250, nutrientsSnapshot: { ...emptyNutrition(), energyKcal: 0 }
+    }))
+    const sodiumGoal = {
+      ...goal(null), targets: { ...EMPTY_TARGETS, sodiumMg: 2000 }
+    }
+    const report = calculateDay(context({ intake: [...items, ...water], goal: sodiumGoal }), now)
+    const sodium = report.evaluation.results.find(r => r.label === 'Sodium')
+    expect(report.intake.nutrients.sodiumMg).toMatchObject({
+      knownAmount: 1905.3, knownEntryCount: 13, unknownEntryCount: 0,
+      totalEntryCount: 13, complete: true
+    })
+    expect(report.intake.fluids.knownAmount).toBe(750)
+    expect(sodium).toMatchObject({ state: 'pass', actual: 1905.3, target: 2000 })
+    expect(report.evaluation.status).toBe('onTarget')
+    const unknownDrink = {
+      ...entry(null, 'Unspecified tea'), kind: 'beverage' as const,
+      beverageType: 'other' as const, fluidMl: 200
+    }
+    const incomplete = calculateDay(context({
+      intake: [...items, ...water, unknownDrink], goal: sodiumGoal
+    }), now)
+    expect(incomplete.intake.nutrients.sodiumMg).toMatchObject({
+      knownEntryCount: 13, unknownEntryCount: 1, totalEntryCount: 14, complete: false
+    })
+    expect(incomplete.evaluation.results.find(r => r.label === 'Sodium')).toMatchObject({
+      state: 'notEvaluated'
+    })
+  })
+  it('keeps water-only nutrient goals unassessable while fluid goals can be assessed', () => {
+    const water: FoodEntry = {
+      ...entry(0, 'Water'), kind: 'beverage', beverageType: 'water', fluidMl: 250
+    }
+    const waterOnly = assess({
+      intake: [water], goal: {
+        ...goal(null),
+        targets: { ...EMPTY_TARGETS, sodiumMg: 2000, fluidMl: 250 }
+      }
+    })
+    expect(waterOnly.results.find(r => r.label === 'Sodium')?.state).toBe('notEvaluated')
+    expect(waterOnly.results.find(r => r.label === 'Logged fluid')?.state).toBe('pass')
+    expect(waterOnly.status).toBe('incomplete')
+  })
   it('repeats exactly for unchanged context and supplied calculatedAt', () => {
     expect(assess()).toEqual(assess())
   })
