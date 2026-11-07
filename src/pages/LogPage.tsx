@@ -16,7 +16,8 @@ export function LogPage({ profile }: { profile: Profile }) {
   const dayKey = selectedLogDay(searchParams.get('date'))
   const today = toLocalDay(new Date())
   const legacyAction = searchParams.get('add')
-  const review = useLiveQuery(() => db.dayReviews.get(dayKey), [dayKey], undefined)
+  // A missing review is a loaded, not-yet-completed day (null), not a pending query (undefined).
+  const review = useLiveQuery(async () => (await db.dayReviews.get(dayKey)) ?? null, [dayKey], undefined)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
