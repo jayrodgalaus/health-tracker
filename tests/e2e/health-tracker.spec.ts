@@ -313,6 +313,7 @@ test('five illustrated Calendar cards route to their own detailed sections and k
       blobRadius: parseFloat(getComputedStyle(blob).borderTopLeftRadius),
       pillRadius: parseFloat(getComputedStyle(pill).borderTopLeftRadius),
       pillBorder: getComputedStyle(pill).borderTopWidth,
+      pillBorderColor: getComputedStyle(pill).borderTopColor,
       pillBackground: getComputedStyle(pill).backgroundColor,
       circleBackground: getComputedStyle(circle).backgroundColor,
       circleWidth: circle.getBoundingClientRect().width,
@@ -326,6 +327,7 @@ test('five illustrated Calendar cards route to their own detailed sections and k
   expect(styling.blobRadius).toBeGreaterThanOrEqual(48)
   expect(styling.pillRadius).toBeGreaterThan(18)
   expect(styling.pillBorder).toBe('1px')
+  expect(styling.pillBorderColor).toBe(styling.circleBackground)
   expect(styling.pillBackground).not.toBe(styling.circleBackground)
   expect(styling.circleWidth).toBe(styling.circleHeight)
   const widths = await cards.getByRole('link').evaluateAll(links =>
