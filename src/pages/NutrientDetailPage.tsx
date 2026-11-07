@@ -95,7 +95,7 @@ export function NutrientDetailPage() {
         <p className="rounded-xl bg-white p-4 text-sm text-slate-600">No foods or nutrient-bearing drinks recorded for this date.</p> :
         <div className="space-y-6">
           <IntakeGroup title="Foods" entries={foods} field={field} dayKey={dayKey} locked={locked !== false} />
-          <IntakeGroup title="Other drinks" entries={drinks} field={field} dayKey={dayKey} />
+          <IntakeGroup title="Other drinks" entries={drinks} field={field} dayKey={dayKey} locked={locked !== false} />
         </div>}
     </>}
   </div>
