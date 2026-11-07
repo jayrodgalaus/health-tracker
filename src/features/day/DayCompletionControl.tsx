@@ -4,8 +4,8 @@ import { useToast } from '../../components/ToastProvider'
 
 /** Shared confirmation + completion behavior for Today, Log and Calendar. */
 export function DayCompletionControl({
-  dayKey, isComplete, disabled = false
-}: { dayKey: string; isComplete: boolean; disabled?: boolean }) {
+  dayKey, isComplete, disabled = false, compact = false
+}: { dayKey: string; isComplete: boolean; disabled?: boolean; compact?: boolean }) {
   const toast = useToast()
   const [confirming, setConfirming] = useState(false)
   const [pending, setPending] = useState(false)
@@ -27,11 +27,15 @@ export function DayCompletionControl({
     } finally { setPending(false) }
   }
 
-  return <div className="space-y-3">
+  return <div className={compact ? 'min-w-0' : 'space-y-3'}>
     <button type="button" disabled={disabled || pending}
+      aria-label={compact ? isComplete ? 'Reopen day' : 'Mark day complete' : undefined}
       onClick={() => { if (isComplete) void apply(false); else setConfirming(true) }}
-      className="min-h-11 rounded-xl bg-evergreen-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
-      {pending ? 'Saving…' : isComplete ? 'Reopen day' : 'Mark day complete'}
+      className={compact
+        ? 'min-h-11 shrink-0 rounded-xl border border-evergreen-600 bg-white px-3 py-2 text-sm font-semibold text-evergreen-700 hover:bg-emerald-50 disabled:opacity-50'
+        : 'min-h-11 rounded-xl bg-evergreen-600 px-4 py-2 text-sm font-semibold text-white hover:bg-evergreen-700 disabled:opacity-50'}>
+      {pending ? 'Saving…' : isComplete ? (compact ? 'Reopen' : 'Reopen day')
+        : (compact ? 'Mark complete' : 'Mark day complete')}
     </button>
     {confirming && !isComplete && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
       <div role="dialog" aria-modal="true"
