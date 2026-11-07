@@ -2,21 +2,27 @@ import type { MetricCoverage } from './nutrition'
 
 /** Optional user-defined daily *upper comparison* limits, not intake recommendations. */
 export interface NutrientComparisonLimits {
+  carbohydratesG: number | null
   sugarsG: number | null
   sodiumMg: number | null
 }
 
 export const EMPTY_NUTRIENT_COMPARISON_LIMITS: NutrientComparisonLimits = {
+  carbohydratesG: null,
   sugarsG: null,
   sodiumMg: null
 }
 
+export const MAX_CARBOHYDRATE_LIMIT_G = 2000
 export const MAX_SUGAR_LIMIT_G = 3000
 export const MAX_SODIUM_LIMIT_MG = 100000
 
 /** A blank limit disables the comparison. Zero is not a usable denominator. */
 export function validateNutrientComparisonLimits(limits: NutrientComparisonLimits): void {
-  const { sugarsG, sodiumMg } = limits
+  const { carbohydratesG, sugarsG, sodiumMg } = limits
+  if (carbohydratesG !== null && (!Number.isFinite(carbohydratesG) || carbohydratesG < 0.1 || carbohydratesG > MAX_CARBOHYDRATE_LIMIT_G)) {
+    throw new Error('Carbs limit must be between 0.1 and 2,000 g, or blank.')
+  }
   if (sugarsG !== null && (!Number.isFinite(sugarsG) || sugarsG < 0.1 || sugarsG > MAX_SUGAR_LIMIT_G)) {
     throw new Error('Sugar limit must be between 0.1 and 3,000 g, or blank.')
   }
