@@ -28,6 +28,7 @@ export async function readNutrientComparisonLimits(
 ): Promise<NutrientComparisonLimits> {
   const settings = await database.appSettings.get('local')
   return {
+    carbohydratesG: settings?.carbohydrateLimitG ?? EMPTY_NUTRIENT_COMPARISON_LIMITS.carbohydratesG,
     sugarsG: settings?.sugarLimitG ?? EMPTY_NUTRIENT_COMPARISON_LIMITS.sugarsG,
     sodiumMg: settings?.sodiumLimitMg ?? EMPTY_NUTRIENT_COMPARISON_LIMITS.sodiumMg
   }
@@ -59,6 +60,7 @@ export async function saveNutrientComparisonLimits(
     const settings: AppSettings = {
       ...previous, id: 'local',
       waterPresetsMl: previous?.waterPresetsMl ?? [...DEFAULT_WATER_PRESETS_ML],
+      carbohydrateLimitG: limits.carbohydratesG,
       sugarLimitG: limits.sugarsG, sodiumLimitMg: limits.sodiumMg,
       updatedAt: new Date().toISOString()
     }
