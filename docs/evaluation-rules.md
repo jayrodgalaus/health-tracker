@@ -73,10 +73,10 @@ Each rule includes its code, recorded value, chosen target, units, whether
 assessable and a human-readable explanation. If any configured rule lacks
 complete evidence, the overall status is **incomplete**—not off-target.
 
-### Optional sugar and sodium upper comparisons
+### Optional carbohydrates, sugar and sodium upper comparisons
 
 Settings → Preferences provides optional daily upper comparison limits for
-**total sugars (g/day)** and **sodium (mg/day)**. They are stored alongside
+**carbohydrates (g/day)**, **total sugars (g/day)** and **sodium (mg/day)**. They are stored alongside
 water quick-add preferences in local IndexedDB. No limits are preselected.
 When configured, Calendar day details compare the known recorded amount
 with each user-defined limit. Over 100% means more than that upper limit is
@@ -87,7 +87,7 @@ These are global display preferences, so changing them changes comparisons
 shown for any viewed historical date without rewriting log snapshots. They
 do **not** affect the effective-dated Goals, the sodium goal scoring rule,
 or daily evaluation statuses. Total sugars do not imply added sugars;
-no official RENI upper limit is inferred. Existing Dexie v2 settings and
+no official RENI upper limit is inferred for any of these nutrients. Existing Dexie v2 settings and
 backup files without these optional fields remain compatible.
 
 ## Optional expenditure calculation
