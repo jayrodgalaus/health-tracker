@@ -108,10 +108,21 @@ function coverage(values: (number | null | undefined)[]): MetricCoverage {
   }
 }
 
-/** Pure aggregation: each intake entry contributes exactly once; drinks carry fluid separately. */
+/** Only entries explicitly tagged as plain water are hydration-only.
+ * Do not infer this from the name: other beverages can have real nutrients.
+ * Retained original snapshots (including legacy water data) are not rewritten.
+ */
+export function isPlainWaterEntry(entry: FoodEntry): boolean {
+  return entry.kind === 'beverage' && entry.beverageType === 'water'
+}
+
+/** Pure aggregation: plain water contributes fluid but is excluded from every
+ * nutritional value and coverage denominator. Other drinks contribute once.
+ */
 export function aggregateIntake(entries: readonly FoodEntry[]): IntakeSummary {
+  const nutritionalEntries = entries.filter(entry => !isPlainWaterEntry(entry))
   const nutrients = Object.fromEntries(NUTRIENT_FIELDS.map(field => [
-    field, coverage(entries.map(entry => entry.nutrientsSnapshot[field]))
+    field, coverage(nutritionalEntries.map(entry => entry.nutrientsSnapshot[field]))
   ])) as Record<NutrientField, MetricCoverage>
   return {
     entries: entries.length,
