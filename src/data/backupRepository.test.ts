@@ -74,6 +74,29 @@ describe('complete local JSON backup and restore',()=>{
     expect(restored.tables.foodEntries[0]?.nutrientsSnapshot.energyKcal).toBe(300)
     reopened.close()
   })
+  it('round-trips optional nutrient comparison limits and rejects corrupt limits atomically', async () => {
+    const database = newDb('backup-nutrient-limits')
+    await seed(database)
+    const legacyBackup = await readLocalBackup(database)
+    // Previously exported settings contain only water presets; they remain valid.
+    expect(validateBackup(legacyBackup).tables.appSettings[0]?.sugarLimitG).toBeUndefined()
+    const withLimits = structuredClone(legacyBackup)
+    withLimits.tables.appSettings[0]!.sugarLimitG = 38.5
+    withLimits.tables.appSettings[0]!.sodiumLimitMg = 2100
+    await replaceLocalData(withLimits, database)
+    const restored = await readLocalBackup(database)
+    expect(restored.tables.appSettings[0]).toMatchObject({
+      waterPresetsMl: [100, 250, 400, 600], sugarLimitG: 38.5, sodiumLimitMg: 2100
+    })
+    const invalidSugar = structuredClone(restored)
+    invalidSugar.tables.appSettings[0]!.sugarLimitG = 0
+    await expect(replaceLocalData(invalidSugar, database)).rejects.toThrow(/invalid number/)
+    const invalidSodium = structuredClone(restored)
+    invalidSodium.tables.appSettings[0]!.sodiumLimitMg = Number.POSITIVE_INFINITY
+    await expect(replaceLocalData(invalidSodium, database)).rejects.toThrow(/invalid number/)
+    expect((await readLocalBackup(database)).tables.appSettings).toEqual(restored.tables.appSettings)
+    database.close()
+  })
   it('round-trips lookup provenance and rejects a forged source code', async () => {
     const database = newDb('lookup-provenance')
     await seed(database)
