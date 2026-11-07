@@ -1,3 +1,4 @@
+import { PageInfoLink } from '../components/PageInfoLink'
 import { Link, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { Profile } from '../domain/models'
@@ -26,6 +27,7 @@ export function DayDetailPage({ profile }: { profile: Profile }) {
   const last = toLocalDay(new Date())
   return <div className="space-y-7">
     <header className="space-y-3">
+      <PageInfoLink topic="day-detail" />
       <Link className="text-sm font-semibold text-evergreen-700 underline" to={'/calendar?month=' + dayKey.slice(0, 7)}>Back to {dayKey.slice(0, 7)} calendar</Link>
       <p className="text-sm font-semibold uppercase tracking-wide text-evergreen-700">Day detail · Phase 2</p>
       <h1 className="text-3xl font-bold tracking-tight">{dayKey}</h1>

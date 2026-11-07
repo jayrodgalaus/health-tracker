@@ -1,3 +1,4 @@
+import { PageInfoLink } from '../components/PageInfoLink'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Link, useSearchParams } from 'react-router-dom'
 import type { Profile } from '../domain/models'
@@ -33,9 +34,9 @@ export function TodayPage({ profile }: { profile: Profile }) {
   const dateQuery = '?date=' + encodeURIComponent(dayKey)
   return <div className="space-y-7">
     <header className="space-y-3">
+      <PageInfoLink topic="today" />
       <p className="text-sm font-semibold uppercase tracking-wide text-evergreen-700">{dayKey === today ? 'Today' : 'Historical day'} · {dayKey}</p>
       <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Your day, your pace.</h1>
-      <p className="max-w-xl text-sm leading-6 text-slate-600">Daily totals, target alignment and energy estimates are calculated from your own local records. Nothing is invented for unlogged entries.</p>
       <div className="flex flex-wrap items-end gap-2" aria-label="Day navigation">
         <button type="button" aria-label="Previous day" className="min-h-11 rounded-xl border border-slate-300 bg-white px-4 font-semibold"
           onClick={() => changeDay(addLocalDays(dayKey, -1))}>‹</button>

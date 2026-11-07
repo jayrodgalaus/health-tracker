@@ -1,3 +1,4 @@
+import { PageInfoLink } from '../components/PageInfoLink'
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { Profile } from '../domain/models'
@@ -38,12 +39,9 @@ export function TrendsPage({ profile }: { profile:Profile }) {
   }
   return <div className="space-y-7">
     <header>
+      <PageInfoLink topic="trends" />
       <p className="text-sm font-semibold uppercase tracking-wide text-evergreen-700">Trends · Phase 3</p>
       <h1 className="mt-2 text-3xl font-bold tracking-tight">Recorded history</h1>
-      <p className="mt-3 text-sm leading-6 text-slate-600">
-        Trends use the same daily calculations as Today and Calendar. Missing values stay blank.
-        Estimated expenditure and energy difference are not measured facts.
-      </p>
     </header>
     <section aria-label="Trend date filters" className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
       <h2 className="font-semibold">Choose date range</h2>
@@ -122,7 +120,6 @@ export function TrendsPage({ profile }: { profile:Profile }) {
           <div><dt className="text-xs text-slate-600">Off target</dt><dd className="font-bold">{series.adherence.offTarget}</dd></div>
           <div><dt className="text-xs text-slate-600">Incomplete / unassessed</dt><dd className="font-bold">{series.adherence.incomplete}</dd></div>
         </dl>
-        <p className="text-xs leading-5 text-slate-600">These are descriptive alignments against your selected tracking goals, not health grades. A rest day or unlogged date is neutral.</p>
       </section>
     </>}
   </div>

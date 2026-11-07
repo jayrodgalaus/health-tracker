@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 
 const sections = [
@@ -19,7 +19,7 @@ const sections = [
   {id:'glossary', label:'Glossary'}
 ] as const
 
-function Section({id, title, children}: {id:string; title:string; children:React.ReactNode}) {
+function Section({id, title, children}: {id:string; title:string; children:ReactNode}) {
   return <section id={id} className="scroll-mt-8 space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
     <h2 className="text-xl font-bold text-evergreen-900">{title}</h2>
     <div className="space-y-3 text-sm leading-7 text-slate-700">{children}</div>

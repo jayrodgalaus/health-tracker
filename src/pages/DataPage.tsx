@@ -1,3 +1,4 @@
+import { PageInfoLink } from '../components/PageInfoLink'
 import { useState, type ChangeEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -112,10 +113,10 @@ export function DataPage() {
   const importCounts=preview?backupCounts(preview):null
   return <div className="space-y-8">
     <header>
+      <PageInfoLink topic="data" />
       <Link to="/settings" className="text-sm font-semibold text-evergreen-700 underline">Back to Settings</Link>
       <p className="mt-5 text-sm font-semibold uppercase tracking-wide text-evergreen-700">Settings · Data and privacy</p>
       <h1 className="mt-2 text-3xl font-bold">Your local records</h1>
-      <p className="mt-3 text-sm leading-6 text-slate-600">Your data stays in this browser's IndexedDB. A backup is a portable JSON file and is not automatically encrypted or synced anywhere.</p>
     </header>
 
     {error&&<p role="alert" className="rounded-xl bg-rose-50 p-4 text-sm text-rose-900">{error}</p>}
@@ -129,7 +130,6 @@ export function DataPage() {
           {BACKUP_TABLES.map(key=><div key={key}><dt className="text-xs text-slate-600">{titles[key]}</dt><dd className="mt-1 font-semibold">{counts[key]}</dd></div>)}
         </dl>
       </>}
-      <p className="text-xs leading-5 text-slate-600">Clearing browser data, switching origin, losing this device or deleting the browser profile can erase these records. Back up regularly and store the file in a secure location.</p>
     </section>
 
     <section aria-labelledby="export-heading" className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
@@ -161,7 +161,6 @@ export function DataPage() {
 
     <section aria-labelledby="restore-heading" className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
       <h2 id="restore-heading" className="text-xl font-bold">2. Import backup — replace all records</h2>
-      <p className="text-sm leading-6 text-slate-600">Choose a Health Tracker JSON export. The file is validated locally and its record counts appear before you confirm. Unsupported versions and malformed records are rejected without changing the current database.</p>
       <label className="block text-sm font-semibold">Choose JSON file
         <input type="file" accept=".json,application/json" disabled={busy}
           className="mt-2 block min-h-11 w-full rounded-xl border border-slate-300 bg-white p-3 text-sm"

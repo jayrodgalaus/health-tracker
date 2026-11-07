@@ -1,3 +1,4 @@
+import { PageInfoLink } from '../components/PageInfoLink'
 import { useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -57,10 +58,10 @@ export function CalendarPage({ profile }: { profile: Profile }) {
   return (
     <div className="space-y-6">
       <header>
+      <PageInfoLink topic="calendar" />
         <p className="text-sm font-semibold uppercase tracking-wide text-evergreen-700">Calendar · Phase 2</p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight">Your recorded days</h1>
-        <p className="mt-3 text-sm leading-6 text-slate-600">Every date is openable. Only explicitly completed, fully assessable days receive an alignment status; missing data stays neutral.</p>
-      </header>
+        </header>
       <section aria-label="Month navigation" className="flex flex-wrap items-center justify-between gap-3">
         <button type="button" aria-label="Previous month" onClick={() => navigateMonth(-1)}
           disabled={month <= '1900-01'} className="min-h-11 rounded-xl border border-slate-300 bg-white px-4 font-semibold disabled:opacity-40">‹ <span className="sr-only">Previous</span></button>
@@ -112,12 +113,10 @@ export function CalendarPage({ profile }: { profile: Profile }) {
           {(Object.keys(DAY_STATUS) as EvaluationStatus[]).map(key =>
             <p key={key} className={'rounded-lg border p-2 ' + DAY_STATUS[key].className}><span aria-hidden="true">{DAY_STATUS[key].symbol}</span> {DAY_STATUS[key].label}</p>)}
         </div>
-        <p className="mt-3 text-xs leading-5 text-slate-600">Entry symbols: ● food/drink · ◆ exercise · ▴ measured weight. These are entry indicators, not health scores. Neutral days include unfinished, unlogged, insufficient-data and future dates.</p>
         {evaluated && <p className="mt-3 text-sm text-slate-600" aria-label="Month status counts">
           {statusCounts.onTarget} on target · {statusCounts.mixed} mixed · {statusCounts.offTarget} off target · {statusCounts.incomplete} incomplete / unassessed
         </p>}
       </section>
-      <p className="text-sm leading-6 text-slate-600">Tap a date to inspect that day's entries, the calculation assumptions and each assessable or skipped rule. Past goal revisions are selected using their effective dates.</p>
     </div>
   )
 }
