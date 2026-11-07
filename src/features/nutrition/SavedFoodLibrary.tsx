@@ -63,7 +63,7 @@ function SavedFoodEditor({ editing, onDone, onCancel }: { editing?: SavedFood; o
           <input className={fieldClass} maxLength={150} value={brand} onChange={event => setBrand(event.target.value)} />
         </label>
         <label className="block text-sm font-medium">Type
-          <select className={fieldClass} value={kind} onChange={event => setKind(event.target.value as 'food' | 'beverage')}>
+          <select aria-label="Product type" className={fieldClass} value={kind} onChange={event => setKind(event.target.value as 'food' | 'beverage')}>
             <option value="food">Food</option><option value="beverage">Drink</option>
           </select>
         </label>

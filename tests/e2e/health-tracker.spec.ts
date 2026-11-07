@@ -306,7 +306,7 @@ test('saved beverage combobox scales both volume and calories once', async ({pag
   await page.goto('/log')
   await page.getByRole('button', {name: '+ Save a label'}).click()
   await page.getByLabel('Product name').fill('Synthetic serving drink')
-  await page.getByLabel('Type', {exact:true}).selectOption('beverage')
+  await page.getByRole('combobox', {name: 'Product type'}).selectOption('beverage')
   await page.getByLabel('Calories (kcal)').fill('50')
   await page.getByLabel('Fluid volume per reference portion (ml)').fill('250')
   await page.getByRole('button', {name: 'Save label'}).click()
