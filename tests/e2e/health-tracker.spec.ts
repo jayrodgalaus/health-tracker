@@ -106,7 +106,7 @@ test('dedicated food, drink and exercise forms save and Calendar can edit/delete
   await expect(page.getByRole('heading',{name:'Edit exercise'})).toBeVisible()
 })
 
-test('Calendar nutrient amounts show only complete FNRI RENI comparisons for recorded date and sex reference',async({page})=>{
+test('Calendar nutrient percentages remain visible as minimums when entries have missing data',async({page})=>{
   await onboard(page)
   await page.goto('/settings/profile')
   await page.getByRole('combobox',{name:'Sex-based reference for energy equation and RENI'}).selectOption('female')
@@ -124,9 +124,22 @@ test('Calendar nutrient amounts show only complete FNRI RENI comparisons for rec
   await expect(nutrients.getByText('Protein (g)',{exact:true}).locator('..')).toContainText('49.1 g (79.2%)')
   await expect(nutrients.getByText('Fiber (g)',{exact:true}).locator('..')).toContainText('12.5 g (50.0%)')
   await expect(nutrients.getByText('Potassium (mg)',{exact:true}).locator('..')).toContainText('1,000 mg (50.0%)')
-  await expect(nutrients.getByText('Carbs (g)',{exact:true})).toBeVisible()
-  await expect(nutrients.getByText('Sodium (mg)',{exact:true})).toBeVisible()
+  await expect(nutrients.getByText('Carbs (g)',{exact:true}).locator('..')).toContainText('no reference %')
+  await expect(nutrients.getByText('Sodium (mg)',{exact:true}).locator('..')).toContainText('no reference %')
   await expect(nutrients).not.toContainText('NaN%')
+
+  // A second item lacks these three nutrients. Its missing values must not
+  // suppress the known percentages or be silently counted as zeros.
+  await page.goto('/log/food?date=2026-01-15')
+  await page.getByRole('combobox',{name:'Name'}).fill('Synthetic calories-only food')
+  await page.getByLabel('Calories (kcal)').fill('120')
+  await page.getByRole('button',{name:'Add to log'}).click()
+  await page.goto('/calendar/2026-01-15')
+  const partial=page.getByRole('heading',{name:'Nutrients',exact:true}).locator('..')
+  await expect(partial.getByText('Protein (g)',{exact:true}).locator('..')).toContainText('At least 49.1 g (≥79.2%)')
+  await expect(partial.getByText('Fiber (g)',{exact:true}).locator('..')).toContainText('At least 12.5 g (≥50.0%)')
+  await expect(partial.getByText('Potassium (mg)',{exact:true}).locator('..')).toContainText('At least 1,000 mg (≥50.0%)')
+  await expect(partial).toContainText('the true total may be higher')
 
   await page.goto('/settings/profile')
   await page.getByRole('combobox',{name:'Sex-based reference for energy equation and RENI'}).selectOption('')
