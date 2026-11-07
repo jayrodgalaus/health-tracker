@@ -30,6 +30,24 @@ fluid and an optional *upper tracking* sodium amount; unspecified targets are
 not evaluated. Exercise is summarized on a Monday–Sunday weekly basis and
 does not make a rest day fail; weight trends do not score daily health.
 
+## Calendar nutrient reference percentages
+
+The Calendar Day Detail nutrient card separately compares available recorded
+nutrients with applicable adult FNRI PDRI daily RNI/AI references. These
+informational percentages are **not goal scores** and do not depend on
+whether the day is marked complete.
+
+When at least one entry supplies a nutrient, display its known recorded amount
+divided by the applicable reference even if other entries lack that nutrient.
+Incomplete coverage is explicitly labeled **“At least”** for amounts and
+**“≥X%”** for percentages: the actual day total could be higher. Preserve
+the per-nutrient coverage count. If nothing is known, display “unknown %”,
+not 0%; without an applicable single-value reference, display “no reference %”
+instead of inventing one. Currently defined adult comparisons are protein
+(where a sex-based reference is supplied), fiber and potassium; they follow
+age on the selected historical date. No daily gram-based percentage is
+inferred for carbs, fat, sugars or unsupported sodium comparisons.
+
 ## Rule defaults and settings
 
 Rule version: **1.0.0**. Settings exposes these *effective-dated* rule bands

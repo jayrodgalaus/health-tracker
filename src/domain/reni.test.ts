@@ -49,11 +49,13 @@ describe('FNRI PDRI 2015 Calendar comparison (adults only)', () => {
     expect(reniReferenceForDay('fiberG',{...baseProfile,birthDate:null,ageYears:36,ageAsOf:'2026-11-07'},'2026-01-15')).toBeNull()
     expect(reniReferenceForDay('proteinG',{...baseProfile,ageYears:36,ageAsOf:'2026-11-07',birthDate:null},'2026-11-07')?.amount).toBe(62)
   })
-  it('reports exact zero and over-100 comparisons, but never incomplete / unknown totals', () => {
+  it('compares known amounts even with missing entries; zero is known but all-unknown stays unknown', () => {
     const r=reniReferenceForDay('proteinG',baseProfile,'2026-11-07')
     expect(reniPercent(complete(0),r)).toBe(0)
     expect(reniPercent(complete(75),r)).toBe(121)
-    expect(reniPercent({...complete(49.1),complete:false,unknownEntryCount:1,totalEntryCount:2},r)).toBeNull()
+    // The UI labels this partial-coverage result as a minimum (≥79.2%).
+    expect(reniPercent({...complete(49.1),complete:false,unknownEntryCount:1,totalEntryCount:2},r)).toBe(79.2)
+    expect(reniPercent({...complete(0),complete:false,unknownEntryCount:1,totalEntryCount:2},r)).toBe(0)
     expect(reniPercent({...complete(49.1),knownAmount:null,complete:false,knownEntryCount:0},r)).toBeNull()
     expect(reniPercent(complete(49.1),null)).toBeNull()
   })
