@@ -50,11 +50,8 @@ export function ActivitySummary({ dayKey, profile, dayActivities, weekActivities
         ) : (
           <>{week.missingDurationEntries > 0 && <p className="mt-2 text-xs text-slate-600">{week.missingDurationEntries} distance-only session(s) have no recorded minutes.</p>}
           <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-            <div><dt className="text-xs text-slate-600">Total logged</dt><dd className="mt-1 font-semibold">{week.missingDurationEntries ? 'At least ' : ''}{week.loggedMinutes} min</dd></div>
-            <div><dt className="text-xs text-slate-600">Moderate</dt><dd className="mt-1 font-semibold">{week.moderateMinutes === null ? 'Not recorded' : `${week.moderateMinutes} min`}</dd></div>
-            <div><dt className="text-xs text-slate-600">Vigorous</dt><dd className="mt-1 font-semibold">{week.vigorousMinutes === null ? 'Not recorded' : `${week.vigorousMinutes} min`}</dd></div>
-            <div><dt className="text-xs text-slate-600">Light</dt><dd className="mt-1 font-semibold">{week.lightMinutes === null ? 'Not recorded' : `${week.lightMinutes} min`}</dd></div>
-            <div><dt className="text-xs text-slate-600">Unclassified intensity</dt><dd className="mt-1 font-semibold">{week.unclassifiedMinutes === null ? 'Not recorded' : `${week.unclassifiedMinutes} min`}</dd></div>
+            <div><dt className="text-xs text-slate-600">Known minutes</dt><dd className="mt-1 font-semibold">{week.missingDurationEntries ? 'At least ' : ''}{week.loggedMinutes} min</dd></div>
+            <div><dt className="text-xs text-slate-600">Sessions</dt><dd className="mt-1 font-semibold">{week.entries}</dd></div>
             <div><dt className="text-xs text-slate-600">Strength days recorded</dt><dd className="mt-1 font-semibold">{week.loggedStrengthDays} days</dd></div>
           </dl></>
         )}
