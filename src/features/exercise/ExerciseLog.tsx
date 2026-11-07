@@ -10,6 +10,7 @@ import { toLocalDay } from '../../lib/localDate'
 import { selectedLogDay } from '../../lib/logDate'
 import { parseNumber } from '../nutrition/NutritionFields'
 import { ActivitySummary } from './ActivitySummary'
+import { useToast } from '../../components/ToastProvider'
 
 const inputClass = 'mt-1 block min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base'
 const buttonClass = 'min-h-11 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold'
@@ -147,13 +148,13 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
 }
 
 export function ExerciseLog({ profile }: { profile: Profile }) {
+  const toast = useToast()
   const [searchParams] = useSearchParams()
   const [dayKey, setDayKey] = useState(() => selectedLogDay(searchParams.get('date')))
   const [adding, setAdding] = useState(() => searchParams.get('add') === 'exercise')
   const [editing, setEditing] = useState<ExerciseEntry | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
   const activitiesForDay = useLiveQuery(() => listExerciseForDay(dayKey), [dayKey], undefined)
   const activitiesForWeek = useLiveQuery(() => listExerciseForWeek(dayKey), [dayKey], undefined)
   const weights = useLiveQuery(() => listWeights(), [], undefined)
@@ -161,12 +162,11 @@ export function ExerciseLog({ profile }: { profile: Profile }) {
 
   async function remove(id: string) {
     setError('')
-    setNotice('')
     try {
       await deleteExercise(id)
       if (editing?.id === id) setEditing(null)
       setConfirmDelete(null)
-      setNotice('Exercise entry deleted.')
+      toast.success('Exercise deleted.')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to delete this workout.')
     }
@@ -176,7 +176,6 @@ export function ExerciseLog({ profile }: { profile: Profile }) {
     setEditing(null)
     setAdding(true)
     setError('')
-    setNotice('')
   }
 
   return (
@@ -193,9 +192,8 @@ export function ExerciseLog({ profile }: { profile: Profile }) {
       </div>
       {(adding || editing) && <ExerciseForm key={editing?.id ?? 'new'} profile={profile} selectedDay={dayKey}
         editing={editing ?? undefined}
-        onSaved={day => { setDayKey(day); setAdding(false); setEditing(null); setNotice('Exercise saved locally. Activity summaries have updated.') }}
+        onSaved={day => { setDayKey(day); setAdding(false); setEditing(null); toast.success('Exercise saved.') }}
         onCancel={() => { setAdding(false); setEditing(null) }} />}
-      {notice && <p role="status" className="rounded-xl bg-evergreen-50 p-3 text-sm text-evergreen-800">{notice}</p>}
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}
       <ActivitySummary dayKey={dayKey} profile={profile} dayActivities={activitiesForDay} weekActivities={activitiesForWeek} weights={weights} />
       <div className="space-y-3">
@@ -216,7 +214,7 @@ export function ExerciseLog({ profile }: { profile: Profile }) {
                 {entry.notes && <p className="mt-2 text-sm text-slate-700">{entry.notes}</p>}
               </div>
               <div className="flex gap-2">
-                <button type="button" className={buttonClass} onClick={() => { setAdding(false); setEditing(entry); setNotice('') }}>Edit</button>
+                <button type="button" className={buttonClass} onClick={() => { setAdding(false); setEditing(entry) }}>Edit</button>
                 <button type="button" className="min-h-11 rounded-xl border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-800" onClick={() => setConfirmDelete(entry.id)}>Delete</button>
               </div>
             </div>

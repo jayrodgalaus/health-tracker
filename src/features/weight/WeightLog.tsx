@@ -6,11 +6,13 @@ import { displayNumber, kilogramsFrom, kilogramsTo } from '../../domain/units'
 import { deleteWeight, listWeights, moveWeight, readWeightForDay, saveWeight } from '../../data/weightRepository'
 import { toLocalDay } from '../../lib/localDate'
 import { selectedLogDay } from '../../lib/logDate'
+import { useToast } from '../../components/ToastProvider'
 
 const today = () => toLocalDay(new Date())
 const inputClass = 'mt-1 block min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base'
 
 export function WeightLog({ profile }: { profile: Profile }) {
+  const toast = useToast()
   const [searchParams] = useSearchParams()
   const initialDate = selectedLogDay(searchParams.get('date'))
   const weights = useLiveQuery(() => listWeights(), [], undefined)
@@ -21,7 +23,6 @@ export function WeightLog({ profile }: { profile: Profile }) {
   const [date, setDate] = useState(initialDate)
   const [amount, setAmount] = useState('')
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
@@ -31,7 +32,6 @@ export function WeightLog({ profile }: { profile: Profile }) {
     setAmountChanged(false)
     setDate(entry.dayKey)
     setAmount(displayNumber(kilogramsTo(entry.weightKg, unit), 2))
-    setNotice('')
     setError('')
   }
   function reset() {
@@ -45,7 +45,6 @@ export function WeightLog({ profile }: { profile: Profile }) {
   async function submit(e: FormEvent) {
     e.preventDefault()
     setError('')
-    setNotice('')
     const parsed = Number(amount.replace(',', '.'))
     if (!amount.trim() || !Number.isFinite(parsed)) {
       setError('Enter a valid weight.')
@@ -61,7 +60,7 @@ export function WeightLog({ profile }: { profile: Profile }) {
       if (editingFrom && editingFrom !== date) await moveWeight(editingFrom, date, kg)
       else await saveWeight(date, kg)
       reset()
-      setNotice('Weight saved on this device.')
+      toast.success('Weight saved.')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Saving failed. Check local storage.')
     } finally {
@@ -75,7 +74,7 @@ export function WeightLog({ profile }: { profile: Profile }) {
       await deleteWeight(day)
       if (editingFrom === day) reset()
       setConfirmDelete(null)
-      setNotice('Measurement deleted.')
+      toast.success('Weight deleted.')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not delete the measurement.')
     }
@@ -101,7 +100,6 @@ export function WeightLog({ profile }: { profile: Profile }) {
           {editingFrom && <button className="min-h-11 rounded-xl border border-slate-300 px-5 py-2 font-semibold" type="button" onClick={reset}>Cancel edit</button>}
         </div>
         {error && <p role="alert" className="mt-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}
-        {notice && <p role="status" className="mt-3 rounded-lg bg-evergreen-50 p-3 text-sm text-evergreen-900">{notice}</p>}
       </form>
 
       <section aria-labelledby="weight-history-title" className="space-y-3">

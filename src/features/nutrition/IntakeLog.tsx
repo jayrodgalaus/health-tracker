@@ -10,6 +10,7 @@ import { parseNumber } from './NutritionFields'
 import { FoodEntryForm } from './FoodEntryForm'
 import { SavedFoodLibrary } from './SavedFoodLibrary'
 import { NutritionSummary } from './NutritionSummary'
+import { useToast } from '../../components/ToastProvider'
 
 type Editor =
   | { type: 'new'; kind: 'food' | 'beverage' }
@@ -29,6 +30,7 @@ function defaultEditor(add: string | null): Editor | null {
 }
 
 export function IntakeLog() {
+  const toast = useToast()
   const [searchParams] = useSearchParams()
   const [dayKey, setDayKey] = useState(() => selectedLogDay(searchParams.get('date')))
   const [editor, setEditor] = useState<Editor | null>(() => defaultEditor(searchParams.get('add')))
@@ -36,7 +38,6 @@ export function IntakeLog() {
   const [waterDay, setWaterDay] = useState(dayKey)
   const [savingWater, setSavingWater] = useState(false)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const entries = useLiveQuery(() => listIntakeForDay(dayKey), [dayKey], undefined)
   const recent = useLiveQuery(() => listRecentIntake(), [], undefined)
@@ -44,7 +45,6 @@ export function IntakeLog() {
 
   function showEditor(next: Editor) {
     setError('')
-    setNotice('')
     setEditor(next)
     if (next.type === 'water') {
       setWaterVolume(next.entry ? String(next.entry.fluidMl ?? next.entry.quantity) : '250')
@@ -55,12 +55,11 @@ export function IntakeLog() {
   async function addWater(volume: number, date = dayKey, id?: string) {
     setSavingWater(true)
     setError('')
-    setNotice('')
     try {
       await saveWater(date, volume, id)
       setDayKey(date)
       setEditor(null)
-      setNotice(id ? 'Water entry updated.' : `Logged ${volume} ml of water.`)
+      toast.success(id ? 'Water updated.' : `Logged ${volume} ml of water.`)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not log water. Check local storage.')
     } finally {
@@ -83,7 +82,7 @@ export function IntakeLog() {
     try {
       await deleteIntake(id)
       setDeleteId(null)
-      setNotice('Entry deleted from this browser.')
+      toast.success('Entry deleted.')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not delete entry.')
     }
@@ -95,7 +94,7 @@ export function IntakeLog() {
         <h2 id="intake-section-title" className="text-xl font-bold">Food and fluids</h2>
         <label className="block max-w-xs text-sm font-semibold">Date
           <input type="date" className={dateInput} max={toLocalDay(new Date())} value={dayKey}
-            onChange={event => { setDayKey(event.target.value); setEditor(null); setNotice(''); setError('') }} />
+            onChange={event => { setDayKey(event.target.value); setEditor(null); setError('') }} />
         </label>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => showEditor({ type: 'new', kind: 'food' })} className={actionButton}>+ Food</button>
@@ -138,13 +137,12 @@ export function IntakeLog() {
               editing={editor.type === 'edit' ? editor.entry : undefined}
               recent={editor.type === 'recent' ? editor.entry : undefined}
               saved={editor.type === 'saved' ? editor.saved : undefined}
-              onDone={() => { setEditor(null); setNotice('Intake entry saved on this device.') }}
+              onDone={() => { setEditor(null); toast.success('Intake entry saved.') }}
               onCancel={() => setEditor(null)}
             />
           )}
         </div>}
         {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}
-        {notice && <p role="status" className="rounded-xl bg-evergreen-50 p-3 text-sm text-evergreen-900">{notice}</p>}
       </section>
 
       <NutritionSummary entries={entries} />

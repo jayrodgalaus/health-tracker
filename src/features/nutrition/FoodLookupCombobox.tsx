@@ -211,7 +211,7 @@ export function FoodLookupCombobox({ name, kind, inputClass, onNameChange, onCho
       {choices.map((choice, index) => {
         const item = choice.product
         const text = choice.type === 'saved'
-          ? choice.product.name + (choice.product.brand ? ' · '+choice.product.brand : '') + ' — Saved on device'
+          ? choice.product.name + (choice.product.brand ? ' · '+choice.product.brand : '') + ' — Saved'
           : choice.type === 'remote'
             ? choice.product.name + (choice.product.brand ? ' · '+choice.product.brand : '') +
               ' — Open Food Facts / 100 '+choice.product.basisUnit
