@@ -5,28 +5,19 @@ import type { Profile } from '../domain/models'
 import { addLocalDays } from '../domain/calendar'
 import { calculateDay } from '../domain/evaluation'
 import { readDayRecords } from '../data/dayRepository'
-import { readNutrientComparisonLimits } from '../data/settingsRepository'
-import { listExerciseForWeek } from '../data/exerciseRepository'
 import { parseLocalDay, toLocalDay } from '../lib/localDate'
 import { CalendarGoalChecklist } from '../features/day/CalendarGoalChecklist'
+import { CalendarSectionCards } from '../features/day/CalendarSectionCards'
 import { DayCompletionControl } from '../features/day/DayCompletionControl'
-import { ExpenditurePanel } from '../features/day/ExpenditurePanel'
-import { DayEntries } from '../features/day/DayEntries'
-import { NutritionSummary } from '../features/nutrition/NutritionSummary'
-import { ActivitySummary } from '../features/exercise/ActivitySummary'
 
 export function DayDetailPage({ profile }: { profile: Profile }) {
   const { dayKey: param } = useParams()
   const dayKey = param && parseLocalDay(param) && param >= '1900-01-01' && param <= '2100-12-31' ? param : null
   const records = useLiveQuery(() => dayKey ? readDayRecords(dayKey) : Promise.resolve(null), [dayKey], undefined)
-  const week = useLiveQuery(() => dayKey ? listExerciseForWeek(dayKey) : Promise.resolve([]), [dayKey], undefined)
-  const limits = useLiveQuery(() => readNutrientComparisonLimits(), [], undefined)
   if (!dayKey) return <div role="alert" className="rounded-xl bg-rose-50 p-5">
     Invalid calendar day. <Link className="text-evergreen-700 underline" to="/calendar">Return to calendar</Link>.
   </div>
   const locked = records?.review?.isComplete === true
-  const archivedProfile = records?.review?.frozen?.profile ?? profile
-  const archivedLimits = locked && records?.review?.frozen ? records.review.frozen.comparisonLimits : limits
   const summary = records ? calculateDay({ dayKey, profile, ...records }, new Date().toISOString()) : undefined
   const previous = addLocalDays(dayKey, -1)
   const next = addLocalDays(dayKey, 1)
@@ -66,12 +57,6 @@ export function DayDetailPage({ profile }: { profile: Profile }) {
         isComplete={locked} compact />}
     </section>}
     <CalendarGoalChecklist summary={summary} />
-    <ExpenditurePanel summary={summary} />
-    <NutritionSummary entries={records?.intake} loading={archivedLimits === undefined}
-      reniProfile={archivedProfile} reniDayKey={dayKey} comparisonLimits={archivedLimits} detailDayKey={dayKey} />
-    <ActivitySummary dayKey={dayKey} profile={archivedProfile} dayActivities={records?.activities} weekActivities={week} weights={records?.weights}
-      frozenDay={locked ? records?.review?.frozen?.summary.activity : undefined}
-      frozenWeek={locked ? records?.review?.frozen?.week : undefined} />
-    {records && <DayEntries dayKey={dayKey} profile={archivedProfile} records={records} locked={locked} />}
+    {records && <CalendarSectionCards dayKey={dayKey} summary={summary} />}
   </div>
 }
