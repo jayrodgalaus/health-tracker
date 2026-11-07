@@ -112,7 +112,9 @@ export async function searchOpenFoodFacts(
   })
   let response: Response
   try {
-    response = await requester(ENDPOINT + '?' + parameters.toString(), { signal, method: 'GET' })
+    response = await requester(ENDPOINT + '?' + parameters.toString(), {
+      signal, method: 'GET', credentials: 'omit', referrerPolicy: 'no-referrer'
+    })
   } catch (cause) {
     if (signal?.aborted) throw cause
     throw new Error('Food lookup is unavailable. Check your connection or enter nutrition manually.')

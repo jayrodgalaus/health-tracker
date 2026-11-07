@@ -53,6 +53,8 @@ describe('Open Food Facts label mapping', () => {
     expect(target.searchParams.get('fields')).toContain('nutriments')
     expect(target.searchParams.has('birthDate')).toBe(false)
     expect(options.method).toBe('GET')
+    expect(options.credentials).toBe('omit')
+    expect(options.referrerPolicy).toBe('no-referrer')
     expect(() => externalFoodUrl('javascript:alert(1)')).not.toThrow()
   })
   it('handles upstream errors and missing JSON without changing records', async () => {

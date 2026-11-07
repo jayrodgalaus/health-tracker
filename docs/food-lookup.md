@@ -37,7 +37,7 @@ or secrets are added.
 
 Only the **typed product search text**, along with ordinary browser HTTP
 metadata (e.g. IP/User-Agent), is sent to Open Food Facts on an explicit
-click. The app does not send logged meals, profile details, goals, weight,
+click. Requests explicitly omit browser credentials and Referer information. The app does not send logged meals, profile details, goals, weight,
 dates, analytics, or IndexedDB contents. No remote account, database,
 automatic background search or synchronization is introduced.
 
