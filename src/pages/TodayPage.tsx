@@ -59,7 +59,7 @@ export function TodayPage({ profile }: { profile: Profile }) {
       <Link to={'/log' + dateQuery + '#weight'} className="inline-flex min-h-11 items-center rounded-xl border border-evergreen-600 px-4 py-2 text-sm font-semibold text-evergreen-700">+ Weight</Link>
     </section>
     <ExpenditurePanel summary={summary} />
-    <NutritionSummary entries={records?.intake} />
+    <NutritionSummary entries={records?.intake} detailDayKey={dayKey} />
     <ActivitySummary dayKey={dayKey} profile={profile} dayActivities={records?.activities} weekActivities={week} weights={records?.weights} />
     <DayAssessment summary={summary} />
     <section aria-labelledby="weight-card-title" className="rounded-2xl bg-evergreen-900 p-5 text-white">
