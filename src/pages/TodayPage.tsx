@@ -64,7 +64,9 @@ export function TodayPage({ profile }: { profile: Profile }) {
     </> : null}
     <ExpenditurePanel summary={summary} />
     <NutritionSummary entries={records?.intake} detailDayKey={dayKey} />
-    <ActivitySummary dayKey={dayKey} profile={archivedProfile} dayActivities={records?.activities} weekActivities={week} weights={records?.weights} />
+    <ActivitySummary dayKey={dayKey} profile={archivedProfile} dayActivities={records?.activities} weekActivities={week} weights={records?.weights}
+      frozenDay={locked ? records?.review?.frozen?.summary.activity : undefined}
+      frozenWeek={locked ? records?.review?.frozen?.week : undefined} />
     <DayAssessment summary={summary} />
     <section aria-labelledby="weight-card-title" className="rounded-2xl bg-evergreen-900 p-5 text-white">
       <h2 id="weight-card-title" className="font-semibold">Measured weight</h2>
