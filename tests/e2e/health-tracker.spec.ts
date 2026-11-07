@@ -108,7 +108,8 @@ test('dedicated food, drink and exercise forms save and Calendar can edit/delete
 
 test('save confirmations appear as dismissible transient toasts outside the Log form', async ({page}) => {
   await onboard(page)
-  await page.goto('/log')
+  // Onboarding records today's initial weight; use an unlogged historical date.
+  await page.goto('/log?date=2026-01-15')
   await page.getByLabel('Weight (kg)').fill('71.25')
   await page.getByRole('button', {name:'Save weight'}).click()
   const notice=page.getByTestId('app-toast')
