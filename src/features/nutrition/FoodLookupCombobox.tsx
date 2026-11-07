@@ -3,10 +3,12 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import type { SavedFood } from '../../domain/models'
 import { listSavedFoods } from '../../data/intakeRepository'
 import { searchOpenFoodFacts, type ExternalFoodResult } from '../../data/openFoodFacts'
+import { searchIngredientCatalog, type IngredientFood } from '../../data/ingredientCatalog'
 
 export type FoodLookupChoice =
   | { type: 'saved'; product: SavedFood }
   | { type: 'remote'; product: ExternalFoodResult }
+  | { type: 'ingredient'; product: IngredientFood }
 
 interface Props {
   name: string
@@ -27,6 +29,10 @@ export function FoodLookupCombobox({ name, kind, inputClass, onNameChange, onCho
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(-1)
   const [online, setOnline] = useState<ExternalFoodResult[]>([])
+  const [ingredients, setIngredients] = useState<IngredientFood[]>([])
+  const [selectedIngredientId, setSelectedIngredientId] = useState('')
+  const [ingredientLoadError, setIngredientLoadError] = useState('')
+  const [pickedName, setPickedName] = useState('')
   const [searched, setSearched] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -35,6 +41,22 @@ export function FoodLookupCombobox({ name, kind, inputClass, onNameChange, onCho
   const requestIndex = useRef(0)
 
   useEffect(() => () => request.current?.abort(), [])
+
+  useEffect(() => {
+    if (kind !== 'food' || name.trim().length < 2 || pickedName === name) {
+      setIngredients([])
+      return
+    }
+    let active = true
+    setSelectedIngredientId('')
+    setIngredientLoadError('')
+    void searchIngredientCatalog(name).then(items => {
+      if (active) setIngredients(items)
+    }, () => {
+      if (active) setIngredientLoadError('Offline ingredient catalog unavailable. Manual logging still works.')
+    })
+    return () => { active = false }
+  }, [name, kind, pickedName])
 
   const term = name.trim().toLocaleLowerCase()
   const localChoices: FoodLookupChoice[] = useMemo(() =>
@@ -52,6 +74,7 @@ export function FoodLookupCombobox({ name, kind, inputClass, onNameChange, onCho
     request.current?.abort()
     requestIndex.current++
     setLoading(false)
+    setPickedName('')
     onNameChange(value)
     setOpen(true)
     setActive(-1)
@@ -64,6 +87,9 @@ export function FoodLookupCombobox({ name, kind, inputClass, onNameChange, onCho
   function choose(choice: FoodLookupChoice) {
     request.current?.abort()
     requestIndex.current++
+    setPickedName(choice.product.name)
+    setIngredients([])
+    setSelectedIngredientId('')
     onChoose(choice)
     setOpen(false)
     setActive(-1)
@@ -72,7 +98,9 @@ export function FoodLookupCombobox({ name, kind, inputClass, onNameChange, onCho
     setSearchError('')
     setMessage(choice.type === 'saved'
       ? 'Saved label loaded. Review the portion and nutrition fields.'
-      : 'Product label loaded. Verify the package and adjust the amount before logging.')
+      : choice.type === 'ingredient'
+        ? 'USDA ingredient loaded per 100 g. Confirm the preparation and enter the cooked or raw weight eaten.'
+        : 'Product label loaded. Verify the package and adjust the amount before logging.')
   }
 
   function keys(event: KeyboardEvent<HTMLInputElement>) {
@@ -146,9 +174,42 @@ export function FoodLookupCombobox({ name, kind, inputClass, onNameChange, onCho
       </button>
     </div>
     <p id={listId+'-hint'} className="text-xs leading-5 text-slate-600">
-      Saved foods appear as you type, including offline. Search online only when you press the button;
-      only the food name you enter is sent to Open Food Facts, never your profile or logs.
+      Saved foods and USDA ingredient varieties appear as you type, including offline.
+      Branded products require clicking Search online; only that query is sent to Open Food Facts,
+      never your profile or logs.
     </p>
+    {kind === 'food' && ingredients.length > 0 && pickedName !== name && (
+      <section aria-label="USDA ingredient varieties" className="space-y-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+        <label htmlFor={listId+'-ingredient'} className="block text-sm font-semibold text-emerald-950">
+          Ingredient variety / preparation
+        </label>
+        <select id={listId+'-ingredient'} aria-label="Ingredient variety / preparation"
+          className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base"
+          value={selectedIngredientId} onChange={event => setSelectedIngredientId(event.target.value)}>
+          <option value="">Choose a preparation (raw, cooked, white, brown…)</option>
+          {ingredients.map(item => <option key={item.id} value={String(item.id)}>
+            {item.name} · {item.nutrients.energyKcal ?? '?'} kcal / 100 g
+          </option>)}
+        </select>
+        <button type="button" disabled={!selectedIngredientId}
+          className="min-h-11 rounded-xl bg-evergreen-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          onClick={() => {
+            const item = ingredients.find(x => String(x.id) === selectedIngredientId)
+            if (item) choose({type: 'ingredient', product: item})
+          }}>
+          Use ingredient nutrition
+        </button>
+        {name.toLowerCase().includes('blanch') && <p className="text-xs text-amber-900">
+          USDA has cooked boiled/drained cabbage; that is a comparison, not an exact measurement of blanched cabbage.
+        </p>}
+        <p className="text-xs text-slate-700">
+          USDA FoodData Central SR Legacy (2018). All amounts are per 100 g of the
+          named raw or prepared food. Pick the actual variety and preparation, then enter
+          the grams you ate. Reference values are estimates.
+        </p>
+      </section>
+    )}
+    {ingredientLoadError && <p role="alert" className="text-sm text-rose-800">{ingredientLoadError}</p>}
     {expanded && <ul id={listId+'-list'} role="listbox"
       aria-label="Matching food labels"
       className="relative z-10 max-h-60 overflow-y-auto rounded-xl border border-slate-300 bg-white shadow-lg">
@@ -156,7 +217,7 @@ export function FoodLookupCombobox({ name, kind, inputClass, onNameChange, onCho
         const item = choice.product
         const text = choice.type === 'saved'
           ? item.name + (item.brand ? ' · '+item.brand : '') + ' — Saved on device'
-          : item.name + (item.brand ? ' · '+item.brand : '') +
+          : choice.product.name + (choice.product.brand ? ' · '+choice.product.brand : '') +
             ' — Open Food Facts / 100 '+choice.product.basisUnit
         return <li key={choice.type+':'+item.id} id={listId+'-choice-'+index}
           role="option" aria-selected={active === index} tabIndex={-1}
@@ -177,6 +238,7 @@ export function FoodLookupCombobox({ name, kind, inputClass, onNameChange, onCho
       {' '}(<a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank"
         rel="noopener noreferrer" className="underline">ODbL</a>).
       Community data may be incomplete or inaccurate; check the actual package label.
+      USDA ingredients use a separate, bundled offline reference catalog.
     </p>
   </div>
 }

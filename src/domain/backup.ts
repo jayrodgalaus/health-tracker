@@ -156,12 +156,20 @@ function validateRecord(table:BackupTableName,raw:unknown,field:string){
     basis(r.labelBasis,field+'.labelBasis')
     portionRatio(r.labelBasis as FoodEntry['labelBasis'],r.quantity as number,r.unit as FoodEntry['unit'])
     if(r.nutritionSource!==undefined&&r.nutritionSource!==null){
-      const origin=shape(r.nutritionSource,field+'.nutritionSource',
-        ['provider','productCode','fetchedAt'],['provider','productCode','fetchedAt'])
-      if(origin.provider!=='open-food-facts')invalid(field+'.nutritionSource','unsupported provider')
-      text(origin.productCode,field+'.nutritionSource.productCode',14)
-      if(!/^\d{8,14}$/.test(origin.productCode as string))invalid(field+'.nutritionSource.productCode','invalid barcode')
-      iso(origin.fetchedAt,field+'.nutritionSource.fetchedAt')
+      const origin=obj(r.nutritionSource,field+'.nutritionSource')
+      if(origin.provider==='open-food-facts'){
+        shape(origin,field+'.nutritionSource',
+          ['provider','productCode','fetchedAt'],['provider','productCode','fetchedAt'])
+        text(origin.productCode,field+'.nutritionSource.productCode',14)
+        if(!/^\d{8,14}$/.test(origin.productCode as string))invalid(field+'.nutritionSource.productCode','invalid barcode')
+        iso(origin.fetchedAt,field+'.nutritionSource.fetchedAt')
+      }else if(origin.provider==='usda-sr-legacy'){
+        shape(origin,field+'.nutritionSource',
+          ['provider','fdcId','release'],['provider','fdcId','release'])
+        numeric(origin.fdcId,field+'.nutritionSource.fdcId',1,999999999)
+        if(!Number.isSafeInteger(origin.fdcId))invalid(field+'.nutritionSource.fdcId','invalid food ID')
+        if(origin.release!=='2018-04')invalid(field+'.nutritionSource.release','unsupported USDA release')
+      }else invalid(field+'.nutritionSource','unsupported provider')
     }
     nutrition(r.nutrientsSnapshot,field+'.nutrientsSnapshot')
     if(r.referenceNutrientsSnapshot!==undefined) {
