@@ -40,9 +40,11 @@ export function NutritionSummary({
       <div>
         <h2 id="nutrition-summary-title" className="text-lg font-bold">{showFluids ? 'Recorded nutrition and fluids' : 'Recorded nutrition'}</h2>
         <p className="mt-1 text-sm text-slate-600">
-          {summary.nutrients.energyKcal.totalEntryCount > 0
-            ? `${summary.foods} foods · ${summary.beverages - entries.filter(entry => entry.beverageType === 'water' && entry.kind === 'beverage').length} other drinks`
-            : 'No nutritional entries recorded'}
+          {showFluids
+            ? (summary.entries ? `${summary.foods} foods · ${summary.beverages} drinks/water entries` : 'Nothing logged on this date')
+            : summary.nutrients.energyKcal.totalEntryCount > 0
+              ? `${summary.foods} foods · ${summary.beverages - entries.filter(entry => entry.beverageType === 'water' && entry.kind === 'beverage').length} other drinks`
+              : 'No nutritional entries recorded'}
         </p>
       </div>
       <div className="grid grid-cols-2 gap-3">
