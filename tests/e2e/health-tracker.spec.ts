@@ -275,39 +275,28 @@ test('explicit food lookup autofills verified per-100g nutrients without auto-co
   expect(entry?.labelBasis).toEqual({quantity:100,unit:'g'})
 })
 
-test('saved foods remain selectable as combobox suggestions without any online lookup', async ({page,context}) => {
+test('saved foods remain selectable locally without online lookup', async ({page}) => {
   await onboard(page)
-  await page.goto('/log')
-  await page.evaluate(async () => {
-    const open = indexedDB.open('health-tracker')
-    const db = await new Promise<IDBDatabase>((resolve, reject) => {
-      open.onsuccess = () => resolve(open.result)
-      open.onerror = () => reject(open.error)
-    })
-    try {
-      const time = new Date().toISOString()
-      await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction('savedFoods', 'readwrite')
-        tx.objectStore('savedFoods').put({
-          id: 'synthetic-offline-food', name: 'Synthetic offline rice', brand: 'Synthetic',
-          kind: 'food', labelBasis: {quantity:100,unit:'g'},
-          nutrientsPerBasis: {
-            energyKcal:130, proteinG:2.5, carbohydratesG:28, fatG:0.3,
-            saturatedFatG:null, fiberG:null, sugarsG:null, sodiumMg:null, potassiumMg:null
-          },
-          createdAt: time, updatedAt: time
-        })
-        tx.oncomplete = () => resolve()
-        tx.onerror = () => reject(tx.error)
-      })
-    } finally {
-      db.close()
-    }
+  let onlineSearches = 0
+  await page.route('https://world.openfoodfacts.org/cgi/search.pl?**', async route => {
+    onlineSearches++
+    await route.abort()
   })
+  await page.goto('/log')
+  await page.getByRole('button', {name: '+ Save a label'}).click()
+  await page.getByLabel('Product name').fill('Synthetic offline rice')
+  await page.getByLabel('Brand (optional)').fill('Synthetic')
+  await page.getByRole('combobox', {name: 'Label values per'}).selectOption('100g')
+  await page.getByLabel('Calories (kcal)').fill('130')
+  await page.getByRole('button', {name: 'Save label'}).click()
+  await expect(page.getByText('Label saved locally.')).toBeVisible()
+
   await page.getByRole('button', {name: '+ Food', exact: true}).click()
   await page.getByRole('combobox', {name: 'Name'}).fill('offline rice')
-  await expect(page.getByRole('option', {name: /Synthetic offline rice.*Saved on device/})).toBeVisible()
-  await page.getByRole('option', {name: /Synthetic offline rice.*Saved on device/}).click()
+  const item = page.getByRole('option', {name: /Synthetic offline rice.*Saved on device/})
+  await expect(item).toBeVisible()
+  await item.click()
   await expect(page.getByLabel('Calories (kcal)')).toHaveValue('130')
   await expect(page.getByRole('combobox', {name: 'Nutrition is per'})).toHaveValue('100g')
+  expect(onlineSearches).toBe(0)
 })

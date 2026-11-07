@@ -139,7 +139,8 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
           onNameChange={next => {
             setName(next)
             setSelectedSavedFoodId(null)
-            setNutritionSource(null)
+            // Keep source attribution for already-populated nutrient values,
+            // even if the user edits the displayed name before saving.
           }}
           onChoose={chooseLookup}
         />
