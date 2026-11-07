@@ -115,16 +115,27 @@ Only for a confirmed adult date with required inputs:
   manually designated **active/incremental** kcal, user-provided net MET kcal
   (`max(0, MET−1) × 3.5 × recordedKg / 200 × minutes`), or for specifically
   selected walking/running the new approximate **automatic** estimate.
-  Walking/running distance (when supplied) wins over time:
-  walking `0.6 × recordedKg × distanceKm`, running
-  `0.9 × recordedKg × distanceKm`. Without distance but with duration,
-  walking uses 3.8 MET and running 9.3 MET in the net MET equation.
-  The flat-ground distance factors are rounded representative adult activity
-  costs derived from the 2024 Adult Compendium
-  (https://pacompendium.com/walking/ and https://pacompendium.com/running/).
-  These defaults are explicit exceptions to the rule against inferring MET
-  from arbitrary activity names. They are rough estimates; pace, grade,
-  body mechanics and terrain matter. Only one calorie method is counted.
+  New `paceGradeNet` estimates interpolate level-ground METs between
+  selected 2024 Adult Compendium speed categories (walking 2–8 km/h and
+  running 6–25 km/h), rather than use a coarse intensity label:
+  https://pacompendium.com/walking/ and https://pacompendium.com/running/.
+  Speed comes from explicitly entered km/h first; otherwise from
+  `distanceKm / durationMinutes × 60`, or from a disclosed 5 km/h walking
+  or 10 km/h running assumption when pace is unavailable.
+  The base net kcal is `(paceMET − 1) × 3.5 × recordedKg / 200 × calculationMinutes`.
+  An optional 0–15% uphill grade adds ACSM's vertical VO₂ component,
+  `1.8 × speed(m/min) × gradeFraction` for walking and
+  `0.9 × speed(m/min) × gradeFraction` for running, converted to net kcal
+  with weight and calculationMinutes
+  (https://pmc.ncbi.nlm.nih.gov/articles/PMC12419060/).
+  Blank grade is **assumed level ground for this estimate**, not a measured
+  grade of zero. Downhill grade, variable terrain, and wind are not modeled.
+  When distance is known, calculationMinutes is derived from distance/speed
+  (entered speed takes precedence); any separately logged duration is not
+  rewritten or added to energy. Speed and incline must be valid or the
+  estimate remains unknown. Only one calorie method is counted.
+  Preexisting `distanceNet` and `activityTimeNet` records continue
+  using their original coefficients for historical continuity.
   For all calculated methods, use recorded
   weight on or before the workout day, explicitly identifying any
   carried-forward older weight. Future or duplicate legacy weights are rejected.
@@ -133,9 +144,10 @@ Only for a confirmed adult date with required inputs:
   minutes as partial when such a session exists. No guessed minutes or
   synthetic energy measurements are stored. The exercise preview calls the
   same pure calculation as the saved day and charts, updating immediately
-  as inputs change. New `distanceKm`, `distanceNet` and `activityTimeNet`
-  fields/methods are backward compatible with Dexie v2 and legacy JSON
-  backups (the old mandatory numeric-duration records remain accepted).
+  as inputs change. The new optional `speedKmh` and `inclinePercent` fields
+  and `paceGradeNet` method are backward compatible with Dexie v2 and
+  historical JSON backups; recorded legacy intensity values are preserved
+  even though the selector and intensity chart are no longer shown.
 - **Estimated total daily expenditure** = background + additional workouts,
   only for a marked-complete day where every logged workout has known incremental
   energy. A marked-complete day with no workouts recorded contributes a
