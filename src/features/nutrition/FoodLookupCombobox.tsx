@@ -157,7 +157,7 @@ export function FoodLookupCombobox({ name, kind, inputClass, onNameChange, onCho
         const text = choice.type === 'saved'
           ? item.name + (item.brand ? ' · '+item.brand : '') + ' — Saved on device'
           : item.name + (item.brand ? ' · '+item.brand : '') +
-            ' — Open Food Facts / 100 '+item.basisUnit
+            ' — Open Food Facts / 100 '+choice.product.basisUnit
         return <li key={choice.type+':'+item.id} id={listId+'-choice-'+index}
           role="option" aria-selected={active === index} tabIndex={-1}
           className={'cursor-pointer border-b border-slate-100 px-3 py-3 text-sm last:border-0 '+

@@ -52,19 +52,28 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
 
   function chooseLookup(choice: FoodLookupChoice) {
     const item = choice.product
-    const basis = choice.type === 'saved'
-      ? item.labelBasis : { quantity: 100, unit: item.basisUnit }
-    const resolvedMode = inferBasisMode(basis)
+    const selected = choice.type === 'saved' ? {
+      basis: choice.product.labelBasis,
+      nutrients: choice.product.nutrientsPerBasis,
+      savedId: choice.product.id,
+      nutritionSource: null
+    } : {
+      basis: { quantity: 100, unit: choice.product.basisUnit },
+      nutrients: choice.product.nutrients,
+      savedId: null,
+      nutritionSource: choice.product.nutritionSource
+    }
+    const resolvedMode = inferBasisMode(selected.basis)
     setName(item.name)
     setMode(resolvedMode)
-    setBasisQuantity(String(basis.quantity))
-    setBasisUnit(basis.unit)
-    setQuantity(String(basis.quantity))
-    setUnit(basis.unit)
+    setBasisQuantity(String(selected.basis.quantity))
+    setBasisUnit(selected.basis.unit)
+    setQuantity(String(selected.basis.quantity))
+    setUnit(selected.basis.unit)
     setServingDescription(item.servingDescription ?? '')
-    setNutrition(inputsFromNutrition(choice.type === 'saved' ? item.nutrientsPerBasis : item.nutrients))
-    setSelectedSavedFoodId(choice.type === 'saved' ? item.id : null)
-    setNutritionSource(choice.type === 'remote' ? item.nutritionSource : null)
+    setNutrition(inputsFromNutrition(selected.nutrients))
+    setSelectedSavedFoodId(selected.savedId)
+    setNutritionSource(selected.nutritionSource)
     setFluid('')
     setFluidChanged(false)
     setError('')

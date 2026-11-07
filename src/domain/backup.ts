@@ -160,7 +160,7 @@ function validateRecord(table:BackupTableName,raw:unknown,field:string){
         ['provider','productCode','fetchedAt'],['provider','productCode','fetchedAt'])
       if(origin.provider!=='open-food-facts')invalid(field+'.nutritionSource','unsupported provider')
       text(origin.productCode,field+'.nutritionSource.productCode',14)
-      if(!/^\\d{8,14}$/.test(origin.productCode as string))invalid(field+'.nutritionSource.productCode','invalid barcode')
+      if(!/^\d{8,14}$/.test(origin.productCode as string))invalid(field+'.nutritionSource.productCode','invalid barcode')
       iso(origin.fetchedAt,field+'.nutritionSource.fetchedAt')
     }
     nutrition(r.nutrientsSnapshot,field+'.nutrientsSnapshot')

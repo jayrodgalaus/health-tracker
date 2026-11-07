@@ -45,7 +45,7 @@ function basisUnit(product: UnknownRecord): 'g' | 'ml' {
   const declared = safeText(product.nutrition_data_per, 20)?.toLowerCase()
   const quantity = safeText(product.quantity, 100) ?? ''
   const volume = declared === '100ml' || amountUnit === 'ml' || amountUnit === 'l' ||
-    /^\\d+(?:[.,]\\d+)?\\s*(?:ml|l)\\b/i.test(quantity)
+    /^\d+(?:[.,]\d+)?\s*(?:ml|l)\b/i.test(quantity)
   return volume ? 'ml' : 'g'
 }
 
@@ -55,7 +55,7 @@ export function convertOpenFoodFactsProduct(raw: unknown, fetchedAt: string): Ex
   if (!product) return null
   const id = safeText(product.code, 24)
   const name = safeText(product.product_name_en) ?? safeText(product.product_name)
-  if (!id || !/^\\d{8,14}$/.test(id) || !name) return null
+  if (!id || !/^\d{8,14}$/.test(id) || !name) return null
   const data = asObject(product.nutriments)
   if (!data) return null
   const number = (key: string, max: number) => acceptable(data[key], max)
@@ -88,14 +88,14 @@ export function convertOpenFoodFactsProduct(raw: unknown, fetchedAt: string): Ex
 }
 
 export function externalFoodUrl(code: string): string | null {
-  return /^\\d{8,14}$/.test(code) ? 'https://world.openfoodfacts.org/product/' + code : null
+  return /^\d{8,14}$/.test(code) ? 'https://world.openfoodfacts.org/product/' + code : null
 }
 
 export async function searchOpenFoodFacts(
   query: string, signal?: AbortSignal,
   requester: typeof fetch = fetch, now = Date.now()
 ): Promise<ExternalFoodResult[]> {
-  const terms = query.trim().replace(/\\s+/g, ' ')
+  const terms = query.trim().replace(/\s+/g, ' ')
   if (terms.length < 3 || terms.length > 80) {
     throw new Error('Enter 3–80 characters to search the product database.')
   }
