@@ -8,6 +8,7 @@ import { emptyNutrition } from '../domain/nutrition'
 import { readDayRecords, readMonthRecords, setDayComplete } from './dayRepository'
 import { saveIntake, deleteIntake } from './intakeRepository'
 import { saveWeight, moveWeight } from './weightRepository'
+import { saveExercise, deleteExercise } from './exerciseRepository'
 
 const created: HealthTrackerDatabase[] = []
 const make = (name: string) => { const database = new HealthTrackerDatabase(name); created.push(database); return database }
@@ -109,6 +110,27 @@ describe('day completion, goal history and month data', () => {
     await setDayComplete('2026-11-05', false, database, '2026-11-06')
     await deleteIntake(one.id, database)
     expect(await database.foodEntries.count()).toBe(1)
+  })
+  it('blocks exercise edits and moving exercises into or out of completed dates', async () => {
+    const database = make('locked-exercise-repository')
+    await database.profiles.add(profile)
+    const draft = (dayKey: string) => ({
+      dayKey, activity: 'Walking', durationMinutes: 30, intensity: null,
+      calorieMethod: 'unknown' as const, met: null, manualActiveKcal: null,
+      isStrengthTraining: false, timeOfDay: null, notes: null
+    })
+    const lockedEntry = await saveExercise(draft('2026-11-05'), undefined, database, '2026-11-06')
+    const editableEntry = await saveExercise(draft('2026-11-06'), undefined, database, '2026-11-06')
+    await setDayComplete('2026-11-05', true, database, '2026-11-06')
+    await expect(saveExercise(draft('2026-11-05'), undefined, database, '2026-11-06')).rejects.toThrow(/locked/i)
+    await expect(saveExercise(draft('2026-11-05'), lockedEntry.id, database, '2026-11-06')).rejects.toThrow(/locked/i)
+    await expect(saveExercise(draft('2026-11-06'), lockedEntry.id, database, '2026-11-06')).rejects.toThrow(/locked/i)
+    await expect(saveExercise(draft('2026-11-05'), editableEntry.id, database, '2026-11-06')).rejects.toThrow(/locked/i)
+    await expect(deleteExercise(lockedEntry.id, database)).rejects.toThrow(/locked/i)
+    expect(await database.exerciseEntries.count()).toBe(2)
+    await setDayComplete('2026-11-05', false, database, '2026-11-06')
+    await deleteExercise(lockedEntry.id, database)
+    expect(await database.exerciseEntries.count()).toBe(1)
   })
   it('blocks weight edits that would alter a locked day or move its measurement', async () => {
     const database = make('locked-weight-repository')
