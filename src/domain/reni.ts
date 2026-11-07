@@ -62,9 +62,13 @@ export function reniReferenceForDay(
   return null
 }
 
-/** Never show a misleading percentage when any logged item lacks this nutrient. */
+/**
+ * Percentage of the *known* recorded amount against a valid daily reference.
+ * For incomplete nutrient coverage, this is only a lower bound. The caller
+ * must label it accordingly; missing values are never counted as zero.
+ */
 export function reniPercent(metric: MetricCoverage, reference: ReniReference | null): number | null {
-  if (!reference || !metric.complete || metric.knownAmount === null ||
+  if (!reference || metric.knownAmount === null ||
       !Number.isFinite(metric.knownAmount) || reference.amount <= 0) return null
   return Number((metric.knownAmount / reference.amount * 100).toFixed(1))
 }
