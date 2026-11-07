@@ -85,8 +85,9 @@ describe('exercise energy estimates', () => {
       distanceKm: 5, speedKmh: 5, inclinePercent: 0
     })
     expect(estimateWorkout(walking, weights, true)).toMatchObject({
-      method: 'paceGradeNet', kcal: 205.8, weight: { source: 'carriedForward', sourceDay: '2026-11-04' }
+      method: 'paceGradeNet', weight: { source: 'carriedForward', sourceDay: '2026-11-04' }
     })
+    expect(estimateWorkout(walking, weights, true).kcal).toBeCloseTo(205.8)
     expect(estimateWorkout({ ...walking, speedKmh: 6 }, weights, true).kcal).toBeCloseTo(232.75)
     expect(estimateWorkout({ ...walking, inclinePercent: 5 }, weights, true).kcal).toBeCloseTo(363.3)
     expect(estimateWorkout(walking, [weight('2026-11-07', 82)], true).kcal).toBeNull()
