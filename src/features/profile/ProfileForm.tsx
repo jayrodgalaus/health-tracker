@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import type { ActivityLevel, GoalPeriod, HealthGoal, Profile, UnitPreferences } from '../../domain/models'
 import { EMPTY_TARGETS, type GoalValues, type ProfileValues } from '../../domain/profile'
 import { ALIGNMENT_RULES } from '../../domain/evaluation'
-import { BACKGROUND_MOVEMENT_PRESETS, findBackgroundMovementPreset, hasCustomBackgroundMultiplier } from '../../domain/backgroundMovement'
+import { BACKGROUND_MOVEMENT_PRESETS, hasCustomBackgroundMultiplier } from '../../domain/backgroundMovement'
 import { centimetersFromInches, displayNumber, fluidFrom, fluidTo, inchesFromCentimeters, kilogramsFrom, kilogramsTo } from '../../domain/units'
 import { saveGoalSettings, saveProfileAndGoals, saveProfileSettings } from '../../data/profileRepository'
 import { toLocalDay } from '../../lib/localDate'
@@ -55,7 +55,6 @@ export function ProfileForm({ mode, section = 'profile', initialProfile, initial
   const [sexForEquation, setSexForEquation] = useState(initialProfile?.sexForEquation ?? '')
   const [activityLevel, setActivityLevel] = useState(initialProfile?.activityLevel ?? '')
   const [backgroundMultiplier, setBackgroundMultiplier] = useState(initialProfile?.backgroundActivityMultiplier == null ? '' : String(initialProfile.backgroundActivityMultiplier))
-  const selectedMovementPreset = findBackgroundMovementPreset(backgroundMultiplier)
   const [energyTarget, setEnergyTarget] = useState(initialGoal?.targets.energyKcal?.toString() ?? '')
   const [proteinTarget, setProteinTarget] = useState(initialGoal?.targets.proteinG?.toString() ?? '')
   const [fiberTarget, setFiberTarget] = useState(initialGoal?.targets.fiberG?.toString() ?? '')
@@ -181,7 +180,6 @@ export function ProfileForm({ mode, section = 'profile', initialProfile, initial
     <form onSubmit={(event) => { void submit(event) }} className="space-y-6" noValidate>
       {(onboarding || section === 'profile') && <fieldset className="rounded-2xl border border-slate-200 bg-white p-5">
         <legend className="px-1 text-lg font-bold">Personal profile</legend>
-        <p className="mb-4 text-sm text-slate-600">Only these details stay on this device. You can update them later without deleting logs.</p>
         <div className="mb-4 grid grid-cols-2 gap-3">
           <label className={labelClass}>Weight units
             <select className={inputClass} value={units.mass} onChange={(e) => updateMass(e.target.value as UnitPreferences['mass'])}>
@@ -193,6 +191,11 @@ export function ProfileForm({ mode, section = 'profile', initialProfile, initial
               <option value="cm">Centimeters</option><option value="ft-in">Feet / inches</option>
             </select>
           </label>
+            <label className={labelClass}>Fluid display units
+              <select className={inputClass} value={units.fluid} onChange={e => updateFluid(e.target.value as UnitPreferences['fluid'])}>
+                <option value="ml">Milliliters</option><option value="fl-oz">US fluid ounces</option>
+              </select>
+            </label>
         </div>
         <div className="mb-4">
           <p className={labelClass}>How would you like to give your age?</p>
@@ -233,7 +236,6 @@ export function ProfileForm({ mode, section = 'profile', initialProfile, initial
         </div>
         {onboarding && <label className={`${labelClass} mt-4`}>Initial measured weight ({units.mass})
           <input className={inputClass} type="number" min="1" step="any" inputMode="decimal" value={firstWeight} onChange={e => setFirstWeight(e.target.value)} required />
-          <span className="mt-1 block text-xs font-normal text-slate-500">Saved for today as your first dated measurement, not an estimate.</span>
         </label>}
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className={labelClass}>General activity note (optional; not used in calculations)
@@ -254,7 +256,6 @@ export function ProfileForm({ mode, section = 'profile', initialProfile, initial
             className={inputClass}
             value={backgroundMultiplier}
             onChange={e => setBackgroundMultiplier(e.target.value)}
-            aria-describedby="background-movement-help"
           >
             <option value="">Not set — skip daily expenditure estimate</option>
             {BACKGROUND_MOVEMENT_PRESETS.map(preset => (
@@ -269,24 +270,6 @@ export function ProfileForm({ mode, section = 'profile', initialProfile, initial
             )}
           </select>
         </label>
-        <p id="background-movement-help" className="mt-2 text-xs leading-5 text-slate-600">
-          Think about a typical day outside planned workouts — sitting, standing,
-          walking around, chores or physical work. The ranges are descriptive examples,
-          not clinical activity classifications. Each option uses the exact displayed multiplier;
-          logged workout energy is added separately and never included twice.
-        </p>
-        {selectedMovementPreset && (
-          <p role="status" className="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-700">
-            <strong>{selectedMovementPreset.label}:</strong> {selectedMovementPreset.examples}.
-            Background kcal estimate = resting kcal × {selectedMovementPreset.value.toFixed(2)}.
-          </p>
-        )}
-        {hasCustomBackgroundMultiplier(backgroundMultiplier) && (
-          <p role="status" className="mt-2 text-sm text-slate-600">
-            Your earlier custom multiplier is kept unchanged. Choose a preset only if you want to update it.
-          </p>
-        )}
-        <p className="mt-3 text-xs leading-5 text-slate-600">An adult resting estimate requires a recorded current/prior weight, age, height and equation constant. A total daily estimate also needs this explicit background multiplier and known workout increments on a marked-complete day. If inputs are missing, no total is shown.</p>
       </fieldset>}
 
       {(onboarding || section === 'goals') && <fieldset className="rounded-2xl border border-slate-200 bg-white p-5">
@@ -300,7 +283,6 @@ export function ProfileForm({ mode, section = 'profile', initialProfile, initial
         </label>
         {!onboarding && <label className={`${labelClass} mt-4`}>Apply revised goals from
           <input className={inputClass} type="date" min={today()} value={goalStart} onChange={e => setGoalStart(e.target.value)} required />
-          <span className="mt-1 block text-xs font-normal text-slate-500">Earlier goals remain in the history. You can revise today's goals or schedule a future date.</span>
         </label>}
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className={labelClass}>Optional target weight ({units.mass})
@@ -321,15 +303,9 @@ export function ProfileForm({ mode, section = 'profile', initialProfile, initial
           <label className={labelClass}>Fluid tracking target ({units.fluid}/day)
             <input className={inputClass} type="number" step="any" inputMode="decimal" value={fluidTarget} onChange={e => { setFluidTarget(e.target.value); setFluidTargetTouched(true) }} placeholder="Not set" />
           </label>
-          <label className={labelClass}>Fluid display units
-            <select className={inputClass} value={units.fluid} onChange={e => updateFluid(e.target.value as UnitPreferences['fluid'])}>
-              <option value="ml">Milliliters</option><option value="fl-oz">US fluid ounces</option>
-            </select>
-          </label>
         </div>
         <fieldset className="mt-5 rounded-xl border border-slate-200 p-4">
           <legend className="px-1 text-base font-semibold">Adjustable calendar alignment rules</legend>
-          <p className="mt-1 text-xs leading-5 text-slate-600">Optional tracking heuristics, not medical reference ranges. Changes take effect with this dated goal revision; older days keep their prior rules. Days with incomplete data are never evaluated overall.</p>
           <div className="mt-3 grid grid-cols-2 gap-3">
             <label className={labelClass}>Calories aligned within ±%
               <input className={inputClass} type="number" min="5" max="30" step="any" inputMode="decimal" value={energyAligned} onChange={e => setEnergyAligned(e.target.value)} required />
@@ -345,7 +321,6 @@ export function ProfileForm({ mode, section = 'profile', initialProfile, initial
             </label>
           </div>
         </fieldset>
-        <p className="mt-4 text-xs leading-5 text-slate-600">Targets are chosen by you, not prescribed by the app. A weight goal does not automatically set a calorie target.</p>
       </fieldset>}
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}
       {saved && <p role="status" className="rounded-xl bg-evergreen-50 p-3 text-sm text-evergreen-900">Saved to this browser's IndexedDB.</p>}

@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto'
 import { afterEach, describe, expect, it } from 'vitest'
 import { HealthTrackerDatabase } from '../db/database'
 import { EMPTY_TARGETS, type ProfileValues } from '../domain/profile'
-import { readGoalForDay, readProfile, saveProfileAndGoals } from './profileRepository'
+import { readGoalForDay, readProfile, saveProfileAndGoals, saveProfileSettings, saveGoalSettings } from './profileRepository'
 import { deleteWeight, listWeights, moveWeight, readWeightForDay, saveWeight } from './weightRepository'
 
 let databases: HealthTrackerDatabase[] = []
@@ -60,6 +60,35 @@ describe('profile, goals and weight repositories', () => {
     } }, null, database, '2026-11-06')
     expect((await readGoalForDay('2026-10-25', database))?.ruleSettings?.energyAlignedPercent).toBe(15)
     expect((await readGoalForDay('2026-11-06', database))?.ruleSettings?.energyAlignedPercent).toBe(20)
+  })
+  it('profile-only settings update units and height without modifying dated goals or weights', async () => {
+    const database=fresh('settings-profile-only')
+    await saveProfileAndGoals(profile, goals('2026-11-06', 2100), 72, database,'2026-11-06')
+    const before=await database.goalPeriods.toArray()
+    await saveProfileSettings({...profile, heightCm:180, backgroundActivityMultiplier:1.2,
+      units:{mass:'lb',height:'ft-in',fluid:'fl-oz'}},database,'2026-11-06')
+    expect((await readProfile(database))?.heightCm).toBe(180)
+    expect((await readProfile(database))?.units.mass).toBe('lb')
+    expect((await readProfile(database))?.backgroundActivityMultiplier).toBe(1.2)
+    expect(await database.goalPeriods.toArray()).toEqual(before)
+    expect((await readWeightForDay('2026-11-06',database))?.weightKg).toBe(72)
+  })
+  it('goal-only settings revisions preserve personal stats and future effective dates', async () => {
+    const database=fresh('settings-goals-only')
+    await saveProfileAndGoals(profile, goals('2026-11-06', 2100), 72, database,'2026-11-06')
+    const before=await readProfile(database)
+    await saveGoalSettings({
+      ...goals('2026-11-20', 2450),goalType:'gain'
+    },database,'2026-11-06')
+    expect((await readProfile(database))?.goal).toBe('maintain')
+    expect((await readGoalForDay('2026-11-10',database))?.targets.energyKcal).toBe(2100)
+    expect((await readGoalForDay('2026-11-21',database))?.targets.energyKcal).toBe(2450)
+    expect((await readProfile(database))?.heightCm).toBe(before?.heightCm)
+    expect((await readProfile(database))?.units).toEqual(before?.units)
+    await saveGoalSettings({...goals('2026-11-06', 2200),goalType:'lose'},database,'2026-11-06')
+    expect((await readProfile(database))?.goal).toBe('lose')
+    expect((await database.goalPeriods.count())).toBe(2)
+    expect((await database.weightEntries.count())).toBe(1)
   })
   it('rejects malformed onboarding without committing a partial profile', async () => {
     const database = fresh('phase1-atomic-rejection')
