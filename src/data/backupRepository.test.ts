@@ -5,6 +5,7 @@ import { parseBackupJson, validateBackup } from '../domain/backup'
 import { EMPTY_TARGETS } from '../domain/profile'
 import { emptyNutrition } from '../domain/nutrition'
 import { countLocalRecords, deleteAllLocalRecords, readLocalBackup, replaceLocalData } from './backupRepository'
+import { setDayComplete } from './dayRepository'
 
 const names:string[]=[]
 const newDb=(name:string)=>{names.push(name);return new HealthTrackerDatabase(name)}
@@ -46,9 +47,7 @@ async function seed(db:HealthTrackerDatabase){
     id:'weight',dayKey:'2026-11-06',recordedAt:now,
     weightKg:70,createdAt:now,updatedAt:now
   })
-  await db.dayReviews.add({
-    dayKey:'2026-11-06',isComplete:true,markedAt:now,updatedAt:now
-  })
+  await setDayComplete('2026-11-06', true, db, '2026-11-07')
   await db.appSettings.add({
     id:'local',waterPresetsMl:[100,250,400,600],updatedAt:now
   })
@@ -60,7 +59,7 @@ describe('complete local JSON backup and restore',()=>{
     await seed(database)
     const backup=await readLocalBackup(database)
     expect(backup.formatVersion).toBe(1)
-    expect(backup.app.schemaVersion).toBe(2)
+    expect(backup.app.schemaVersion).toBe(3)
     expect(backup.tables.foodEntries[0]?.referenceNutrientsSnapshot?.energyKcal).toBe(400)
     const serialized=JSON.stringify(backup)
     await deleteAllLocalRecords(database)
@@ -74,6 +73,28 @@ describe('complete local JSON backup and restore',()=>{
     expect(restored.tables.foodEntries[0]?.nutrientsSnapshot.energyKcal).toBe(300)
     reopened.close()
   })
+  it('keeps completion snapshots on restore and archives completed legacy backups', async () => {
+    const database = newDb('archive-backup-roundtrip')
+    await seed(database)
+    const backup = await readLocalBackup(database)
+    const original = backup.tables.dayReviews[0]!.frozen
+    expect(original?.summary.evaluation.results[0]?.target).toBe(2100)
+    await replaceLocalData(backup, database)
+    expect((await readLocalBackup(database)).tables.dayReviews[0]?.frozen).toEqual(original)
+
+    const old = structuredClone(backup)
+    old.app.schemaVersion = 2
+    delete old.tables.dayReviews[0]!.frozen
+    await replaceLocalData(old, database)
+    const recovered = await readLocalBackup(database)
+    expect(recovered.tables.dayReviews[0]?.frozen?.summary.evaluation.results[0]?.target).toBe(2100)
+    const malformed = structuredClone(recovered)
+    malformed.tables.dayReviews[0]!.frozen!.summary.evaluation.status = 'not-a-real-status' as never
+    await expect(replaceLocalData(malformed, database)).rejects.toThrow(/unknown option/)
+    expect((await readLocalBackup(database)).tables.dayReviews).toEqual(recovered.tables.dayReviews)
+    database.close()
+  })
+
   it('round-trips optional nutrient comparison limits and rejects corrupt limits atomically', async () => {
     const database = newDb('backup-nutrient-limits')
     await seed(database)

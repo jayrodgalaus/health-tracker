@@ -1,6 +1,8 @@
 import { db, type HealthTrackerDatabase } from '../db/database'
 import type { DayReview, ExerciseEntry, FoodEntry, GoalPeriod, LocalDay, WeightEntry } from '../domain/models'
 import { goalOnDay } from '../domain/evaluation'
+import { archiveCompletedDay } from '../domain/daySnapshot'
+import { weekBounds } from '../domain/activity'
 import { assertLocalDay } from '../domain/profile'
 import { monthDays } from '../domain/calendar'
 import { toLocalDay } from '../lib/localDate'
@@ -49,7 +51,22 @@ export async function readMonthRecords(month: string, database: HealthTrackerDat
   return { intake, activities, weights, goals, reviews }
 }
 
-/** A user can explicitly complete a day with few logs, but its status stays incomplete/unassessable. */
+/** Must run INSIDE the same Dexie transaction as every dated write. */
+export async function assertDayEditable(dayKey: LocalDay, database: HealthTrackerDatabase = db): Promise<void> {
+  const review = await database.dayReviews.get(dayKey)
+  if (review?.isComplete) {
+    throw new Error('This day is locked. Reopen it from Calendar or Log before making changes.')
+  }
+}
+
+export async function readDayLocked(dayKey: LocalDay, database: HealthTrackerDatabase = db): Promise<boolean> {
+  return (await database.dayReviews.get(dayKey))?.isComplete === true
+}
+
+/**
+ * Complete + archive all calculations and comparison inputs atomically.
+ * Reopening explicitly discards the snapshot and permits new edits.
+ */
 export async function setDayComplete(
   dayKey: LocalDay,
   isComplete: boolean,
@@ -58,14 +75,36 @@ export async function setDayComplete(
 ): Promise<DayReview> {
   assertLocalDay(dayKey, 'Review date')
   if (dayKey > currentDay) throw new Error('A future day cannot be marked complete.')
-  return database.transaction('rw', database.dayReviews, async () => {
+  return database.transaction('rw', [
+    database.dayReviews, database.profiles, database.goalPeriods, database.foodEntries,
+    database.exerciseEntries, database.weightEntries, database.appSettings
+  ], async () => {
     const previous = await database.dayReviews.get(dayKey)
+    if (previous?.isComplete === isComplete) throw new Error(isComplete
+      ? 'This day is already complete and locked.' : 'This day is not locked.')
     const now = new Date().toISOString()
     const review: DayReview = {
       dayKey, isComplete, markedAt: isComplete ? now : null,
       updatedAt: now, note: previous?.note ?? null
     }
-    await database.dayReviews.put(review)
-    return review
+    if (!isComplete) {
+      await database.dayReviews.put(review)
+      return review
+    }
+    const profile = await database.profiles.get('primary')
+    if (!profile) throw new Error('A profile is required to archive a completed day.')
+    const { start: weekStart, end: weekEnd } = weekBounds(dayKey)
+    const [intake, activities, weights, goals, settings] = await Promise.all([
+      database.foodEntries.where('dayKey').equals(dayKey).toArray(),
+      database.exerciseEntries.where('dayKey').between(weekStart, weekEnd, true, true).toArray(),
+      database.weightEntries.where('dayKey').belowOrEqual(dayKey).toArray(),
+      database.goalPeriods.where('effectiveFrom').belowOrEqual(dayKey).toArray(),
+      database.appSettings.get('local')
+    ])
+    const archived = archiveCompletedDay(review, profile, {
+      intake, activities, weights, goals, settings
+    }, now)
+    await database.dayReviews.put(archived)
+    return archived
   })
 }

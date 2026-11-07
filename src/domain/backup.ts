@@ -20,7 +20,7 @@ export interface BackupTables {
 export interface HealthBackup {
   formatVersion: 1
   exportedAt: string
-  app: { name: 'health-tracker'; version: string; schemaVersion: 2 }
+  app: { name: 'health-tracker'; version: string; schemaVersion: 2 | 3 }
   tables: BackupTables
 }
 export type BackupCounts = Record<BackupTableName, number>
@@ -95,6 +95,83 @@ const targetMax:Record<string,number>={
   fiberG:500,sodiumMg:50000,fluidMl:30000,activityMinutes:1440
 }
 const rules=['energyAlignedPercent','energyAttentionPercent','minimumLargeDeviationPercent','sodiumLargeDeviationPercent']
+/** Narrow, finite snapshot validation: never trust an arbitrary JSON payload in local backups. */
+function validateArchivedSnapshot(raw: unknown, field: string, reviewDay: string) {
+  const s = shape(raw, field, ['version', 'summary', 'profile', 'comparisonLimits', 'week'],
+    ['version', 'summary', 'profile', 'comparisonLimits', 'week'])
+  if (s.version !== 1) invalid(field, 'unsupported locked-day snapshot version')
+  validateRecord('profiles', s.profile, field + '.profile')
+  const limits = shape(s.comparisonLimits, field + '.comparisonLimits',
+    ['carbohydratesG','sugarsG','sodiumMg'], ['carbohydratesG','sugarsG','sodiumMg'])
+  numeric(limits.carbohydratesG, field + '.carbohydratesG', 0.1, 2000, true)
+  numeric(limits.sugarsG, field + '.sugarsG', 0.1, 3000, true)
+  numeric(limits.sodiumMg, field + '.sodiumMg', 1, 100000, true)
+  const summary = shape(s.summary, field + '.summary',
+    ['dayKey','intake','activity','expenditure','evaluation','recordedWeightKg','entryCount'],
+    ['dayKey','intake','activity','expenditure','evaluation','recordedWeightKg','entryCount'])
+  if (summary.dayKey !== reviewDay) invalid(field, 'snapshot date does not match review date')
+  numeric(summary.recordedWeightKg, field + '.recordedWeightKg', 10, 500, true)
+  numeric(summary.entryCount, field + '.entryCount', 0, 100000)
+  const evalResult = shape(summary.evaluation, field + '.evaluation',
+    ['status','isComplete','isAssessable','assessedRuleCount','expectedRuleCount','results',
+      'keyObservations','calculatedAt','evaluationRuleVersion','ruleSettings'],
+    ['status','isComplete','isAssessable','assessedRuleCount','expectedRuleCount','results',
+      'keyObservations','calculatedAt','evaluationRuleVersion','ruleSettings'])
+  choice(evalResult.status, field + '.status', ['onTarget','mixed','offTarget','incomplete'])
+  if (evalResult.isComplete !== true || typeof evalResult.isAssessable !== 'boolean') {
+    invalid(field, 'completed snapshot needs an explicit assessability flag')
+  }
+  numeric(evalResult.assessedRuleCount, field + '.assessedRuleCount', 0, 10)
+  numeric(evalResult.expectedRuleCount, field + '.expectedRuleCount', 0, 10)
+  iso(evalResult.calculatedAt, field + '.calculatedAt')
+  text(evalResult.evaluationRuleVersion, field + '.evaluationRuleVersion', 30)
+  const ruleSettings = shape(evalResult.ruleSettings,field + '.ruleSettings',rules,rules)
+  for (const k of rules) numeric(ruleSettings[k],field + '.' + k,0,100)
+  if(!Array.isArray(evalResult.results)||evalResult.results.length>10)invalid(field,'invalid rule results')
+  for (const [i, result] of evalResult.results.entries()) {
+    const r = shape(result, field + '.results[' + i + ']',
+      ['code','state','label','explanation','actual','target','unit','source'],
+      ['code','state','label','explanation','actual','target','unit','source'])
+    text(r.code,field+'.code',150)
+    choice(r.state,field+'.state',['pass','attention','significantDeviation','notEvaluated'])
+    text(r.label,field+'.label',150)
+    text(r.explanation,field+'.explanation',1000)
+    numeric(r.actual,field+'.actual',0,10000000,true)
+    numeric(r.target,field+'.target',0,10000000,true)
+    if(typeof r.unit!=='string'||r.unit.length>16)invalid(field,'invalid result unit')
+    choice(r.source,field+'.source',['recorded','userTarget'])
+  }
+  if (!Array.isArray(evalResult.keyObservations) || evalResult.keyObservations.length > 10) {
+    invalid(field, 'invalid archived observations')
+  }
+  for (const [i, item] of evalResult.keyObservations.entries()) text(item,field+'.observation['+i+']',1000)
+
+  // The archived totals and estimates are structured aggregates; verify finite
+  // numeric leaves and bounded depth/size to avoid corrupted or malicious input.
+  function safeValue(value: unknown, label: string, depth = 0): void {
+    if(depth > 12) invalid(label,'snapshot nesting exceeds supported depth')
+    if(value === null || value === undefined || typeof value === 'boolean') return
+    if(typeof value === 'number') {
+      if(!Number.isFinite(value))invalid(label,'non-finite number'); return
+    }
+    if(typeof value === 'string') {
+      if(value.length > 2000)invalid(label,'oversized text'); return
+    }
+    if(Array.isArray(value)) {
+      if(value.length>100)invalid(label,'oversized array')
+      value.forEach((x,i)=>safeValue(x,label+'['+i+']',depth+1))
+      return
+    }
+    const o = obj(value,label)
+    if(Object.keys(o).length>50)invalid(label,'oversized object')
+    for (const [k,v] of Object.entries(o)) safeValue(v,label+'.'+k,depth+1)
+  }
+  safeValue(summary.intake,field+'.intake')
+  safeValue(summary.activity,field+'.activity')
+  safeValue(summary.expenditure,field+'.expenditure')
+  safeValue(s.week,field+'.week')
+}
+
 function validateRecord(table:BackupTableName,raw:unknown,field:string){
   if(table==='profiles'){
     const r=shape(raw,field,[
@@ -243,12 +320,16 @@ function validateRecord(table:BackupTableName,raw:unknown,field:string){
     common(r,field);day(r.dayKey,field+'.dayKey');iso(r.recordedAt,field+'.recordedAt')
     numeric(r.weightKg,field+'.weightKg',10,500)
   } else if(table==='dayReviews'){
-    const r=shape(raw,field,['dayKey','isComplete','markedAt','note','updatedAt'],
+    const r=shape(raw,field,['dayKey','isComplete','markedAt','note','updatedAt','frozen'],
       ['dayKey','isComplete','markedAt'])
     day(r.dayKey,field+'.dayKey')
     if(typeof r.isComplete!=='boolean')invalid(field,'invalid completion flag')
     if(r.markedAt!==null)iso(r.markedAt,field+'.markedAt')
     if(r.isComplete&&r.markedAt===null)invalid(field,'complete day missing timestamp')
+    if(r.frozen!==undefined&&r.frozen!==null) {
+      if(!r.isComplete)invalid(field,'reopened day cannot carry a locked snapshot')
+      validateArchivedSnapshot(r.frozen, field+'.frozen', r.dayKey as string)
+    }
     text(r.note,field+'.note',500,true)
     if(r.updatedAt!==undefined)iso(r.updatedAt,field+'.updatedAt')
   } else {
@@ -273,7 +354,7 @@ export function validateBackup(raw:unknown):HealthBackup {
   if(root.formatVersion!==BACKUP_FORMAT_VERSION)invalid('formatVersion','unsupported backup version')
   iso(root.exportedAt,'exportedAt')
   const app=shape(root.app,'app',['name','version','schemaVersion'],['name','version','schemaVersion'])
-  if(app.name!=='health-tracker'||app.schemaVersion!==2)invalid('app','unsupported application or database version')
+  if(app.name!=='health-tracker'||(app.schemaVersion!==2&&app.schemaVersion!==3))invalid('app','unsupported application or database version')
   text(app.version,'app.version',32)
   const tables=shape(root.tables,'tables',BACKUP_TABLES,BACKUP_TABLES)
   for(const table of BACKUP_TABLES){

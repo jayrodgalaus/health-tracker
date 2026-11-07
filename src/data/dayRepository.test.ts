@@ -6,6 +6,9 @@ import { calculateDay, goalOnDay } from '../domain/evaluation'
 import type { Profile } from '../domain/models'
 import { emptyNutrition } from '../domain/nutrition'
 import { readDayRecords, readMonthRecords, setDayComplete } from './dayRepository'
+import { saveIntake, deleteIntake } from './intakeRepository'
+import { saveWeight, moveWeight } from './weightRepository'
+import { saveExercise, deleteExercise } from './exerciseRepository'
 
 const created: HealthTrackerDatabase[] = []
 const make = (name: string) => { const database = new HealthTrackerDatabase(name); created.push(database); return database }
@@ -30,6 +33,7 @@ describe('day completion, goal history and month data', () => {
   it('saves completion/reopening across restart and never scores empty days red', async () => {
     const name = 'phase2-reviews'
     const first = make(name)
+    await first.profiles.add(profile)
     expect((await dayFrom(first, '2026-11-05')).evaluation.status).toBe('incomplete')
     await setDayComplete('2026-11-05', true, first, '2026-11-06')
     first.close()
@@ -68,12 +72,94 @@ describe('day completion, goal history and month data', () => {
       nutrientsSnapshot: { ...emptyNutrition(), energyKcal: 2000 }, fluidMl: null
     }
     await database.foodEntries.add(entry)
+    await database.profiles.add(profile)
     await setDayComplete('2026-11-06', true, database, '2026-11-06')
-    expect((await dayFrom(database, '2026-11-06')).evaluation.status).toBe('onTarget')
+    const original = await dayFrom(database, '2026-11-06')
+    expect(original.evaluation.status).toBe('onTarget')
+    expect((await readDayRecords('2026-11-06', database)).review?.frozen?.summary.evaluation.results[0]?.target).toBe(2000)
+    // Goal edits must NOT rewrite a completed day.
+    await database.goalPeriods.put({ ...goal, targets: { ...goal.targets, energyKcal: 1000 } })
+    expect(await dayFrom(database, '2026-11-06')).toEqual(original)
+    // Even an out-of-band record edit cannot change the archived evaluation.
     await database.foodEntries.put({ ...entry, nutrientsSnapshot: { ...emptyNutrition(), energyKcal: 2700 } })
-    expect((await dayFrom(database, '2026-11-06')).evaluation.status).toBe('offTarget')
+    expect((await dayFrom(database, '2026-11-06')).evaluation.status).toBe('onTarget')
     await setDayComplete('2026-11-06', false, database, '2026-11-06')
     expect((await dayFrom(database, '2026-11-06')).evaluation.status).toBe('incomplete')
+    expect((await readDayRecords('2026-11-06', database)).review?.frozen).toBeUndefined()
+    await setDayComplete('2026-11-06', true, database, '2026-11-06')
+    expect((await dayFrom(database, '2026-11-06')).evaluation.status).toBe('offTarget')
+    expect((await readDayRecords('2026-11-06', database)).review?.frozen?.summary.evaluation.results[0]?.target).toBe(1000)
+  })
+  it('blocks all intake changes, including moving into or out of a locked date, and allows edits after reopening', async () => {
+    const database = make('locked-intake-repository')
+    await database.profiles.put(profile)
+    const draft = (dayKey: string) => ({
+      dayKey, kind: 'food' as const, name: 'Test meal', quantity: 1,
+      unit: 'serving' as const, labelBasis: { quantity: 1, unit: 'serving' as const },
+      referenceNutrients: { ...emptyNutrition(), energyKcal: 200 }
+    })
+    const one = await saveIntake(draft('2026-11-05'), undefined, database, '2026-11-06')
+    const other = await saveIntake(draft('2026-11-06'), undefined, database, '2026-11-06')
+    await setDayComplete('2026-11-05', true, database, '2026-11-06')
+    await expect(saveIntake(draft('2026-11-05'), undefined, database, '2026-11-06')).rejects.toThrow(/locked/i)
+    await expect(saveIntake(draft('2026-11-05'), one.id, database, '2026-11-06')).rejects.toThrow(/locked/i)
+    await expect(saveIntake(draft('2026-11-06'), one.id, database, '2026-11-06')).rejects.toThrow(/locked/i)
+    await expect(saveIntake(draft('2026-11-05'), other.id, database, '2026-11-06')).rejects.toThrow(/locked/i)
+    await expect(deleteIntake(one.id, database)).rejects.toThrow(/locked/i)
+    expect(await database.foodEntries.count()).toBe(2)
+    await setDayComplete('2026-11-05', false, database, '2026-11-06')
+    await deleteIntake(one.id, database)
+    expect(await database.foodEntries.count()).toBe(1)
+  })
+  it('blocks exercise edits and moving exercises into or out of completed dates', async () => {
+    const database = make('locked-exercise-repository')
+    await database.profiles.add(profile)
+    const draft = (dayKey: string) => ({
+      dayKey, activity: 'Walking', durationMinutes: 30, intensity: null,
+      calorieMethod: 'unknown' as const, met: null, manualActiveKcal: null,
+      isStrengthTraining: false, timeOfDay: null, notes: null
+    })
+    const lockedEntry = await saveExercise(draft('2026-11-05'), undefined, database, '2026-11-06')
+    const editableEntry = await saveExercise(draft('2026-11-06'), undefined, database, '2026-11-06')
+    await setDayComplete('2026-11-05', true, database, '2026-11-06')
+    await expect(saveExercise(draft('2026-11-05'), undefined, database, '2026-11-06')).rejects.toThrow(/locked/i)
+    await expect(saveExercise(draft('2026-11-05'), lockedEntry.id, database, '2026-11-06')).rejects.toThrow(/locked/i)
+    await expect(saveExercise(draft('2026-11-06'), lockedEntry.id, database, '2026-11-06')).rejects.toThrow(/locked/i)
+    await expect(saveExercise(draft('2026-11-05'), editableEntry.id, database, '2026-11-06')).rejects.toThrow(/locked/i)
+    await expect(deleteExercise(lockedEntry.id, database)).rejects.toThrow(/locked/i)
+    expect(await database.exerciseEntries.count()).toBe(2)
+    await setDayComplete('2026-11-05', false, database, '2026-11-06')
+    await deleteExercise(lockedEntry.id, database)
+    expect(await database.exerciseEntries.count()).toBe(1)
+  })
+  it('blocks weight edits that would alter a locked day or move its measurement', async () => {
+    const database = make('locked-weight-repository')
+    await database.profiles.add(profile)
+    await saveWeight('2026-11-05', 70, database, '2026-11-06')
+    await setDayComplete('2026-11-05', true, database, '2026-11-06')
+    await expect(saveWeight('2026-11-05', 71, database, '2026-11-06')).rejects.toThrow(/locked/i)
+    await expect(moveWeight('2026-11-05', '2026-11-06', 71, database, '2026-11-06')).rejects.toThrow(/locked/i)
+    await expect(moveWeight('2026-11-06', '2026-11-05', 71, database, '2026-11-06')).rejects.toThrow(/locked/i)
+    await setDayComplete('2026-11-05', false, database, '2026-11-06')
+    expect((await saveWeight('2026-11-05', 71, database, '2026-11-06')).weightKg).toBe(71)
+  })
+  it('preserves archived evaluation after a later profile change', async () => {
+    const database = make('locked-profile-change')
+    await database.profiles.put(profile)
+    await database.goalPeriods.add({
+      id: 'target', effectiveFrom: '2026-11-01', targets: { ...EMPTY_TARGETS, energyKcal: 2000 }, createdAt: now
+    })
+    await database.foodEntries.add({
+      id: 'meal', dayKey: '2026-11-05', recordedAt: now, createdAt: now, updatedAt: now,
+      kind: 'food', name: 'Synthetic meal', savedFoodId: null,
+      quantity: 1, unit: 'serving', labelBasis: { quantity: 1, unit: 'serving' },
+      nutrientsSnapshot: { ...emptyNutrition(), energyKcal: 2000 }, fluidMl: null
+    })
+    await setDayComplete('2026-11-05', true, database, '2026-11-06')
+    const frozen = (await readDayRecords('2026-11-05', database)).review?.frozen
+    await database.profiles.put({ ...profile, birthDate: '2005-01-01', heightCm: 180, updatedAt: now })
+    expect((await dayFrom(database, '2026-11-05')).evaluation).toEqual(frozen?.summary.evaluation)
+    expect(frozen?.profile.heightCm).toBe(170)
   })
   it('batches a month and includes earlier weight and goals without future records', async () => {
     const database = make('phase2-month')

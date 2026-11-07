@@ -179,10 +179,22 @@ export interface WeightEntry {
   updatedAt: IsoTimestamp
 }
 
+/** Read-only, versioned historical day view, captured when a day is completed. */
+export interface CompletedDaySnapshot {
+  version: 1
+  summary: import('./evaluation').DailySummary
+  /** The week summary shown on the locked date is preserved as displayed. */
+  week: import('./activity').ActivityWeekSummary
+  profile: Profile
+  comparisonLimits: import('./nutrientLimits').NutrientComparisonLimits
+}
+
 export interface DayReview {
   dayKey: LocalDay
   isComplete: boolean
   markedAt: IsoTimestamp | null
+  /** Immutable until explicitly reopened; older v2 reviews may omit this. */
+  frozen?: CompletedDaySnapshot
   note?: string | null
   updatedAt?: IsoTimestamp
 }

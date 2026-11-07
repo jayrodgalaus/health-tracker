@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { db } from '../db/database'
 import type { Profile } from '../domain/models'
 import { deleteExercise } from '../data/exerciseRepository'
+import { readDayLocked } from '../data/dayRepository'
 import { PageInfoLink } from '../components/PageInfoLink'
 import { useToast } from '../components/ToastProvider'
 import { ExerciseForm } from '../features/exercise/ExerciseLog'
@@ -16,6 +17,8 @@ export function ExerciseEntryPage({profile}: {profile:Profile}) {
   const dayKey=selectedLogDay(params.get('date'))
   const editId=params.get('edit')
   const entry=useLiveQuery(async()=>editId?await db.exerciseEntries.get(editId):null,[editId],undefined)
+  const editingDay=entry?.dayKey??dayKey
+  const locked=useLiveQuery(()=>readDayLocked(editingDay),[editingDay],undefined)
   const [confirmDelete,setConfirmDelete]=useState(false)
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
@@ -36,6 +39,12 @@ export function ExerciseEntryPage({profile}: {profile:Profile}) {
     <p role="alert" className="rounded-xl bg-rose-50 p-4 text-rose-900">This exercise entry is unavailable.</p>
     <Link to={back} className="font-semibold text-evergreen-700 underline">Back to Log</Link>
   </div>
+  if (locked === undefined) return <p role="status" className="rounded-xl bg-white p-4">Checking day status…</p>
+  if (locked) return <section aria-label="Locked day" className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
+    <h1 className="text-xl font-bold">Completed day · Read only</h1>
+    <p className="text-sm text-slate-600">Reopen this date from its Calendar details to add, change, or delete exercise.</p>
+    <Link className="inline-flex min-h-11 items-center font-semibold text-evergreen-700 underline" to={'/calendar/'+editingDay}>View locked day</Link>
+  </section>
   return <div className="space-y-6">
     <header>
       <PageInfoLink topic="exercise" />

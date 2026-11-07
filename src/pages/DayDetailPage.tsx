@@ -23,6 +23,9 @@ export function DayDetailPage({ profile }: { profile: Profile }) {
   if (!dayKey) return <div role="alert" className="rounded-xl bg-rose-50 p-5">
     Invalid calendar day. <Link className="text-evergreen-700 underline" to="/calendar">Return to calendar</Link>.
   </div>
+  const locked = records?.review?.isComplete === true
+  const archivedProfile = records?.review?.frozen?.profile ?? profile
+  const archivedLimits = locked && records?.review?.frozen ? records.review.frozen.comparisonLimits : limits
   const summary = records ? calculateDay({ dayKey, profile, ...records }, new Date().toISOString()) : undefined
   const previous = addLocalDays(dayKey, -1)
   const next = addLocalDays(dayKey, 1)
@@ -40,11 +43,14 @@ export function DayDetailPage({ profile }: { profile: Profile }) {
       </nav>
     </header>
     {records === undefined && <p role="status" className="rounded-xl bg-white p-4 text-sm text-slate-600">Loading records for {dayKey}…</p>}
+    {locked && <p role="status" className="rounded-xl border border-slate-300 bg-slate-100 p-3 text-sm font-semibold text-slate-800">Completed day · Read only. Reopen to make corrections.</p>}
     <DayAssessment summary={summary} fullRules />
     <ExpenditurePanel summary={summary} />
-    <NutritionSummary entries={records?.intake} loading={limits === undefined}
-      reniProfile={profile} reniDayKey={dayKey} comparisonLimits={limits} detailDayKey={dayKey} />
-    <ActivitySummary dayKey={dayKey} profile={profile} dayActivities={records?.activities} weekActivities={week} weights={records?.weights} />
-    {records && <DayEntries dayKey={dayKey} profile={profile} records={records} />}
+    <NutritionSummary entries={records?.intake} loading={archivedLimits === undefined}
+      reniProfile={archivedProfile} reniDayKey={dayKey} comparisonLimits={archivedLimits} detailDayKey={dayKey} />
+    <ActivitySummary dayKey={dayKey} profile={archivedProfile} dayActivities={records?.activities} weekActivities={week} weights={records?.weights}
+      frozenDay={locked ? records?.review?.frozen?.summary.activity : undefined}
+      frozenWeek={locked ? records?.review?.frozen?.week : undefined} />
+    {records && <DayEntries dayKey={dayKey} profile={archivedProfile} records={records} locked={locked} />}
   </div>
 }

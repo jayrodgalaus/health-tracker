@@ -1,5 +1,5 @@
 import type { ExerciseEntry, Profile, WeightEntry } from '../../domain/models'
-import { calculateActivityDay, calculateActivityWeek } from '../../domain/activity'
+import { calculateActivityDay, calculateActivityWeek, type ActivityDaySummary, type ActivityWeekSummary } from '../../domain/activity'
 import { ageOnDay } from '../../domain/profile'
 
 interface Props {
@@ -8,9 +8,11 @@ interface Props {
   dayActivities?: ExerciseEntry[]
   weekActivities?: ExerciseEntry[]
   weights?: WeightEntry[]
+  frozenDay?: ActivityDaySummary
+  frozenWeek?: ActivityWeekSummary
 }
 
-export function ActivitySummary({ dayKey, profile, dayActivities, weekActivities, weights }: Props) {
+export function ActivitySummary({ dayKey, profile, dayActivities, weekActivities, weights, frozenDay, frozenWeek }: Props) {
   if (!dayActivities || !weekActivities || !weights) {
     return <p role="status" className="rounded-2xl bg-white p-4 text-sm text-slate-600">Loading recorded exercise…</p>
   }
@@ -18,8 +20,8 @@ export function ActivitySummary({ dayKey, profile, dayActivities, weekActivities
     birthDate: profile.birthDate, ageYears: profile.ageYears ?? null, ageAsOf: profile.ageAsOf ?? null
   }, dayKey)
   const adult = age !== null && age >= 18
-  const day = calculateActivityDay(dayKey, dayActivities, weights, adult)
-  const week = calculateActivityWeek(dayKey, weekActivities)
+  const day = frozenDay ?? calculateActivityDay(dayKey, dayActivities, weights, adult)
+  const week = frozenWeek ?? calculateActivityWeek(dayKey, weekActivities)
   const known = day.knownIncrementalKcal
 
   return (

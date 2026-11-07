@@ -1,4 +1,5 @@
 import { db, type HealthTrackerDatabase } from '../db/database'
+import { archiveLegacyReviews } from '../domain/daySnapshot'
 import {
   BACKUP_TABLES, backupCounts, validateBackup,
   type BackupCounts, type HealthBackup
@@ -19,7 +20,7 @@ export async function readLocalBackup(database: HealthTrackerDatabase = db): Pro
       const snapshot: HealthBackup = {
         formatVersion: 1,
         exportedAt: new Date().toISOString(),
-        app: { name: 'health-tracker', version: '0.1.0', schemaVersion: 2 },
+        app: { name: 'health-tracker', version: '0.1.0', schemaVersion: 3 },
         tables: { profiles, goalPeriods, savedFoods, foodEntries,
           exerciseEntries, weightEntries, dayReviews, appSettings }
       }
@@ -48,6 +49,25 @@ export async function replaceLocalData(
   database: HealthTrackerDatabase = db
 ): Promise<BackupCounts> {
   const backup = validateBackup(untrusted)
+  if (backup.tables.dayReviews.some(review => review.isComplete) && backup.tables.profiles.length === 0) {
+    throw new Error('Cannot restore completed dates without a profile to preserve their historical evaluation.')
+  }
+  // Older exports predate locked snapshots. Freeze them at import using the
+  // historical records available in that export. Existing snapshots are kept.
+  const archivedBackup: HealthBackup = {
+    ...backup,
+    tables: {
+      ...backup.tables,
+      dayReviews: archiveLegacyReviews(backup.tables.dayReviews, backup.tables.profiles[0] ?? null, {
+        intake: backup.tables.foodEntries,
+        activities: backup.tables.exerciseEntries,
+        weights: backup.tables.weightEntries,
+        goals: backup.tables.goalPeriods,
+        settings: backup.tables.appSettings[0] ?? null
+      }, backup.exportedAt)
+    }
+  }
+  validateBackup(archivedBackup)
   await database.transaction('rw', [database.profiles, database.goalPeriods,
     database.savedFoods, database.foodEntries, database.exerciseEntries,
     database.weightEntries, database.dayReviews, database.appSettings], async () => {
@@ -65,10 +85,10 @@ export async function replaceLocalData(
       await database.foodEntries.bulkAdd(backup.tables.foodEntries)
       await database.exerciseEntries.bulkAdd(backup.tables.exerciseEntries)
       await database.weightEntries.bulkAdd(backup.tables.weightEntries)
-      await database.dayReviews.bulkAdd(backup.tables.dayReviews)
+      await database.dayReviews.bulkAdd(archivedBackup.tables.dayReviews)
       await database.appSettings.bulkAdd(backup.tables.appSettings)
     })
-  return backupCounts(backup)
+  return backupCounts(archivedBackup)
 }
 
 /** Irreversible local reset; a successful transaction triggers onboarding. */

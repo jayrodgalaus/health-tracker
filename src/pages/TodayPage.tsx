@@ -21,6 +21,8 @@ export function TodayPage({ profile }: { profile: Profile }) {
   const dayKey = selected && parseLocalDay(selected) && selected >= '1900-01-01' && selected <= today ? selected : today
   const records = useLiveQuery(() => readDayRecords(dayKey), [dayKey], undefined)
   const week = useLiveQuery(() => listExerciseForWeek(dayKey), [dayKey], undefined)
+  const locked = records?.review?.isComplete === true
+  const archivedProfile = records?.review?.frozen?.profile ?? profile
   const summary = records ? calculateDay({ dayKey, profile, ...records }, new Date().toISOString()) : undefined
   const recordedWeight = summary?.recordedWeightKg
   const latest = summary?.expenditure.weight
@@ -51,6 +53,7 @@ export function TodayPage({ profile }: { profile: Profile }) {
           onClick={() => changeDay(today)}>Today</button>}
       </div>
     </header>
+    {locked ? <p role="status" className="rounded-xl border border-slate-300 bg-slate-100 p-3 text-sm font-semibold">Completed day · Read only. Reopen from the daily goal alignment section to edit.</p> : records ? <>
     <section aria-label="Quick logging actions" className="flex flex-wrap gap-2">
       <Link to={'/log/food' + dateQuery} className="inline-flex min-h-11 items-center rounded-xl bg-evergreen-600 px-4 py-2 text-sm font-semibold text-white">+ Food</Link>
       <Link to={'/log/drink' + dateQuery} className="inline-flex min-h-11 items-center rounded-xl bg-evergreen-600 px-4 py-2 text-sm font-semibold text-white">+ Drink</Link>
@@ -58,21 +61,24 @@ export function TodayPage({ profile }: { profile: Profile }) {
       <Link to={'/log/exercise' + dateQuery} className="inline-flex min-h-11 items-center rounded-xl bg-evergreen-600 px-4 py-2 text-sm font-semibold text-white">+ Exercise</Link>
       <Link to={'/log' + dateQuery + '#weight'} className="inline-flex min-h-11 items-center rounded-xl border border-evergreen-600 px-4 py-2 text-sm font-semibold text-evergreen-700">+ Weight</Link>
     </section>
+    </> : null}
     <ExpenditurePanel summary={summary} />
     <NutritionSummary entries={records?.intake} detailDayKey={dayKey} />
-    <ActivitySummary dayKey={dayKey} profile={profile} dayActivities={records?.activities} weekActivities={week} weights={records?.weights} />
+    <ActivitySummary dayKey={dayKey} profile={archivedProfile} dayActivities={records?.activities} weekActivities={week} weights={records?.weights}
+      frozenDay={locked ? records?.review?.frozen?.summary.activity : undefined}
+      frozenWeek={locked ? records?.review?.frozen?.week : undefined} />
     <DayAssessment summary={summary} />
     <section aria-labelledby="weight-card-title" className="rounded-2xl bg-evergreen-900 p-5 text-white">
       <h2 id="weight-card-title" className="font-semibold">Measured weight</h2>
       <p className="mt-2 text-xl font-bold">{recordedWeight == null ? 'Not recorded for this day'
-        : Number(kilogramsTo(recordedWeight, profile.units.mass).toFixed(2)) + ' ' + profile.units.mass}</p>
+        : Number(kilogramsTo(recordedWeight, archivedProfile.units.mass).toFixed(2)) + ' ' + archivedProfile.units.mass}</p>
       <p className="mt-2 text-xs leading-5 text-emerald-50">{latest?.source === 'carriedForward'
-        ? 'Most recent earlier measured weight: ' + Number(kilogramsTo(latest.weightKg!, profile.units.mass).toFixed(2)) +
-          ' ' + profile.units.mass + ' on ' + latest.sourceDay + ' (not a measurement for this day).'
+        ? 'Most recent earlier measured weight: ' + Number(kilogramsTo(latest.weightKg!, archivedProfile.units.mass).toFixed(2)) +
+          ' ' + archivedProfile.units.mass + ' on ' + latest.sourceDay + ' (not a measurement for this day).'
         : 'Missing measured dates are not filled in.'}</p>
-      <Link to={'/log' + dateQuery + '#weight'} className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-white px-4 text-sm font-bold text-evergreen-900">Add / edit weight</Link>
+      {!locked &&       <Link to={'/log' + dateQuery + '#weight'} className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-white px-4 text-sm font-bold text-evergreen-900">Add / edit weight</Link>}
     </section>
-    {records && <DayEntries dayKey={dayKey} records={records} profile={profile} />}
+    {records && <DayEntries dayKey={dayKey} records={records} profile={archivedProfile} locked={locked} />}
     <Link to={'/calendar/' + dayKey} className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-evergreen-700">Open full day detail and rule explanations</Link>
   </div>
 }

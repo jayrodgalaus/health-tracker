@@ -40,6 +40,35 @@ fluid and an optional *upper tracking* sodium amount; unspecified targets are
 not evaluated. Exercise is summarized on a Monday–Sunday weekly basis and
 does not make a rest day fail; weight trends do not score daily health.
 
+## Historical goal alignment and completed-day locks
+
+Completion is now an explicit **archive action**. Both Log and Daily goal
+alignment require a confirmation before completing a date. The completion
+transaction saves a versioned immutable `DayReview.frozen` snapshot of the
+daily summary, status, every rule's target and explanation, scoring-rule
+version/configuration, nutrient-reference profile, optional nutrient
+comparison limits and the week's activity summary as displayed then.
+Today, Calendar and Trends use archived summaries for completed dates;
+later goal, profile, target, rule, or reference changes do **not** silently
+rescore them. Food/drink/water, workout and weight writes for a locked
+date (including attempts to move a record into or out of that date) are
+rejected atomically by the repositories. Entry views are read-only.
+
+**Reopen day** deliberately discards that snapshot, permits corrections
+and resumes live calculations. The next completion archives a new state
+using goals effective at that time. An incomplete/unassessable day can
+still be completed and locked, preserving its neutral status: completion
+alone never invents unknown nutritional amounts.
+
+The Dexie v2→v3 migration keeps every record, and freezes legacy completed
+dates once using their *currently available* records, profile and
+historically effective goal settings. It cannot reconstruct values that
+were already overwritten before the migration; no original-history claims
+are made. Old v2 JSON backups are supported and normalized similarly on
+import. Exported v3 JSON includes versioned archived snapshots, and
+invalid snapshots are rejected prior to the replace transaction. None of
+this adds remote storage or background synchronization.
+
 ## Calendar nutrient reference percentages
 
 The Calendar Day Detail nutrient card separately compares available recorded
