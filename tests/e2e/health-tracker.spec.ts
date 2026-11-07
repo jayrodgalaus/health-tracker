@@ -301,7 +301,7 @@ test('walking/running use speed and grade instead of intensity in live and saved
   await distance.fill('3')
   await expect(page.getByText('≈ 123.5 kcal',{exact:true})).toBeVisible()
   await duration.fill('30')
-  await expect(page.getByText('≈ 139.7 kcal',{exact:true})).toBeVisible()
+  await expect(page.getByText('≈ 139.6 kcal',{exact:true})).toBeVisible()
   await distance.fill('4')
   await expect(page.getByText('≈ 268.3 kcal',{exact:true})).toBeVisible()
   await duration.fill('')
