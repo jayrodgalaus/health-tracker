@@ -1010,7 +1010,7 @@ test('Settings is a navigation list with dedicated pages and contextual Docs lin
   await menu.getByRole('link',{name:/^About and health notice/}).click()
   await expect(page.getByRole('heading',{name:'Health information notice'})).toBeVisible()
   await page.goto('/today')
-  await page.getByRole('link',{name:'About this page: day-detail'}).click()
+  await page.getByRole('link',{name:'About this page: day detail'}).click()
   await expect(page).toHaveURL(/\/settings\/docs\/day-detail$/)
   await expect(page.getByRole('heading',{name:'Day details and explainable rules'})).toBeVisible()
   await page.goto('/log')
