@@ -188,7 +188,7 @@ export function FoodLookupCombobox({ name, kind, inputClass, onNameChange, onCho
           value={selectedIngredientId} onChange={event => setSelectedIngredientId(event.target.value)}>
           <option value="">Choose a preparation (raw, cooked, white, brown…)</option>
           {ingredients.map(item => <option key={item.id} value={String(item.id)}>
-            {item.name} · {item.nutrients.energyKcal ?? '?'} kcal / 100 g
+            {item.name}
           </option>)}
         </select>
         <button type="button" disabled={!selectedIngredientId}

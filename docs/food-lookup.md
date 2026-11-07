@@ -96,7 +96,7 @@ analytics, account, tracking API or runtime USDA network request** was added.
 ### Choosing a preparation
 
 When logging food, typing a name shows a native **Ingredient variety /
-preparation** dropdown with matching USDA records and their kcal per 100 g.
+preparation** dropdown showing only each USDA food's name and preparation. Nutrition values are populated in the form after selecting a record, rather than repeated in the dropdown.
 For instance, USDA FDC **169975** is raw cabbage (25 kcal/100 g),
 **169976** is cooked boiled drained cabbage without salt (23 kcal/100 g);
 **169704** is cooked brown long-grain rice (123 kcal/100 g) and **168878**
