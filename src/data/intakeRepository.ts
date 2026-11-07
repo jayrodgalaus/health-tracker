@@ -1,4 +1,5 @@
 import { db, type HealthTrackerDatabase } from '../db/database'
+import { assertDayEditable } from './dayRepository'
 import type { FoodEntry, LabelBasis, LocalDay, MealCategory, NutrientSnapshot, NutritionSource, SavedFood, ServingUnit } from '../domain/models'
 import {
   emptyNutrition, fluidMlFromPortion, portionRatio, scaleNutrition,
@@ -170,11 +171,15 @@ export async function saveIntake(
   today: LocalDay = toLocalDay(new Date())
 ): Promise<FoodEntry> {
   // Validate before writing; a single entry update is also atomic.
-  const previous = id ? await database.foodEntries.get(id) : undefined
-  if (id && !previous) throw new Error('This entry no longer exists.')
-  const entry = prepareEntry(draft, previous, today)
-  await database.foodEntries.put(entry)
-  return entry
+  return database.transaction('rw', database.foodEntries, database.dayReviews, async () => {
+    const previous = id ? await database.foodEntries.get(id) : undefined
+    if (id && !previous) throw new Error('This entry no longer exists.')
+    const entry = prepareEntry(draft, previous, today)
+    await assertDayEditable(entry.dayKey, database)
+    if (previous && previous.dayKey !== entry.dayKey) await assertDayEditable(previous.dayKey, database)
+    await database.foodEntries.put(entry)
+    return entry
+  })
 }
 
 /**
@@ -232,5 +237,11 @@ export async function saveWater(
 }
 
 export async function deleteIntake(id: string, database: HealthTrackerDatabase = db): Promise<void> {
-  await database.foodEntries.delete(id)
+  await database.transaction('rw', database.foodEntries, database.dayReviews, async () => {
+    const prior = await database.foodEntries.get(id)
+    if (prior) {
+      await assertDayEditable(prior.dayKey, database)
+      await database.foodEntries.delete(id)
+    }
+  })
 }
