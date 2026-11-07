@@ -54,11 +54,30 @@ function convert(row: RawRow): IngredientFood {
   }
 }
 
+/** Individually traceable USDA Foundation Food records supplement older SR Legacy varieties.
+ * Values are from the USDA Foundation Foods April 2026 release, per 100 g edible weight.
+ * Unreported fields stay null; no sautéed-red-onion values are inferred.
+ * Source: https://fdc.nal.usda.gov/food-details/790577/nutrients
+ */
+const foundationFoods: readonly IngredientFood[] = [
+  {
+    id: 790577, name: 'Onions, red, raw', group: 'Onions', preparation: 'red, raw',
+    nutrients: {
+      energyKcal: 44, proteinG: 0.94, carbohydratesG: 9.93, fatG: 0.10,
+      saturatedFatG: null, fiberG: 2.2, sugarsG: null, sodiumMg: 1, potassiumMg: 197
+    },
+    nutritionSource: { provider: 'usda-foundation', fdcId: 790577, release: '2026-04' },
+    basisUnit: 'g', servingDescription: null
+  }
+]
+
 function searchTerms(query: string): string[] {
   // USDA includes boiled/drained cabbage, not a separately identified
   // blanched variant; the UI discloses that these are not equivalent measurements.
   return query.toLocaleLowerCase().trim()
     .replace(/\bblanched\b/g, 'boiled')
+    // Purple onion is the common name for red onion; retain the USDA variety name.
+    .replace(/\bpurple\b/g, 'red')
     .replace(/\bsteamed\b/g, 'steamed')
     .split(/[^\p{L}\p{N}]+/u).filter(term => term.length >= 2)
 }
@@ -87,12 +106,14 @@ export async function searchIngredientCatalog(query: string, limit = 60): Promis
   if (data.release !== '2018-04' || data.dataset !== 'USDA FoodData Central SR Legacy') {
     throw new Error('Unexpected USDA catalog release.')
   }
-  const matches = data.records.filter(row => {
-    const name = row[1].toLocaleLowerCase()
-    return terms.every(term => name.includes(term))
-  })
+  const matches = data.records.filter(row =>
+    terms.every(term => row[1].toLocaleLowerCase().includes(term))
+  ).map(convert)
+  for (const food of foundationFoods) {
+    if (terms.every(term => food.name.toLocaleLowerCase().includes(term))) matches.push(food)
+  }
   matches.sort((a, b) =>
-    scoreDescription(b[1], query, terms) - scoreDescription(a[1], query, terms) ||
-    a[1].localeCompare(b[1]))
-  return matches.slice(0, Math.max(0, Math.min(100, limit))).map(convert)
+    scoreDescription(b.name, query, terms) - scoreDescription(a.name, query, terms) ||
+    a.name.localeCompare(b.name))
+  return matches.slice(0, Math.max(0, Math.min(100, limit)))
 }

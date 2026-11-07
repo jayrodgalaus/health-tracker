@@ -163,12 +163,14 @@ function validateRecord(table:BackupTableName,raw:unknown,field:string){
         text(origin.productCode,field+'.nutritionSource.productCode',14)
         if(!/^\d{8,14}$/.test(origin.productCode as string))invalid(field+'.nutritionSource.productCode','invalid barcode')
         iso(origin.fetchedAt,field+'.nutritionSource.fetchedAt')
-      }else if(origin.provider==='usda-sr-legacy'){
+      }else if(origin.provider==='usda-sr-legacy'||origin.provider==='usda-foundation'){
         shape(origin,field+'.nutritionSource',
           ['provider','fdcId','release'],['provider','fdcId','release'])
         numeric(origin.fdcId,field+'.nutritionSource.fdcId',1,999999999)
         if(!Number.isSafeInteger(origin.fdcId))invalid(field+'.nutritionSource.fdcId','invalid food ID')
-        if(origin.release!=='2018-04')invalid(field+'.nutritionSource.release','unsupported USDA release')
+        if(origin.release!==(origin.provider==='usda-foundation'?'2026-04':'2018-04')){
+          invalid(field+'.nutritionSource.release','unsupported USDA release')
+        }
       }else invalid(field+'.nutritionSource','unsupported provider')
     }
     nutrition(r.nutrientsSnapshot,field+'.nutrientsSnapshot')

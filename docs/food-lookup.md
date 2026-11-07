@@ -29,9 +29,10 @@ product.
 
 Official API docs: https://openfoodfacts.github.io/documentation/docs/Product-Opener/api/.
 
-USDA FoodData Central is **not** integrated: its official API requires a key
-that must not be shipped in a public client-side application. No credentials
-or secrets are added.
+The **live USDA FoodData Central API** is not integrated: it requires a key
+that must not be shipped in a public client-side application. Offline snapshots
+from USDA SR Legacy and selected USDA Foundation Foods records are bundled.
+No credentials or secrets are added.
 
 ## What leaves the device
 
@@ -119,3 +120,25 @@ Open Food Facts provenance and new USDA provenance without migrating
 or rewriting older logs. Other ordinary foods can still be logged manually.
 The separate **Search online** button continues to serve packaged-product
 lookup through Open Food Facts.
+
+## Red / purple onion coverage
+
+USDA SR Legacy (2018-04) contains "Onions, raw" (FDC 170000; 40 kcal/100 g)
+and "Onions, yellow, sauteed" (FDC 170004; 123 kcal/100 g), but no red-onion
+variety. The search also includes a distinct, offline, traceable reference
+from **USDA FoodData Central Foundation Foods (2026-04)**:
+
+- **Onions, red, raw** — FDC **790577** — **44 kcal per 100 g edible weight**;
+  0.94 g protein, 9.93 g carbs, 0.10 g fat, 2.2 g fiber, 1 mg sodium,
+  197 mg potassium per 100 g. Unreported saturated fat and sugar values
+  are **null**, never fabricated zeros.
+- User searches for "red onion" or "purple onion" find this one record under
+  its USDA name. "Onions, red, raw" remains raw, not sautéed.
+- No red-onion-specific sautéed data are bundled. Oil and cooking method can
+  substantially change per-100-g values; do not label yellow sautéed data as
+  a red-onion measurement.
+
+Official record: https://fdc.nal.usda.gov/food-details/790577/nutrients.
+Foundation record data are U.S. government public-domain / CC0 data.
+Foundation and SR Legacy records have separate source identifiers in saved
+food logs and validated JSON backups.

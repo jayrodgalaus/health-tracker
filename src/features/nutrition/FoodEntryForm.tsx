@@ -202,12 +202,12 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
         </label>}
       </div>
       {nutritionSource && <p className="text-xs leading-5 text-slate-600">
-        Nutrition source: {nutritionSource.provider === 'usda-sr-legacy' ? (
+        Nutrition source: {nutritionSource.provider !== 'open-food-facts' ? (
           <>
             <a className="font-semibold text-evergreen-700 underline" target="_blank" rel="noopener noreferrer"
               href={usdaFoodUrl(nutritionSource.fdcId) ?? 'https://fdc.nal.usda.gov/'}>
-              USDA FoodData Central SR Legacy · #{nutritionSource.fdcId}</a>
-            {' '}(April 2018).
+              USDA FoodData Central {nutritionSource.provider==='usda-foundation'?'Foundation Foods':'SR Legacy'} · #{nutritionSource.fdcId}</a>
+            {' '}({nutritionSource.provider==='usda-foundation'?'April 2026':'April 2018'}).
           </>
         ) : (
           <>

@@ -78,6 +78,7 @@ export interface GoalPeriod {
 export type NutritionSource =
   | { provider: 'open-food-facts'; productCode: string; fetchedAt: IsoTimestamp }
   | { provider: 'usda-sr-legacy'; fdcId: number; release: '2018-04' }
+  | { provider: 'usda-foundation'; fdcId: number; release: '2026-04' }
 
 export interface NutrientSnapshot {
   energyKcal: number | null
