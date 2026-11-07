@@ -183,5 +183,8 @@ export interface DayReview {
 export interface AppSettings {
   id: 'local'
   waterPresetsMl: number[]
+  /** Optional Calendar-only upper comparison limits; older saved settings omit these. */
+  sugarLimitG?: number | null
+  sodiumLimitMg?: number | null
   updatedAt: IsoTimestamp
 }

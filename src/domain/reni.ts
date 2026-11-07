@@ -1,6 +1,7 @@
 import type { LocalDay, Profile } from './models'
 import type { MetricCoverage, NutrientField } from './nutrition'
 import { ageOnDay } from './profile'
+import { knownAmountPercent } from './nutrientLimits'
 
 /**
  * Philippine Dietary Reference Intakes 2015 (FNRI-DOST; revised Sep 2018).
@@ -68,7 +69,5 @@ export function reniReferenceForDay(
  * must label it accordingly; missing values are never counted as zero.
  */
 export function reniPercent(metric: MetricCoverage, reference: ReniReference | null): number | null {
-  if (!reference || metric.knownAmount === null ||
-      !Number.isFinite(metric.knownAmount) || reference.amount <= 0) return null
-  return Number((metric.knownAmount / reference.amount * 100).toFixed(1))
+  return knownAmountPercent(metric, reference?.amount ?? null)
 }

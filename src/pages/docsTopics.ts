@@ -10,7 +10,7 @@ export const DOCS_TOPICS = [
   {id:'trends', label:'Trends and coverage'},
   {id:'profile', label:'Profile and daily background movement'},
   {id:'goals', label:'Goals, tracking targets and thresholds'},
-  {id:'preferences', label:'Water quick-add preferences'},
+  {id:'preferences', label:'Water and nutrient comparison preferences'},
   {id:'data', label:'Storage, backup and restoration'},
   {id:'about', label:'Health notice and limitations'},
   {id:'glossary', label:'Glossary'}

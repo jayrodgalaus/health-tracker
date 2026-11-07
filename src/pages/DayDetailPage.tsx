@@ -5,6 +5,7 @@ import type { Profile } from '../domain/models'
 import { addLocalDays } from '../domain/calendar'
 import { calculateDay } from '../domain/evaluation'
 import { readDayRecords } from '../data/dayRepository'
+import { readNutrientComparisonLimits } from '../data/settingsRepository'
 import { listExerciseForWeek } from '../data/exerciseRepository'
 import { parseLocalDay, toLocalDay } from '../lib/localDate'
 import { DayAssessment } from '../features/day/DayAssessment'
@@ -18,6 +19,7 @@ export function DayDetailPage({ profile }: { profile: Profile }) {
   const dayKey = param && parseLocalDay(param) && param >= '1900-01-01' && param <= '2100-12-31' ? param : null
   const records = useLiveQuery(() => dayKey ? readDayRecords(dayKey) : Promise.resolve(null), [dayKey], undefined)
   const week = useLiveQuery(() => dayKey ? listExerciseForWeek(dayKey) : Promise.resolve([]), [dayKey], undefined)
+  const limits = useLiveQuery(() => readNutrientComparisonLimits(), [], undefined)
   if (!dayKey) return <div role="alert" className="rounded-xl bg-rose-50 p-5">
     Invalid calendar day. <Link className="text-evergreen-700 underline" to="/calendar">Return to calendar</Link>.
   </div>
@@ -40,7 +42,8 @@ export function DayDetailPage({ profile }: { profile: Profile }) {
     {records === undefined && <p role="status" className="rounded-xl bg-white p-4 text-sm text-slate-600">Loading records for {dayKey}…</p>}
     <DayAssessment summary={summary} fullRules />
     <ExpenditurePanel summary={summary} />
-    <NutritionSummary entries={records?.intake} reniProfile={profile} reniDayKey={dayKey} />
+    <NutritionSummary entries={records?.intake} loading={limits === undefined}
+      reniProfile={profile} reniDayKey={dayKey} comparisonLimits={limits} />
     <ActivitySummary dayKey={dayKey} profile={profile} dayActivities={records?.activities} weekActivities={week} weights={records?.weights} />
     {records && <DayEntries dayKey={dayKey} profile={profile} records={records} />}
   </div>
