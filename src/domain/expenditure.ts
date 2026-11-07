@@ -1,7 +1,7 @@
 import type { ExerciseEntry, FoodEntry, LocalDay, Profile, WeightEntry, DayReview } from './models'
 import { ageOnDay } from './profile'
 import { weightForDay, calculateActivityDay, type WeightEvidence } from './activity'
-import { aggregateIntake } from './nutrition'
+import { aggregateIntake, isPlainWaterEntry } from './nutrition'
 
 /**
  * Mifflin–St Jeor RMR for adults (guide §6.5): 10kg + 6.25cm − 5age + (+5/-161).
@@ -56,7 +56,7 @@ export function calculateExpenditure(
   const total = background !== null && increment !== null ? background + increment : null
   const calories = aggregateIntake(intake.filter(entry => entry.dayKey === day)).nutrients.energyKcal
   // A logged water-only day cannot establish that all food calories are known.
-  const hasNonWaterIntake = intake.some(entry => entry.dayKey === day && entry.beverageType !== 'water')
+  const hasNonWaterIntake = intake.some(entry => entry.dayKey === day && !isPlainWaterEntry(entry))
   const difference = total !== null && review?.isComplete && calories.complete && hasNonWaterIntake &&
     calories.knownAmount !== null ? calories.knownAmount - total : null
 
