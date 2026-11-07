@@ -186,5 +186,6 @@ export interface AppSettings {
   /** Optional Calendar-only upper comparison limits; older saved settings omit these. */
   sugarLimitG?: number | null
   sodiumLimitMg?: number | null
+  carbohydrateLimitG?: number | null
   updatedAt: IsoTimestamp
 }
