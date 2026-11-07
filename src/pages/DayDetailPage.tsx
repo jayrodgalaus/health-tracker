@@ -49,6 +49,6 @@ export function DayDetailPage({ profile }: { profile: Profile }) {
     <NutritionSummary entries={records?.intake} loading={archivedLimits === undefined}
       reniProfile={archivedProfile} reniDayKey={dayKey} comparisonLimits={archivedLimits} detailDayKey={dayKey} />
     <ActivitySummary dayKey={dayKey} profile={archivedProfile} dayActivities={records?.activities} weekActivities={week} weights={records?.weights} />
-    {records && <DayEntries dayKey={dayKey} profile={profile} records={records} />}
+    {records && <DayEntries dayKey={dayKey} profile={archivedProfile} records={records} locked={locked} />}
   </div>
 }
