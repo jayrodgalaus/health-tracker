@@ -106,6 +106,38 @@ test('dedicated food, drink and exercise forms save and Calendar can edit/delete
   await expect(page.getByRole('heading',{name:'Edit exercise'})).toBeVisible()
 })
 
+test('Calendar nutrient amounts show only complete FNRI RENI comparisons for recorded date and sex reference',async({page})=>{
+  await onboard(page)
+  await page.goto('/settings/profile')
+  await page.getByRole('combobox',{name:'Sex-based reference for energy equation and RENI'}).selectOption('female')
+  await page.getByRole('button',{name:'Save profile'}).click()
+  await expect(page.getByTestId('app-toast')).toContainText('Profile saved.')
+
+  await page.goto('/log/food?date=2026-01-15')
+  await page.getByRole('combobox',{name:'Name'}).fill('Synthetic protein / fiber meal')
+  await page.getByLabel('Protein (g)').fill('49.1')
+  await page.getByLabel('Fiber (g)').fill('12.5')
+  await page.getByLabel('Potassium (mg)').fill('1000')
+  await page.getByRole('button',{name:'Add to log'}).click()
+  await page.goto('/calendar/2026-01-15')
+  const nutrients=page.getByRole('heading',{name:'Nutrients',exact:true}).locator('..')
+  await expect(nutrients.locator('div').filter({has:nutrients.getByText('Protein',{exact:true})}).last()).toContainText('79.2%')
+  await expect(nutrients.locator('div').filter({has:nutrients.getByText('Fiber',{exact:true})}).last()).toContainText('50.0%')
+  await expect(nutrients.locator('div').filter({has:nutrients.getByText('Potassium',{exact:true})}).last()).toContainText('50.0%')
+  await expect(nutrients.getByText('Carbohydrates',{exact:true})).toBeVisible()
+  await expect(nutrients.getByText('Sodium',{exact:true})).toBeVisible()
+  await expect(nutrients).not.toContainText('NaN%')
+
+  await page.goto('/settings/profile')
+  await page.getByRole('combobox',{name:'Sex-based reference for energy equation and RENI'}).selectOption('')
+  await page.getByRole('button',{name:'Save profile'}).click()
+  await page.goto('/calendar/2026-01-15')
+  const after=page.getByRole('heading',{name:'Nutrients',exact:true}).locator('..')
+  await expect(after).not.toContainText('79.2%')
+  await expect(after).toContainText('49.1 g')
+  await expect(after).toContainText('50.0%')
+})
+
 test('save confirmations appear as dismissible transient toasts outside the Log form', async ({page}) => {
   await onboard(page)
   // Onboarding records today's initial weight; use an unlogged historical date.

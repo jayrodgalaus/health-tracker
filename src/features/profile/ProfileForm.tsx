@@ -245,9 +245,9 @@ export function ProfileForm({ mode, section = 'profile', initialProfile, initial
               <option value="moderate">Moderate</option><option value="high">High</option><option value="very-high">Very high</option>
             </select>
           </label>
-          <label className={labelClass}>Optional future energy equation parameter
+          <label className={labelClass}>Sex-based reference for energy equation and RENI
             <select className={inputClass} value={sexForEquation} onChange={e => setSexForEquation(e.target.value)}>
-              <option value="">Prefer not to specify</option><option value="male">Male equation constant</option><option value="female">Female equation constant</option>
+              <option value="">Prefer not to specify</option><option value="male">Male reference</option><option value="female">Female reference</option>
             </select>
           </label>
         </div>
