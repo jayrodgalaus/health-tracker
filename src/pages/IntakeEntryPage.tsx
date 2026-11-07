@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { db } from '../db/database'
-import { deleteIntake, saveWater } from '../data/intakeRepository'
+import { deleteIntake, listRecentIntake, saveWater } from '../data/intakeRepository'
 import { readWaterPresets } from '../data/settingsRepository'
 import { PageInfoLink } from '../components/PageInfoLink'
 import { FoodEntryForm } from '../features/nutrition/FoodEntryForm'
@@ -71,10 +71,12 @@ export function IntakeEntryPage({kind}: {kind:'food'|'beverage'}) {
   }
 
   const waterPresets=useLiveQuery(()=>readWaterPresets(),[],undefined)
+  const recentEntries=useLiveQuery(()=>listRecentIntake(),[],undefined)
+  const matchingRecent=recentEntries?.filter(item=>item.kind===kind&&item.beverageType!=='water').slice(0,6)??[]
   if((editId&&entry===undefined)||(savedId&&saved===undefined)||(recentId&&recent===undefined))
     return <p role="status" className="rounded-xl bg-white p-4 text-sm text-slate-600">Loading entry…</p>
   const relevantEntry=entry&&entry.kind===kind?entry:null
-  if((editId&&!relevantEntry)||(savedId&&(!saved||saved.kind!==kind))||(recentId&&(!recent||recent.kind!==kind))) {
+  if((editId&&!relevantEntry)||(savedId&&(!saved||(saved.kind??'food')!==kind))||(recentId&&(!recent||recent.kind!==kind))) {
     return <div className="space-y-3">
       <p role="alert" className="rounded-xl bg-rose-50 p-4 text-rose-900">This entry is unavailable or does not match this form.</p>
       <Link to={back} className="font-semibold text-evergreen-700 underline">Back to Log</Link>
@@ -120,7 +122,7 @@ export function IntakeEntryPage({kind}: {kind:'food'|'beverage'}) {
       <FoodEntryForm key={editId??savedId??recentId??kind}
         dayKey={relevantEntry?.dayKey??dayKey} kind={kind}
         editing={relevantEntry??undefined}
-        saved={saved&&saved.kind===kind?saved:undefined}
+        saved={saved&&(saved.kind??'food')===kind?saved:undefined}
         recent={recent&&recent.kind===kind?recent:undefined}
         onDone={date=>finish(date)}
         onCancel={()=>navigate(editId?'/calendar/'+dayKey:back)}
@@ -131,6 +133,17 @@ export function IntakeEntryPage({kind}: {kind:'food'|'beverage'}) {
       className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-evergreen-700">
       Manage saved foods and drinks
     </Link>}
+    {!editId&&!waterMode&&matchingRecent.length>0&&
+      <section aria-labelledby="recent-foods-heading" className="rounded-2xl border border-slate-200 bg-white p-4">
+        <h2 id="recent-foods-heading" className="text-lg font-bold">Repeat a recent entry</h2>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {matchingRecent.map(item=><Link key={item.id}
+            to={'/log/'+(kind==='food'?'food':'drink')+'?date='+encodeURIComponent(dayKey)+'&recent='+encodeURIComponent(item.id)}
+            className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-evergreen-700">
+            + {item.name}
+          </Link>)}
+        </div>
+      </section>}
     {editId&&<section className="space-y-3">
       <button type="button" disabled={busy} onClick={()=>setConfirmDelete(true)}
         className="min-h-11 rounded-xl border border-rose-300 px-4 text-sm font-semibold text-rose-800">Delete entry</button>
