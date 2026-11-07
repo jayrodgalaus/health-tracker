@@ -134,7 +134,7 @@ describe('complete local JSON backup and restore',()=>{
     const badRelease=structuredClone(withFoundation)
     badRelease.tables.foodEntries[0]!.nutritionSource={
       provider:'usda-foundation',fdcId:790577,release:'2018-04'
-    } as typeof badRelease.tables.foodEntries[number]['nutritionSource']
+    } as unknown as typeof badRelease.tables.foodEntries[number]['nutritionSource']
     await expect(replaceLocalData(badRelease,database)).rejects.toThrow(/unsupported USDA release/)
     const invalidId=structuredClone(withFoundation)
     invalidId.tables.foodEntries[0]!.nutritionSource={
