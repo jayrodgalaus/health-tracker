@@ -16,7 +16,7 @@ interface Props {
   editing?: FoodEntry
   saved?: SavedFood
   recent?: FoodEntry
-  onDone: () => void
+  onDone: (day: string) => void
   onCancel: () => void
 }
 
@@ -134,7 +134,7 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
         servingDescription,
         referenceNutrients, fluidMl
       }, editing?.id)
-      onDone()
+      onDone(date)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Entry could not be saved. Check local storage.')
     } finally {

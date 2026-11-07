@@ -52,10 +52,10 @@ export function TodayPage({ profile }: { profile: Profile }) {
       </div>
     </header>
     <section aria-label="Quick logging actions" className="flex flex-wrap gap-2">
-      <Link to={'/log' + dateQuery + '&add=food#intake'} className="inline-flex min-h-11 items-center rounded-xl bg-evergreen-600 px-4 py-2 text-sm font-semibold text-white">+ Food</Link>
-      <Link to={'/log' + dateQuery + '&add=drink#intake'} className="inline-flex min-h-11 items-center rounded-xl bg-evergreen-600 px-4 py-2 text-sm font-semibold text-white">+ Drink</Link>
-      <Link to={'/log' + dateQuery + '&add=water#intake'} className="inline-flex min-h-11 items-center rounded-xl bg-evergreen-600 px-4 py-2 text-sm font-semibold text-white">+ Water</Link>
-      <Link to={'/log' + dateQuery + '&add=exercise#exercise'} className="inline-flex min-h-11 items-center rounded-xl bg-evergreen-600 px-4 py-2 text-sm font-semibold text-white">+ Exercise</Link>
+      <Link to={'/log/food' + dateQuery} className="inline-flex min-h-11 items-center rounded-xl bg-evergreen-600 px-4 py-2 text-sm font-semibold text-white">+ Food</Link>
+      <Link to={'/log/drink' + dateQuery} className="inline-flex min-h-11 items-center rounded-xl bg-evergreen-600 px-4 py-2 text-sm font-semibold text-white">+ Drink</Link>
+      <Link to={'/log/drink' + dateQuery + '&water=1'} className="inline-flex min-h-11 items-center rounded-xl bg-evergreen-600 px-4 py-2 text-sm font-semibold text-white">+ Water</Link>
+      <Link to={'/log/exercise' + dateQuery} className="inline-flex min-h-11 items-center rounded-xl bg-evergreen-600 px-4 py-2 text-sm font-semibold text-white">+ Exercise</Link>
       <Link to={'/log' + dateQuery + '#weight'} className="inline-flex min-h-11 items-center rounded-xl border border-evergreen-600 px-4 py-2 text-sm font-semibold text-evergreen-700">+ Weight</Link>
     </section>
     <ExpenditurePanel summary={summary} />

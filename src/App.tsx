@@ -6,6 +6,9 @@ import { db } from './db/database'
 import { readProfile } from './data/profileRepository'
 import { TodayPage } from './pages/TodayPage'
 import { LogPage } from './pages/LogPage'
+import { IntakeEntryPage } from './pages/IntakeEntryPage'
+import { ExerciseEntryPage } from './pages/ExerciseEntryPage'
+import { SavedFoodsPage } from './pages/SavedFoodsPage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { TrendsPage } from './pages/TrendsPage'
 import { DataPage } from './pages/DataPage'
@@ -56,6 +59,10 @@ export default function App() {
         <Route path="/onboarding" element={<Navigate to="/today" replace />} />
         <Route path="/today" element={<TodayPage profile={profile} />} />
         <Route path="/log" element={<LogPage profile={profile} />} />
+        <Route path="/log/food" element={<IntakeEntryPage kind="food" />} />
+        <Route path="/log/drink" element={<IntakeEntryPage kind="beverage" />} />
+        <Route path="/log/exercise" element={<ExerciseEntryPage profile={profile} />} />
+        <Route path="/log/saved-foods" element={<SavedFoodsPage />} />
         <Route path="/calendar" element={<CalendarPage profile={profile} />} />
         <Route path="/calendar/:dayKey" element={<DayDetailPage profile={profile} />} />
         <Route path="/trends" element={<TrendsPage profile={profile} />} />

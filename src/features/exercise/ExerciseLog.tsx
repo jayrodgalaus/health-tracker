@@ -23,7 +23,7 @@ function isAdult(profile: Profile, day: string): boolean {
   return age !== null && age >= 18
 }
 
-function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel }: {
+export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel }: {
   profile: Profile
   selectedDay: string
   editing?: ExerciseEntry
