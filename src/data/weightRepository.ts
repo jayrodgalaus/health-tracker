@@ -1,4 +1,5 @@
 import { db, type HealthTrackerDatabase } from '../db/database'
+import { assertDayEditable } from './dayRepository'
 import { assertLocalDay, assertWeight } from '../domain/profile'
 import type { LocalDay, WeightEntry } from '../domain/models'
 import { toLocalDay } from '../lib/localDate'
@@ -32,7 +33,8 @@ export async function saveWeight(
 ): Promise<WeightEntry> {
   validateDayForLogging(day, today)
   assertWeight(kg)
-  return database.transaction('rw', database.weightEntries, async () => {
+  return database.transaction('rw', database.weightEntries, database.dayReviews, async () => {
+    await assertDayEditable(day, database)
     const existing = await readWeightForDay(day, database)
     const now = new Date().toISOString()
     const entry: WeightEntry = {
@@ -59,7 +61,9 @@ export async function moveWeight(
   validateDayForLogging(fromDay, today)
   validateDayForLogging(toDay, today)
   assertWeight(kg)
-  return database.transaction('rw', database.weightEntries, async () => {
+  return database.transaction('rw', database.weightEntries, database.dayReviews, async () => {
+    await assertDayEditable(fromDay, database)
+    if (fromDay !== toDay) await assertDayEditable(toDay, database)
     const current = await readWeightForDay(fromDay, database)
     if (!current) throw new Error('The original measurement no longer exists.')
     if (fromDay !== toDay && await readWeightForDay(toDay, database)) {
@@ -72,7 +76,8 @@ export async function moveWeight(
 }
 
 export async function deleteWeight(day: LocalDay, database: HealthTrackerDatabase = db): Promise<void> {
-  await database.transaction('rw', database.weightEntries, async () => {
+  await database.transaction('rw', database.weightEntries, database.dayReviews, async () => {
+    await assertDayEditable(day, database)
     const entry = await readWeightForDay(day, database)
     if (entry) await database.weightEntries.delete(entry.id)
   })
