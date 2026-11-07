@@ -97,8 +97,8 @@ const targetMax:Record<string,number>={
 const rules=['energyAlignedPercent','energyAttentionPercent','minimumLargeDeviationPercent','sodiumLargeDeviationPercent']
 /** Narrow, finite snapshot validation: never trust an arbitrary JSON payload in local backups. */
 function validateArchivedSnapshot(raw: unknown, field: string, reviewDay: string) {
-  const s = shape(raw, field, ['version', 'summary', 'profile', 'comparisonLimits'],
-    ['version', 'summary', 'profile', 'comparisonLimits'])
+  const s = shape(raw, field, ['version', 'summary', 'profile', 'comparisonLimits', 'week'],
+    ['version', 'summary', 'profile', 'comparisonLimits', 'week'])
   if (s.version !== 1) invalid(field, 'unsupported locked-day snapshot version')
   validateRecord('profiles', s.profile, field + '.profile')
   const limits = shape(s.comparisonLimits, field + '.comparisonLimits',
@@ -150,7 +150,7 @@ function validateArchivedSnapshot(raw: unknown, field: string, reviewDay: string
   // numeric leaves and bounded depth/size to avoid corrupted or malicious input.
   function safeValue(value: unknown, label: string, depth = 0): void {
     if(depth > 12) invalid(label,'snapshot nesting exceeds supported depth')
-    if(value === null || typeof value === 'boolean') return
+    if(value === null || value === undefined || typeof value === 'boolean') return
     if(typeof value === 'number') {
       if(!Number.isFinite(value))invalid(label,'non-finite number'); return
     }
@@ -169,6 +169,7 @@ function validateArchivedSnapshot(raw: unknown, field: string, reviewDay: string
   safeValue(summary.intake,field+'.intake')
   safeValue(summary.activity,field+'.activity')
   safeValue(summary.expenditure,field+'.expenditure')
+  safeValue(s.week,field+'.week')
 }
 
 function validateRecord(table:BackupTableName,raw:unknown,field:string){
