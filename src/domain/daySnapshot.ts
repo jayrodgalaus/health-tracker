@@ -1,5 +1,6 @@
 import type { AppSettings, DayReview, ExerciseEntry, FoodEntry, GoalPeriod, Profile, WeightEntry } from './models'
 import { calculateDay, goalOnDay } from './evaluation'
+import { calculateActivityWeek } from './activity'
 
 /** Canonical frozen completion record for new completions and legacy migrations. */
 export function archiveCompletedDay(
@@ -28,6 +29,7 @@ export function archiveCompletedDay(
     frozen: {
       version: 1,
       summary,
+      week: calculateActivityWeek(dayKey, sources.activities),
       profile: structuredClone(profile),
       comparisonLimits: {
         carbohydratesG: sources.settings?.carbohydrateLimitG ?? null,
