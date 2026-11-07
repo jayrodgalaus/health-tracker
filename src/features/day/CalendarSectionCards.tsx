@@ -21,28 +21,28 @@ const cardInfo: Record<DaySection, {
     backdrop: 'bg-violet-200',
     illustration: 'text-violet-700',
     pill: 'border-violet-600 bg-violet-50 text-violet-800',
-    circle: 'bg-violet-700'
+    circle: 'bg-violet-600'
   },
   nutrition: {
     title: 'Nutrition',
     backdrop: 'bg-rose-200',
     illustration: 'text-rose-700',
     pill: 'border-rose-600 bg-rose-50 text-rose-800',
-    circle: 'bg-rose-700'
+    circle: 'bg-rose-600'
   },
   fluids: {
     title: 'Fluids',
     backdrop: 'bg-sky-200',
     illustration: 'text-sky-700',
     pill: 'border-sky-600 bg-sky-50 text-sky-800',
-    circle: 'bg-sky-700'
+    circle: 'bg-sky-600'
   },
   activity: {
     title: 'Activity',
     backdrop: 'bg-amber-200',
     illustration: 'text-amber-700',
     pill: 'border-amber-700 bg-amber-50 text-amber-900',
-    circle: 'bg-amber-800'
+    circle: 'bg-amber-700'
   },
   weight: {
     title: 'Weight',
