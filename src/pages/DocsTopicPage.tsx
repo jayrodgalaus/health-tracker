@@ -10,14 +10,14 @@ const DOCS_CONTENT: Record<DocsTopicId, ReactNode> = {
       <p><strong>Today</strong> displays the selected local calendar date. The arrows and date picker can show older days without altering stored records. Quick actions add food, drink, water, exercise or a measured weight to that day.</p>
       <p><strong>Calories consumed</strong> sums recorded food and drink calories when known. <strong>Estimated total expended</strong> combines an optional resting/background estimate with known additional workout energy. <strong>Estimated difference</strong> is consumed minus expended, not a prediction of weight gain or loss. These remain separate metrics.</p>
       <p>A day with missing entries, incomplete nutrients or unknown exercise calories does not get invented totals. The app can show <strong>At least</strong> a known amount for partially recorded intake. Water and other drinks contribute fluid once; caloric drinks contribute nutrition only once.</p>
-      <p>Only users can mark a day complete; that action controls whether a daily goal evaluation is eligible. See <Link className="underline" to="/settings/docs/calendar">Calendar and day completion</Link>.</p>
+      <p>Marking a day complete asks for confirmation, then locks its records and archives its daily goal evaluation. Reopening unlocks edits and discards that saved evaluation until it is completed again. See <Link className="underline" to="/settings/docs/calendar">Calendar and day completion</Link>.</p>
     </>
   ),
   'log': (
     <>
 
       <p>The <strong>Log</strong> page contains three quick actions—<strong>+ Food</strong>, <strong>+ Drink</strong>, and <strong>+ Exercise</strong>—that open separate input pages. Below them, a weight card records the selected day's measured weight, followed by the <strong>Mark day complete</strong> / <strong>Reopen day</strong> button. Logged entries and their edit/delete controls are viewed through Calendar day details. Use <strong>Food</strong> to log a consumed food and its label basis, quantity and known nutrients. The optional meal field groups breakfast, lunch, dinner and snacks. Use <strong>Drink</strong> for fluids that may also contain calories. <strong>Plain water</strong> is logged as measured fluid only. It contributes nothing to calorie/nutrient totals or coverage; its stored zero-energy snapshot is retained for historical data integrity. Other drinks can have real nutrients or unknown values. Reusable saved foods and favorites are available through the food/drink entry pages.</p>
-      <p>Entries can be edited, repeated or deleted. Every log stores its own historical label snapshot. Editing a reusable food never rewrites a past meal. A serving count is never silently converted into grams or milliliters without a declared conversion.</p>
+      <p>Entries on open days can be edited, repeated or deleted. Completed dates are read-only until reopened. Every log stores its own historical label snapshot. Editing a reusable food never rewrites a past meal. A serving count is never silently converted into grams or milliliters without a declared conversion.</p>
       <p>Local log dates use the device's calendar date, independent of audit timestamps. Changing an entry's date moves the log without rewriting unrelated days.</p>
     </>
   ),
@@ -73,14 +73,15 @@ const DOCS_CONTENT: Record<DocsTopicId, ReactNode> = {
 
       <p>The calendar visualizes <strong>on target</strong>, <strong>mixed / needs attention</strong>, <strong>off target</strong> and <strong>incomplete / no evaluation</strong>. Green, amber, red and neutral gray respectively describe alignment against <em>your configured targets</em>, never medical health or morality.</p>
       <p>A day is evaluated overall only if you explicitly <strong>Mark day complete</strong>, the applicable adult and target requirements are met, and every configured supported nutrient or fluid target has assessable records. Otherwise it stays neutral/incomplete. A rest day or unlogged day is never graded negatively.</p>
-      <p>Calendar entry symbols: <strong>●</strong> food/drink, <strong>◆</strong> exercise and <strong>▴</strong> recorded weight. These symbols indicate logged records, not a score. Tap a date to view entries and individual rule explanations. Goals are selected from their effective dates.</p>
+      <p><strong>Completion safety:</strong> Mark day complete opens a confirmation describing the read-only lock. Confirm to archive the daily assessment and its target values. Completed food, water, exercise and weight entries cannot be edited, deleted or moved to another date, even through old editor links. Reopen day unlocks the date and discards its archived evaluation; when completed again it uses applicable settings. JSON backups preserve locked snapshots.</p>
+      <p>Calendar entry symbols: <strong>●</strong> food/drink, <strong>◆</strong> exercise and <strong>▴</strong> recorded weight. These symbols indicate logged records, not a score. Tap a date to view entries and individual rule explanations. Uncompleted days use the goals selected by their effective dates; completed days keep their archived target values and rule results.</p>
     </>
   ),
   'day-detail': (
     <>
 
       <p>A day detail shows recorded foods, drinks, exercise, weight, nutrient totals, estimated expenditure, and the review state. Each nutrient card opens its own dated food-and-drink breakdown; unknown per-entry amounts display a dash, and known zeroes stay zero. The <strong>Review each rule and its source</strong> control lists actual values, configured targets, units, rule results and why a rule could not be evaluated. General explanatory notes are kept in Docs, not beside the nutrient figures.</p>
-      <p>The app's rule version is 1.0.0. Historic raw data and dated goals are preserved; status results may be recomputed if the implementation of the rules changes later.</p>
+      <p>The app's evaluation rule version is saved in each completed-day snapshot. Changes to goal history, targets, profile settings or scoring rules do not rescore a locked day. Reopening discards the snapshot and allows a new evaluation when completed again. Older completed records are archived once when migrating or importing legacy backups, using the historical information available at that point; original completion-time settings may no longer be recoverable.</p>
     </>
   ),
   'trends': (
@@ -103,7 +104,7 @@ const DOCS_CONTENT: Record<DocsTopicId, ReactNode> = {
     <>
 
       <p>Goals are <strong>maintain weight</strong>, <strong>track toward lower weight</strong>, <strong>track toward higher weight</strong> or <strong>general wellness</strong>. Selecting a goal never automatically prescribes a calorie deficit or target. The user chooses daily calorie, protein, fiber, sodium upper limit and fluid targets; unset targets are not scored.</p>
-      <p>Goal revisions have an <strong>effective date</strong> and do not delete historical goal periods. An earlier date uses whichever goal was in force for that date. Future-dated goals do not immediately change the current goal.</p>
+      <p>Goal revisions have an <strong>effective date</strong> and do not delete historical goal periods. Open days use whichever goal is effective for that date. Once a day is completed, its evaluated targets, results and rules are frozen and independent of later Settings changes. Future-dated goals do not immediately change the current goal.</p>
       <p>Default <strong>energy alignment</strong>: within ±15% of the calorie target is aligned; beyond that through ±30% needs attention, and beyond ±30% is a large deviation. <strong>Minimum targets</strong> (protein, fiber, fluid): meeting or exceeding a chosen minimum is aligned, 50–99.9% needs attention, and below 50% is a large deviation. <strong>Sodium upper limit</strong>: at or below the chosen amount is aligned; up to 30% above needs attention, and more than 30% above is a large deviation. These bands can be adjusted for future dated goal revisions. None are clinical reference ranges.</p>
       <p>For a completed assessable day, all aligned = on target; at least one attention and no large deviation = mixed; any large deviation = off target. If even one configured rule cannot be assessed, the overall day is incomplete.</p>
     </>
@@ -112,7 +113,7 @@ const DOCS_CONTENT: Record<DocsTopicId, ReactNode> = {
     <>
 
       <p>Under Settings → Preferences you can adjust four quick-add water buttons; entries use milliliters internally. You can always log custom amounts, and no water is invented from missing days.</p>
-      <p>Optional <strong>carbohydrates (g/day)</strong>, <strong>total sugars (g/day)</strong> and <strong>sodium (mg/day)</strong> daily upper comparison limits are also available. Leaving a field blank disables its percentage. The Calendar uses known amounts against your chosen limit, labeling missing-data percentages as minimums (≥). These are tracking preferences, not personalized nutritional prescriptions or day evaluation scores. They use local IndexedDB, survive backup/export, and apply to past as well as future dates without changing historically dated Goals.</p>
+      <p>Optional <strong>carbohydrates (g/day)</strong>, <strong>total sugars (g/day)</strong> and <strong>sodium (mg/day)</strong> daily upper comparison limits are also available. Leaving a field blank disables its percentage. The Calendar uses known amounts against your chosen limit, labeling missing-data percentages as minimums (≥). These are tracking preferences, not personalized nutritional prescriptions or day evaluation scores. They use local IndexedDB and survive backup/export. For locked dates, the comparison limits in force when completion was confirmed are preserved in the archived day snapshot; open days use current preferences.</p>
     </>
   ),
   'data': (
