@@ -66,7 +66,7 @@ export function IntakeEntryPage({kind}: {kind:'food'|'beverage'}) {
   async function remove() {
     if(!editId)return
     setBusy(true);setError('')
-    try{await deleteIntake(editId);toast.success('Entry deleted.');navigate('/calendar/'+dayKey,{replace:true})
+    try{await deleteIntake(editId);toast.success('Entry deleted.');navigate('/calendar/'+dayKey,{replace:true})}
     catch(cause){setError(cause instanceof Error?cause.message:'Could not delete entry.')}
     finally{setBusy(false)}
   }

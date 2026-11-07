@@ -27,7 +27,7 @@ export function ExerciseEntryPage({profile}: {profile:Profile}) {
   async function remove() {
     if(!editId)return
     setBusy(true);setError('')
-    try{await deleteExercise(editId);toast.success('Exercise deleted.');navigate('/calendar/'+dayKey,{replace:true})
+    try{await deleteExercise(editId);toast.success('Exercise deleted.');navigate('/calendar/'+dayKey,{replace:true})}
     catch(cause){setError(cause instanceof Error?cause.message:'Could not delete exercise.')}
     finally{setBusy(false)}
   }
