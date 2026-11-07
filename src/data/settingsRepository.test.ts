@@ -38,34 +38,49 @@ describe('local water presets and non-destructive migration', () => {
   })
   it('keeps comparison limits unset until explicitly saved, without inventing defaults', async () => {
     const d = database('limits-defaults')
-    expect(await readNutrientComparisonLimits(d)).toEqual({ sugarsG: null, sodiumMg: null })
+    expect(await readNutrientComparisonLimits(d)).toEqual({ carbohydratesG: null, sugarsG: null, sodiumMg: null })
     expect(await d.appSettings.count()).toBe(0)
     d.close()
   })
   it('persists each limit and water presets without erasing the other form', async () => {
     const name = 'limits-persistence'
     const first = database(name)
-    await expect(saveNutrientComparisonLimits({ sugarsG: 0, sodiumMg: 1500 }, first)).rejects.toThrow(/Sugar limit/)
-    await expect(saveNutrientComparisonLimits({ sugarsG: 45, sodiumMg: Number.NaN }, first)).rejects.toThrow(/Sodium limit/)
+    await expect(saveNutrientComparisonLimits({ carbohydratesG: null, sugarsG: 0, sodiumMg: 1500 }, first)).rejects.toThrow(/Sugar limit/)
+    await expect(saveNutrientComparisonLimits({ carbohydratesG: null, sugarsG: 45, sodiumMg: Number.NaN }, first)).rejects.toThrow(/Sodium limit/)
+    await expect(saveNutrientComparisonLimits({ carbohydratesG: 0, sugarsG: 45, sodiumMg: 2000 }, first)).rejects.toThrow(/Carbs limit/)
     expect(await first.appSettings.count()).toBe(0)
     await saveWaterPresets([175, 275, 400, 650], first)
-    await saveNutrientComparisonLimits({ sugarsG: 42.5, sodiumMg: 1750 }, first)
+    await saveNutrientComparisonLimits({ carbohydratesG: 165, sugarsG: 42.5, sodiumMg: 1750 }, first)
     await saveWaterPresets([200, 300, 450, 700], first)
     first.close()
     const reopened = new HealthTrackerDatabase(name)
     expect(await readWaterPresets(reopened)).toEqual([200, 300, 450, 700])
-    expect(await readNutrientComparisonLimits(reopened)).toEqual({ sugarsG: 42.5, sodiumMg: 1750 })
-    await saveNutrientComparisonLimits({ sugarsG: null, sodiumMg: 2100 }, reopened)
+    expect(await readNutrientComparisonLimits(reopened)).toEqual({ carbohydratesG: 165, sugarsG: 42.5, sodiumMg: 1750 })
+    await saveNutrientComparisonLimits({ carbohydratesG: null, sugarsG: null, sodiumMg: 2100 }, reopened)
     expect(await readWaterPresets(reopened)).toEqual([200, 300, 450, 700])
-    expect(await readNutrientComparisonLimits(reopened)).toEqual({ sugarsG: null, sodiumMg: 2100 })
+    expect(await readNutrientComparisonLimits(reopened)).toEqual({ carbohydratesG: null, sugarsG: null, sodiumMg: 2100 })
     reopened.close()
   })
   it('keeps older water-only settings compatible with the new optional limits', async () => {
     const d = database('limits-legacy-settings')
     await saveWaterPresets([125, 250, 375, 500], d)
-    expect(await readNutrientComparisonLimits(d)).toEqual({ sugarsG: null, sodiumMg: null })
-    await saveNutrientComparisonLimits({ sugarsG: 30, sodiumMg: null }, d)
+    expect(await readNutrientComparisonLimits(d)).toEqual({ carbohydratesG: null, sugarsG: null, sodiumMg: null })
+    await saveNutrientComparisonLimits({ carbohydratesG: 140, sugarsG: 30, sodiumMg: null }, d)
     expect(await readWaterPresets(d)).toEqual([125, 250, 375, 500])
+    expect(await readNutrientComparisonLimits(d)).toEqual({ carbohydratesG: 140, sugarsG: 30, sodiumMg: null })
+    d.close()
+  })
+  it('keeps prior sugar/sodium-only settings valid and preserves their values', async () => {
+    const d = database('limits-sugars-sodium-legacy')
+    await d.appSettings.put({ id: 'local', waterPresetsMl: [150, 250, 350, 500],
+      sugarLimitG: 50, sodiumLimitMg: 2300, updatedAt: '2026-11-06T12:00:00Z' })
+    expect(await readNutrientComparisonLimits(d)).toEqual({
+      carbohydratesG: null, sugarsG: 50, sodiumMg: 2300
+    })
+    await saveNutrientComparisonLimits({ carbohydratesG: 200, sugarsG: 50, sodiumMg: 2300 }, d)
+    expect(await readNutrientComparisonLimits(d)).toEqual({
+      carbohydratesG: 200, sugarsG: 50, sodiumMg: 2300
+    })
     d.close()
   })
   it('upgrades a v1 database to v2 without deleting weight or food logs', async () => {
