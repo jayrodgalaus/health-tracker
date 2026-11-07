@@ -2,6 +2,7 @@ import { db, type HealthTrackerDatabase } from '../db/database'
 import type { DayReview, ExerciseEntry, FoodEntry, GoalPeriod, LocalDay, WeightEntry } from '../domain/models'
 import { goalOnDay } from '../domain/evaluation'
 import { archiveCompletedDay } from '../domain/daySnapshot'
+import { weekBounds } from '../domain/activity'
 import { assertLocalDay } from '../domain/profile'
 import { monthDays } from '../domain/calendar'
 import { toLocalDay } from '../lib/localDate'
@@ -92,9 +93,10 @@ export async function setDayComplete(
     }
     const profile = await database.profiles.get('primary')
     if (!profile) throw new Error('A profile is required to archive a completed day.')
+    const { start: weekStart, end: weekEnd } = weekBounds(dayKey)
     const [intake, activities, weights, goals, settings] = await Promise.all([
       database.foodEntries.where('dayKey').equals(dayKey).toArray(),
-      database.exerciseEntries.where('dayKey').equals(dayKey).toArray(),
+      database.exerciseEntries.where('dayKey').between(weekStart, weekEnd, true, true).toArray(),
       database.weightEntries.where('dayKey').belowOrEqual(dayKey).toArray(),
       database.goalPeriods.where('effectiveFrom').belowOrEqual(dayKey).toArray(),
       database.appSettings.get('local')
