@@ -135,6 +135,37 @@ describe('complete local JSON backup and restore',()=>{
     expect((await readLocalBackup(database)).tables.exerciseEntries).toEqual(roundtrip.tables.exerciseEntries)
     database.close()
   })
+  it('round-trips walking speed/incline while retaining prior exercise backup compatibility', async () => {
+    const database = newDb('backup-pace-grade')
+    await seed(database)
+    const legacy = await readLocalBackup(database)
+    expect(validateBackup(legacy).tables.exerciseEntries[0]?.speedKmh).toBeUndefined()
+    const pace = structuredClone(legacy)
+    const workout = pace.tables.exerciseEntries[0]!
+    workout.durationMinutes = null
+    workout.distanceKm = 5
+    workout.speedKmh = 5.5
+    workout.inclinePercent = 4
+    workout.met = null
+    workout.estimationMethod = 'paceGradeNet'
+    await replaceLocalData(pace, database)
+    const restored = parseBackupJson(JSON.stringify(await readLocalBackup(database)))
+    expect(restored.tables.exerciseEntries[0]).toMatchObject({
+      durationMinutes: null, distanceKm: 5, speedKmh: 5.5, inclinePercent: 4,
+      estimationMethod: 'paceGradeNet'
+    })
+    const badSpeed = structuredClone(restored)
+    badSpeed.tables.exerciseEntries[0]!.speedKmh = 25
+    await expect(replaceLocalData(badSpeed, database)).rejects.toThrow(/invalid number/)
+    const badGrade = structuredClone(restored)
+    badGrade.tables.exerciseEntries[0]!.inclinePercent = -3
+    await expect(replaceLocalData(badGrade, database)).rejects.toThrow(/invalid number/)
+    const badActivity = structuredClone(restored)
+    badActivity.tables.exerciseEntries[0]!.activity = 'Cycling'
+    await expect(replaceLocalData(badActivity, database)).rejects.toThrow(/speed|distance/)
+    expect((await readLocalBackup(database)).tables.exerciseEntries).toEqual(restored.tables.exerciseEntries)
+    database.close()
+  })
   it('round-trips lookup provenance and rejects a forged source code', async () => {
     const database = newDb('lookup-provenance')
     await seed(database)
