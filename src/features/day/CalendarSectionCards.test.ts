@@ -13,7 +13,7 @@ function day(overrides: {
   weight?: number | null
 } = {}): DailySummary {
   return {
-    expenditure: { differenceKcal: overrides.difference ?? -844.5 },
+    expenditure: { differenceKcal: overrides.difference === undefined ? -844.5 : overrides.difference },
     intake: {
       nutrients: {
         energyKcal: {
