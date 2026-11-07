@@ -8,7 +8,7 @@ async function onboard(page: Page) {
   await page.getByLabel(/Initial measured weight/).fill('70')
   await page.getByLabel('Primary goal').selectOption('maintain')
   await page.getByRole('button',{name:'Create local profile'}).click()
-  await expect(page.getByRole('heading',{name:'Your day, your pace.'})).toBeVisible()
+  await expect(page.getByRole('heading',{name:'Daily goal alignment'})).toBeVisible()
 }
 
 test('shared branding banner is absent on onboarding and every main page', async ({ page }) => {
@@ -27,6 +27,43 @@ test('shared branding banner is absent on onboarding and every main page', async
   await expect(page.getByRole('navigation',{name:'Primary navigation'})).toBeVisible()
 })
 
+
+test('Today is exactly the current local Calendar day overview, never a selectable historical dashboard', async ({page}) => {
+  await onboard(page)
+  const day = await page.evaluate(() => {
+    const date = new Date()
+    return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') +
+      '-' + String(date.getDate()).padStart(2, '0')
+  })
+
+  await page.goto('/today')
+  await expect(page.getByRole('heading',{name:day,exact:true})).toBeVisible()
+  await expect(page.getByRole('heading',{name:'Daily goal alignment'})).toBeVisible()
+  await expect(page.getByRole('region',{name:'Day completion status'})).toBeVisible()
+  const cards = page.getByRole('region',{name:'Day details by section'})
+  await expect(cards.getByRole('link')).toHaveCount(5)
+  await expect(page.getByRole('navigation',{name:'Nearby dates'}).getByRole('link')).toHaveCount(3)
+  await expect(page.getByRole('navigation',{name:'Primary navigation'})
+    .getByRole('link',{name:'Today'})).toHaveAttribute('aria-current','page')
+  await expect(page.getByRole('heading',{name:'Your day, your pace.'})).toHaveCount(0)
+  await expect(page.getByRole('navigation',{name:'Day navigation'})).toHaveCount(0)
+  await expect(page.getByRole('region',{name:'Quick logging actions'})).toHaveCount(0)
+  const todayMarkup = await page.locator('#main-content').innerText()
+
+  await page.goto('/calendar/' + day)
+  await expect(page.getByRole('region',{name:'Day details by section'}).getByRole('link')).toHaveCount(5)
+  expect(await page.locator('#main-content').innerText()).toBe(todayMarkup)
+
+  await page.goto('/today?date=2026-01-15')
+  await expect(page.getByRole('heading',{name:day,exact:true})).toBeVisible()
+  await expect(page.getByRole('heading',{name:'2026-01-15',exact:true})).toHaveCount(0)
+  await page.getByRole('navigation',{name:'Nearby dates'})
+    .getByRole('link',{name:'Previous day'}).click()
+  await expect(page).toHaveURL(/\/calendar\/\d{4}-\d{2}-\d{2}$/)
+  await page.getByRole('navigation',{name:'Primary navigation'}).getByRole('link',{name:'Today'}).click()
+  await expect(page).toHaveURL('/today')
+  await expect(page.getByRole('heading',{name:day,exact:true})).toBeVisible()
+})
 
 test('completing a day requires confirmation, locks every form, and reopening restores editing', async({page}) => {
   await onboard(page)
@@ -69,7 +106,7 @@ test('completing a day requires confirmation, locks every form, and reopening re
   await expect(page.getByRole('heading',{name:'Completed day · Read only'})).toBeVisible()
   await page.goto('/log/exercise?date=2026-01-15')
   await expect(page.getByRole('heading',{name:'Completed day · Read only'})).toBeVisible()
-  await page.goto('/today?date=2026-01-15')
+  await page.goto('/calendar/2026-01-15')
   await expect(page.getByRole('link',{name:'+ Food'})).toHaveCount(0)
   await expect(page.getByRole('link',{name:'Add / edit weight'})).toHaveCount(0)
 
@@ -754,9 +791,10 @@ test('mobile logging persists and the cached production PWA reloads offline',asy
   await expect(page.getByText('Logged 250 ml of water.')).toBeVisible()
 
   await page.goto('/today')
-  await expect(page.getByRole('heading',{name:'Recorded nutrition and fluids'})).toBeVisible()
-  await expect(page.getByText('345 kcal',{exact:true}).first()).toBeVisible()
-  await expect(page.getByText('250 ml',{exact:true}).first()).toBeVisible()
+  await expect(page.getByRole('region',{name:'Day details by section'})
+    .getByRole('link',{name:/^Nutrition — 345 kcal/})).toBeVisible()
+  await expect(page.getByRole('region',{name:'Day details by section'})
+    .getByRole('link',{name:/^Fluids — 250 mL/})).toBeVisible()
 
   // Register and activate service worker before cutting the network.
   await page.evaluate(async()=>{await navigator.serviceWorker.ready})
@@ -764,9 +802,9 @@ test('mobile logging persists and the cached production PWA reloads offline',asy
   await expect.poll(()=>page.evaluate(()=>Boolean(navigator.serviceWorker.controller))).toBe(true)
   await context.setOffline(true)
   await page.reload({waitUntil:'domcontentloaded'})
-  await expect(page.getByRole('heading',{name:'Your day, your pace.'})).toBeVisible()
-  await expect(page.getByText('345 kcal',{exact:true}).first()).toBeVisible()
-  await expect(page.getByText('250 ml',{exact:true}).first()).toBeVisible()
+  await expect(page.getByRole('heading',{name:'Daily goal alignment'})).toBeVisible()
+  await expect(page.getByRole('link',{name:/^Nutrition — 345 kcal/})).toBeVisible()
+  await expect(page.getByRole('link',{name:/^Fluids — 250 mL/})).toBeVisible()
 })
 
 test('backup export, confirmed reset and replace restore preserve local entries',async({page})=>{
@@ -799,11 +837,11 @@ test('backup export, confirmed reset and replace restore preserve local entries'
   await expect(page.getByRole('heading',{name:/Verified backup preview/})).toBeVisible()
   await page.getByLabel('Type REPLACE to confirm overwriting').fill('REPLACE')
   await page.getByRole('button',{name:'Replace all local data'}).click()
-  await expect(page.getByRole('heading',{name:'Your day, your pace.'})).toBeVisible()
+  await expect(page.getByRole('heading',{name:'Daily goal alignment'})).toBeVisible()
   await page.goto('/today')
-  await expect(page.getByText('350 ml',{exact:true})).toBeVisible()
+  await expect(page.getByRole('link',{name:/^Fluids — 350 mL/})).toBeVisible()
   await page.reload()
-  await expect(page.getByText('350 ml',{exact:true})).toBeVisible()
+  await expect(page.getByRole('link',{name:/^Fluids — 350 mL/})).toBeVisible()
 })
 
 async function onboardAfterReset(page:Page){
@@ -812,7 +850,7 @@ async function onboardAfterReset(page:Page){
   await page.getByLabel(/Initial measured weight/).fill('72')
   await page.getByLabel('Primary goal').selectOption('maintain')
   await page.getByRole('button',{name:'Create local profile'}).click()
-  await expect(page.getByRole('heading',{name:'Your day, your pace.'})).toBeVisible()
+  await expect(page.getByRole('heading',{name:'Daily goal alignment'})).toBeVisible()
 }
 
 test('malformed import never alters existing IndexedDB data',async({page})=>{
@@ -827,7 +865,7 @@ test('malformed import never alters existing IndexedDB data',async({page})=>{
   })
   await expect(page.getByRole('alert')).toContainText('Backup:')
   await page.goto('/today')
-  await expect(page.getByText('500 ml',{exact:true})).toBeVisible()
+  await expect(page.getByRole('link',{name:/^Fluids — 500 mL/})).toBeVisible()
 })
 
 test('320, 360, 390 and 430 px layouts do not force body horizontal scrolling',async({page})=>{
@@ -870,9 +908,9 @@ test('cached tabs support offline navigation and newly saved records', async ({p
   await page.getByRole('button',{name:'+ 150 ml'}).click()
   await expect(page.getByText('Logged 150 ml of water.')).toBeVisible()
   await page.goto('/today', {waitUntil: 'domcontentloaded'})
-  await expect(page.getByText('150 ml', {exact: true}).first()).toBeVisible()
+  await expect(page.getByRole('link',{name:/^Fluids — 150 mL/})).toBeVisible()
   await page.reload({waitUntil: 'domcontentloaded'})
-  await expect(page.getByText('150 ml', {exact: true}).first()).toBeVisible()
+  await expect(page.getByRole('link',{name:/^Fluids — 150 mL/})).toBeVisible()
 })
 
 test('keyboard users can skip to content and activate the primary tabs', async ({page}) => {
@@ -972,9 +1010,9 @@ test('Settings is a navigation list with dedicated pages and contextual Docs lin
   await menu.getByRole('link',{name:/^About and health notice/}).click()
   await expect(page.getByRole('heading',{name:'Health information notice'})).toBeVisible()
   await page.goto('/today')
-  await page.getByRole('link',{name:'About this page: today'}).click()
-  await expect(page).toHaveURL(/\/settings\/docs\/today$/)
-  await expect(page.getByRole('heading',{name:'Today and daily totals'})).toBeVisible()
+  await page.getByRole('link',{name:'About this page: day detail'}).click()
+  await expect(page).toHaveURL(/\/settings\/docs\/day-detail$/)
+  await expect(page.getByRole('heading',{name:'Day details and explainable rules'})).toBeVisible()
   await page.goto('/log')
   await page.getByRole('link',{name:'About this page: log'}).click()
   await expect(page).toHaveURL(/\/settings\/docs\/log$/)
@@ -1135,8 +1173,8 @@ test('saved beverage combobox scales both volume and calories once', async ({pag
   await page.getByRole('button', {name: 'Add to log'}).click()
   await expect(page.getByText('Intake entry saved.')).toBeVisible()
   await page.goto('/today')
-  await expect(page.getByText('100 kcal',{exact:true}).first()).toBeVisible()
-  await expect(page.getByText('500 ml',{exact:true}).first()).toBeVisible()
+  await expect(page.getByRole('link',{name:/^Nutrition — 100 kcal/})).toBeVisible()
+  await expect(page.getByRole('link',{name:/^Fluids — 500 mL/})).toBeVisible()
 })
 
 test('offline USDA cabbage preparation dropdown autofills per-100-g and scales the eaten weight', async ({page, context}) => {
@@ -1270,10 +1308,11 @@ test('blanched cabbage query explains the nearest USDA boiled reference is not t
 })
 
 
-test('log overview and dedicated input pages keep short date labels', async ({page}) => {
+test('Today uses a date heading while Log and dedicated input pages keep date inputs', async ({page}) => {
   await onboard(page)
   await page.goto('/today')
-  await expect(page.getByLabel('Date',{exact:true})).toBeVisible()
+  await expect(page.getByRole('heading',{name:/^\d{4}-\d{2}-\d{2}$/})).toBeVisible()
+  await expect(page.getByLabel('Date',{exact:true})).toHaveCount(0)
   await page.goto('/log')
   await expect(page.getByLabel('Date',{exact:true})).toHaveCount(1)
   for(const [name,route] of [['+ Food','food'],['+ Drink','drink'],['+ Exercise','exercise']] as const){

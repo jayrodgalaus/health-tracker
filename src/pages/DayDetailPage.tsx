@@ -10,9 +10,14 @@ import { CalendarGoalChecklist } from '../features/day/CalendarGoalChecklist'
 import { CalendarSectionCards } from '../features/day/CalendarSectionCards'
 import { DayCompletionControl } from '../features/day/DayCompletionControl'
 
-export function DayDetailPage({ profile }: { profile: Profile }) {
-  const { dayKey: param } = useParams()
-  const dayKey = param && parseLocalDay(param) && param >= '1900-01-01' && param <= '2100-12-31' ? param : null
+/** Shared day overview, used unchanged by Calendar and by Today's current local date. */
+export function DayDetailPage({
+  profile, selectedDayKey
+}: { profile: Profile; selectedDayKey?: string }) {
+  const { dayKey: routeDayKey } = useParams()
+  const requested = selectedDayKey ?? routeDayKey
+  const dayKey = requested && parseLocalDay(requested) &&
+    requested >= '1900-01-01' && requested <= '2100-12-31' ? requested : null
   const records = useLiveQuery(() => dayKey ? readDayRecords(dayKey) : Promise.resolve(null), [dayKey], undefined)
   if (!dayKey) return <div role="alert" className="rounded-xl bg-rose-50 p-5">
     Invalid calendar day. <Link className="text-evergreen-700 underline" to="/calendar">Return to calendar</Link>.
