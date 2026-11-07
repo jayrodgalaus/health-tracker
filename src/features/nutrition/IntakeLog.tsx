@@ -160,8 +160,8 @@ export function IntakeLog() {
                   {entry.meal ? `${entry.meal} · ` : ''}{entry.quantity} {entry.unit} · {entry.beverageType === 'water' ? 'Water' : entry.kind === 'beverage' ? 'Drink' : 'Food'}
                 </p>
                 <p className="mt-1 text-sm">
-                  Calories: {entry.nutrientsSnapshot.energyKcal === null ? 'unknown' : `${Number(entry.nutrientsSnapshot.energyKcal.toFixed(1))} kcal`}
-                  {entry.kind === 'beverage' && ` · Fluids: ${entry.fluidMl === null ? 'unknown' : `${Number(entry.fluidMl.toFixed(1))} ml`}`}
+                  {entry.beverageType !== 'water' && <>Calories: {entry.nutrientsSnapshot.energyKcal === null ? 'unknown' : `${Number(entry.nutrientsSnapshot.energyKcal.toFixed(1))} kcal`}</>}
+                  {entry.kind === 'beverage' && `${entry.beverageType === 'water' ? '' : ' · '}Fluids: ${entry.fluidMl === null ? 'unknown' : `${Number(entry.fluidMl.toFixed(1))} ml`}`}
                 </p>
               </div>
               <div className="flex gap-2">

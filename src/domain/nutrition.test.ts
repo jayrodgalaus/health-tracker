@@ -59,8 +59,54 @@ describe('nutrition scaling and completeness', () => {
     expect(reference.proteinG).toBe(10)
     expect(scaleNutrition(reference, historical.labelBasis, 150, 'g').energyKcal).toBe(300)
   })
-  it('water has a known zero kcal, not an unlogged null', () => {
-    expect(aggregateIntake([entry('water', 'beverage', waterNutrition(), 250)]).nutrients.energyKcal.knownAmount).toBe(0)
-    expect(waterNutrition().sodiumMg).toBeNull()
+  it('plain water remains a zero-energy source but does not enter nutritional calculations', () => {
+    const water = { ...entry('water', 'beverage', waterNutrition(), 250), beverageType: 'water' as const }
+    const summary = aggregateIntake([water])
+    expect(water.nutrientsSnapshot.energyKcal).toBe(0) // preserved historical snapshot
+    expect(summary.nutrients.energyKcal).toMatchObject({
+      knownAmount: null, knownEntryCount: 0, unknownEntryCount: 0, totalEntryCount: 0, complete: false
+    })
+    expect(summary.nutrients.sodiumMg.totalEntryCount).toBe(0)
+    expect(summary.fluids).toMatchObject({ knownAmount: 250, complete: true })
+  })
+  it('does not count 3 plain-water logs in 16 nutrient entries, including legacy missing/zero labels', () => {
+    const foods = Array.from({ length: 13 }, (_, i) => entry(
+      String(i), 'food', { ...emptyNutrition(), energyKcal: 150, sodiumMg: i === 12 ? 105.3 : 150 }
+    ))
+    const water = Array.from({ length: 3 }, (_, i) => ({
+      ...entry('water-' + i, 'beverage', i === 0 ? waterNutrition()
+        : i === 1 ? emptyNutrition()
+          : { ...waterNutrition(), sodiumMg: 0 }, 250),
+      beverageType: 'water' as const
+    }))
+    const summary = aggregateIntake([...foods, ...water])
+    expect(summary.entries).toBe(16)
+    expect(summary.nutrients.sodiumMg).toMatchObject({
+      knownAmount: 1905.3, knownEntryCount: 13, unknownEntryCount: 0,
+      totalEntryCount: 13, complete: true
+    })
+    expect(summary.nutrients.energyKcal).toMatchObject({
+      knownAmount: 1950, knownEntryCount: 13, unknownEntryCount: 0, totalEntryCount: 13, complete: true
+    })
+    expect(summary.nutrients.proteinG).toMatchObject({
+      knownAmount: null, knownEntryCount: 0, unknownEntryCount: 13, totalEntryCount: 13, complete: false
+    })
+    expect(summary.fluids).toMatchObject({
+      knownAmount: 750, knownEntryCount: 3, totalEntryCount: 3, complete: true
+    })
+    // Only explicitly tagged water is exempt; a beverage named Water without
+    // the tag can contain minerals or unknown nutrition.
+    const untagged = entry('Water', 'beverage', emptyNutrition(), 250)
+    expect(aggregateIntake([...foods, untagged]).nutrients.sodiumMg).toMatchObject({
+      knownAmount: 1905.3, knownEntryCount: 13, unknownEntryCount: 1, complete: false
+    })
+  })
+  it('keeps non-water drinks with unknown sodium in the coverage denominator', () => {
+    const food = entry('meal', 'food', { ...emptyNutrition(), sodiumMg: 500 })
+    const drink = { ...entry('unspecified drink', 'beverage', emptyNutrition(), 300), beverageType: 'other' as const }
+    const water = { ...entry('water', 'beverage', waterNutrition(), 250), beverageType: 'water' as const }
+    expect(aggregateIntake([food, drink, water]).nutrients.sodiumMg).toMatchObject({
+      knownAmount: 500, knownEntryCount: 1, unknownEntryCount: 1, totalEntryCount: 2, complete: false
+    })
   })
 })

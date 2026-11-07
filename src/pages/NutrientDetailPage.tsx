@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { PageInfoLink } from '../components/PageInfoLink'
 import { listIntakeForDay } from '../data/intakeRepository'
 import type { FoodEntry } from '../domain/models'
-import { aggregateIntake } from '../domain/nutrition'
+import { aggregateIntake, isPlainWaterEntry } from '../domain/nutrition'
 import { NUTRIENT_LABELS } from '../features/nutrition/NutritionFields'
 import {
   formatEntryNutrient, isDisplayNutrientField, type DisplayNutrientField
@@ -69,7 +69,7 @@ export function NutrientDetailPage() {
   const total = summary && summary.knownAmount !== null
     ? `${summary.complete ? '' : 'At least '}${formatEntryNutrient(summary.knownAmount, field)}` : '-'
   const foods = entries?.filter(entry => entry.kind === 'food') ?? []
-  const drinks = entries?.filter(entry => entry.kind === 'beverage') ?? []
+  const drinks = entries?.filter(entry => entry.kind === 'beverage' && !isPlainWaterEntry(entry)) ?? []
 
   return <div className="space-y-6">
     <header className="space-y-2">
@@ -88,11 +88,11 @@ export function NutrientDetailPage() {
         <h2 className="text-sm font-semibold text-slate-600">Recorded total</h2>
         <p className="mt-2 text-2xl font-bold tabular-nums">{total}</p>
       </section>
-      {entries.length === 0 ?
-        <p className="rounded-xl bg-white p-4 text-sm text-slate-600">No foods or drinks recorded for this date.</p> :
+      {foods.length + drinks.length === 0 ?
+        <p className="rounded-xl bg-white p-4 text-sm text-slate-600">No foods or nutrient-bearing drinks recorded for this date.</p> :
         <div className="space-y-6">
           <IntakeGroup title="Foods" entries={foods} field={field} dayKey={dayKey} />
-          <IntakeGroup title="Drinks and water" entries={drinks} field={field} dayKey={dayKey} />
+          <IntakeGroup title="Other drinks" entries={drinks} field={field} dayKey={dayKey} />
         </div>}
     </>}
   </div>
