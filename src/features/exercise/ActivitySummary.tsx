@@ -46,7 +46,7 @@ export function ActivitySummary({ dayKey, profile, dayActivities, weekActivities
       <div className="rounded-2xl border border-slate-200 bg-white p-4">
         <h3 className="font-semibold">This week's logged sessions</h3>
         {week.loggedMinutes === null ? (
-          <p className="mt-3 text-sm text-slate-600">No exercise logged this week. This is not a judgment about your activity.</p>
+          <p className="mt-3 text-sm text-slate-600">{week.entries > 0 ? `${week.entries} session(s) recorded without duration; minutes remain unknown.` : 'No exercise logged this week. This is not a judgment about your activity.'}</p>
         ) : (
           <>{week.missingDurationEntries > 0 && <p className="mt-2 text-xs text-slate-600">{week.missingDurationEntries} distance-only session(s) have no recorded minutes.</p>}
           <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
