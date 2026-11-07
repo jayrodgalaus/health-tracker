@@ -22,16 +22,5 @@ export function ExpenditurePanel({ summary }: { summary?: DailySummary }) {
       <div><dt className="text-xs text-slate-600">Additional logged workout kcal</dt><dd className="mt-1 font-semibold">{shown(value.workoutIncrementKcal)}</dd></div>
       <div><dt className="text-xs text-slate-600">Selected background multiplier</dt><dd className="mt-1 font-semibold">{value.multiplier === null ? 'Not set' : value.multiplier.toFixed(2)}</dd></div>
     </dl>
-    <details className="text-sm">
-      <summary className="cursor-pointer font-semibold">Show estimate assumptions and missing inputs</summary>
-      <ul className="mt-3 list-disc space-y-2 pl-5 text-slate-600">
-        {value.explanation.map((item, index) => <li key={index}>{item}</li>)}
-      </ul>
-    </details>
-    <p className="text-xs leading-5 text-slate-600">
-      Expenditure is a broad adult estimate, not measured metabolism. An incomplete log,
-      unknown workout increments, missing equation inputs or an unspecified non-workout multiplier
-      prevent a total. The estimated difference does not predict exact weight change.
-    </p>
   </section>
 }

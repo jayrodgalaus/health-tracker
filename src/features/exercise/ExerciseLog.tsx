@@ -129,11 +129,9 @@ function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel }: {
         </div>}
         {adult && effectiveMethod === 'metNet' && <label className="block text-sm font-semibold">Chosen activity MET (1–25)
           <input className={inputClass} type="number" min="1" max="25" step="any" inputMode="decimal" value={met} onChange={event => setMet(event.target.value)} placeholder="Enter a MET value" required />
-          <span className="mt-1 block text-xs font-normal text-slate-600">Approximate net kcal = (MET − 1) × 3.5 × recorded kg ÷ 200 × minutes. A same-day or earlier weight is required. METs must come from a source you choose; they are not guessed.</span>
         </label>}
         {adult && effectiveMethod === 'manualActive' && <label className="block text-sm font-semibold">Active/incremental calories (kcal)
           <input className={inputClass} type="number" min="0" max="6000" step="any" inputMode="decimal" value={manual} onChange={event => setManual(event.target.value)} required placeholder="Active kcal only" />
-          <span className="mt-1 block text-xs font-normal text-slate-600">Only use an ACTIVE-calorie figure, not gross workout calories, unless the source clearly excludes resting energy.</span>
         </label>}
       </fieldset>
       <label className="block text-sm font-semibold">Notes (optional, max 500 characters)
@@ -185,7 +183,6 @@ export function ExerciseLog({ profile }: { profile: Profile }) {
     <section id="exercise" aria-labelledby="exercise-log-title" className="scroll-mt-6 space-y-5">
       <div>
         <h2 id="exercise-log-title" className="text-xl font-bold">Exercise logging</h2>
-        <p className="mt-2 text-sm leading-6 text-slate-600">Record actual workouts, duration and intensity. A rest day is not a failed day, and an empty log is never treated as zero activity.</p>
       </div>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <label className="block text-sm font-semibold">Date

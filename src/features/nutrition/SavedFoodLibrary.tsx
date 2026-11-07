@@ -54,7 +54,6 @@ function SavedFoodEditor({ editing, onDone, onCancel }: { editing?: SavedFood; o
   return (
     <form onSubmit={event => { void submit(event) }} noValidate className="space-y-4 rounded-2xl border border-evergreen-100 bg-white p-4">
       <h3 className="text-lg font-bold">{editing ? 'Edit reusable label' : 'Create reusable label'}</h3>
-      <p className="text-xs leading-5 text-slate-600">Editing the library changes future logs only. Existing entries keep their original label snapshots.</p>
       <div className="grid grid-cols-2 gap-3">
         <label className="col-span-2 block text-sm font-medium">Product name
           <input className={fieldClass} maxLength={150} value={name} onChange={event => setName(event.target.value)} required />
@@ -132,7 +131,6 @@ export function SavedFoodLibrary({ onUse }: { onUse: (food: SavedFood) => void }
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 id="saved-foods-title" className="text-lg font-bold">Saved food and drink labels</h2>
-          <p className="mt-1 text-xs text-slate-600">Reusable locally, with favorites first.</p>
         </div>
         <button type="button" onClick={() => { setEditing(null); setAdding(true) }} className="min-h-11 rounded-xl border border-evergreen-600 px-4 text-sm font-semibold text-evergreen-700">+ Save a label</button>
       </div>

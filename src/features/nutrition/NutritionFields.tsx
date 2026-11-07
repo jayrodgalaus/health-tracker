@@ -51,7 +51,6 @@ export function NutritionFields({ values, onChange, legend = 'Nutrition facts' }
   return (
     <fieldset className="space-y-3">
       <legend className="text-base font-semibold">{legend}</legend>
-      <p className="text-xs leading-5 text-slate-600">Leave any field blank if the label does not provide it. Enter 0 only when it is explicitly known to be zero.</p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {NUTRIENT_FIELDS.map(field => (
           <label key={field} className="block text-sm font-medium text-slate-800">

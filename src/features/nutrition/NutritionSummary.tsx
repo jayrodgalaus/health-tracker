@@ -53,10 +53,6 @@ export function NutritionSummary({ entries, loading = false }: { entries?: reado
           })}
         </dl>
       </div>}
-      <p className="text-xs leading-5 text-slate-500">
-        “At least” means some entries lack that nutrient. Missing values are never assumed zero.
-        These are recorded nutrition label figures, not estimates of total energy expended or health assessments.
-      </p>
     </section>
   )
 }

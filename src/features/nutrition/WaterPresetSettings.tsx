@@ -31,7 +31,6 @@ export function WaterPresetSettings() {
 
   return <section className="rounded-2xl border border-slate-200 bg-white p-5" aria-labelledby="water-presets-title">
     <h2 id="water-presets-title" className="text-lg font-semibold">Water quick-add amounts</h2>
-    <p className="mt-2 text-sm leading-6 text-slate-600">Customize the four preset buttons in Log. Amounts are in milliliters; custom water entries are also available.</p>
     {presets === undefined && <p role="status" className="mt-2 text-sm text-slate-600">Loading preferences…</p>}
     {presets !== undefined && <form onSubmit={event => { void save(event) }} className="mt-4 space-y-3">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

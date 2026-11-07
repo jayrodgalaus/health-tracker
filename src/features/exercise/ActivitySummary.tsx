@@ -26,13 +26,11 @@ export function ActivitySummary({ dayKey, profile, dayActivities, weekActivities
     <section className="space-y-3" aria-labelledby="activity-summary-title">
       <div>
         <h2 id="activity-summary-title" className="text-lg font-bold">Logged activity</h2>
-        <p className="mt-1 text-sm text-slate-600">For {dayKey}. This is a log summary, not a daily health score.</p>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h3 className="text-xs font-semibold text-slate-600">Workout minutes</h3>
           <p className="mt-3 text-xl font-bold">{day.loggedMinutes === null ? 'Not logged' : `${Number(day.loggedMinutes.toFixed(1))} min`}</p>
-          <p className="mt-2 text-xs text-slate-500">{day.entries} recorded sessions. Unlogged activity is unknown, not zero.</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h3 className="text-xs font-semibold text-slate-600">Estimated additional workout kcal</h3>
@@ -47,7 +45,6 @@ export function ActivitySummary({ dayKey, profile, dayActivities, weekActivities
       </div>
       <div className="rounded-2xl border border-slate-200 bg-white p-4">
         <h3 className="font-semibold">This week's logged sessions</h3>
-        <p className="mt-1 text-xs text-slate-600">Monday {week.start} – Sunday {week.end}. Rest days are not graded.</p>
         {week.loggedMinutes === null ? (
           <p className="mt-3 text-sm text-slate-600">No exercise logged this week. This is not a judgment about your activity.</p>
         ) : (
