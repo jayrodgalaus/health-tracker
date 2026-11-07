@@ -1,5 +1,9 @@
 import { db, type HealthTrackerDatabase } from '../db/database'
 import type { AppSettings } from '../domain/models'
+import {
+  EMPTY_NUTRIENT_COMPARISON_LIMITS, validateNutrientComparisonLimits,
+  type NutrientComparisonLimits
+} from '../domain/nutrientLimits'
 
 export const DEFAULT_WATER_PRESETS_ML: readonly number[] = [150, 250, 350, 500]
 
@@ -18,12 +22,47 @@ export async function readWaterPresets(database: HealthTrackerDatabase = db): Pr
   return record ? [...record.waterPresetsMl] : [...DEFAULT_WATER_PRESETS_ML]
 }
 
+/** No assumed limits: each comparison is enabled only by an explicit preference. */
+export async function readNutrientComparisonLimits(
+  database: HealthTrackerDatabase = db
+): Promise<NutrientComparisonLimits> {
+  const settings = await database.appSettings.get('local')
+  return {
+    sugarsG: settings?.sugarLimitG ?? EMPTY_NUTRIENT_COMPARISON_LIMITS.sugarsG,
+    sodiumMg: settings?.sodiumLimitMg ?? EMPTY_NUTRIENT_COMPARISON_LIMITS.sodiumMg
+  }
+}
+
+/** Preserve other preferences even when water and nutrient forms save separately. */
 export async function saveWaterPresets(
   values: readonly number[],
   database: HealthTrackerDatabase = db
 ): Promise<AppSettings> {
   validateWaterPresets(values)
-  const settings: AppSettings = { id: 'local', waterPresetsMl: [...values], updatedAt: new Date().toISOString() }
-  await database.appSettings.put(settings)
-  return settings
+  return database.transaction('rw', database.appSettings, async () => {
+    const previous = await database.appSettings.get('local')
+    const settings: AppSettings = {
+      ...previous, id: 'local', waterPresetsMl: [...values], updatedAt: new Date().toISOString()
+    }
+    await database.appSettings.put(settings)
+    return settings
+  })
+}
+
+export async function saveNutrientComparisonLimits(
+  limits: NutrientComparisonLimits,
+  database: HealthTrackerDatabase = db
+): Promise<AppSettings> {
+  validateNutrientComparisonLimits(limits)
+  return database.transaction('rw', database.appSettings, async () => {
+    const previous = await database.appSettings.get('local')
+    const settings: AppSettings = {
+      ...previous, id: 'local',
+      waterPresetsMl: previous?.waterPresetsMl ?? [...DEFAULT_WATER_PRESETS_ML],
+      sugarLimitG: limits.sugarsG, sodiumLimitMg: limits.sodiumMg,
+      updatedAt: new Date().toISOString()
+    }
+    await database.appSettings.put(settings)
+    return settings
+  })
 }
