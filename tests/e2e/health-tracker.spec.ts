@@ -334,6 +334,67 @@ test('five illustrated Calendar cards route to their own detailed sections and k
   await expect(page.getByRole('alert')).toContainText('Invalid date or section')
 })
 
+test('Calendar nutrition has flat full-width calories and seven centered pastel nutrient tiles', async ({page}) => {
+  await onboard(page)
+  const day = '2026-01-15'
+  await page.goto('/log/food?date=' + day)
+  await page.getByRole('combobox',{name:'Name'}).fill('Synthetic nutrition layout meal')
+  await page.getByLabel('Calories (kcal)').fill('1499.5')
+  await page.getByLabel('Protein (g)').fill('90.2')
+  await page.getByRole('button',{name:'Add to log'}).click()
+  await expect(page.getByTestId('app-toast')).toContainText('Intake entry saved.')
+
+  await page.setViewportSize({width:320,height:720})
+  await page.goto('/calendar/' + day + '/nutrition')
+  await expect(page.getByRole('heading',{name:'Recorded nutrition',exact:true})).toHaveCount(0)
+  await expect(page.getByText('1 foods · 0 other drinks')).toHaveCount(0)
+  const summary = page.getByRole('region',{name:'Nutrition summary'})
+  const calories = page.getByRole('region',{name:'Calories consumed'})
+  const nutrients = page.getByRole('region',{name:'Nutrients'})
+  await expect(calories.getByRole('heading',{name:'Calories consumed'})).toHaveClass(/text-lg/)
+  await expect(calories.getByRole('heading',{name:'Calories consumed'})).toHaveClass(/font-semibold/)
+  await expect(nutrients.getByRole('heading',{name:'Nutrients'})).toHaveClass(/text-lg/)
+  await expect(nutrients.getByRole('heading',{name:'Nutrients'})).toHaveClass(/font-semibold/)
+  await expect(calories).toContainText('1,499.5 kcal')
+  const dimensions = await page.evaluate(() => ({
+    docWidth: document.documentElement.scrollWidth, viewport: window.innerWidth
+  }))
+  expect(dimensions.docWidth).toBeLessThanOrEqual(dimensions.viewport + 2)
+  const sectionStyles = await summary.evaluate(element => {
+    const outer = element.getBoundingClientRect()
+    const kcal = element.querySelector('[aria-labelledby="calories-consumed-heading"]')!
+    const nutrientContainer = element.querySelector('[aria-labelledby="nutrients-heading"]')!
+    return {
+      outerWidth: outer.width,
+      caloriesWidth: kcal.getBoundingClientRect().width,
+      caloriesBorder: getComputedStyle(kcal).borderTopWidth,
+      nutrientsBorder: getComputedStyle(nutrientContainer).borderTopWidth,
+      caloriesBackground: getComputedStyle(kcal).backgroundColor,
+      nutrientsBackground: getComputedStyle(nutrientContainer).backgroundColor
+    }
+  })
+  expect(Math.abs(sectionStyles.outerWidth - sectionStyles.caloriesWidth)).toBeLessThan(2)
+  expect(sectionStyles.caloriesBorder).toBe('0px')
+  expect(sectionStyles.nutrientsBorder).toBe('0px')
+  expect(sectionStyles.caloriesBackground).toBe('rgba(0, 0, 0, 0)')
+  expect(sectionStyles.nutrientsBackground).toBe('rgba(0, 0, 0, 0)')
+
+  const cards = nutrients.getByRole('link')
+  await expect(cards).toHaveCount(7)
+  const styles = await cards.evaluateAll(elements => elements.map(element => ({
+    color: getComputedStyle(element).backgroundColor,
+    textAlign: getComputedStyle(element).textAlign
+  })))
+  expect(styles.every(item => item.textAlign === 'center')).toBe(true)
+  expect(new Set(styles.map(item => item.color)).size).toBe(7)
+  await expect(cards.filter({hasText:'Protein (g)'})).toContainText('90.2 g')
+  await cards.filter({hasText:'Protein (g)'}).click()
+  await expect(page).toHaveURL('/calendar/' + day + '/nutrients/proteinG')
+  await page.getByRole('link',{name:/Back to nutrition/}).click()
+  await expect(page).toHaveURL('/calendar/' + day + '/nutrition')
+  await expect(page.getByRole('heading',{name:'Foods and meals (1)'})).toBeVisible()
+})
+
 test('Calendar nutrient percentages remain visible as minimums when entries have missing data',async({page})=>{
   await onboard(page)
   await page.goto('/settings/profile')
