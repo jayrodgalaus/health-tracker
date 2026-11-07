@@ -5,6 +5,7 @@ import type { Profile } from '../domain/models'
 import { db } from '../db/database'
 import { setDayComplete } from '../data/dayRepository'
 import { PageInfoLink } from '../components/PageInfoLink'
+import { useToast } from '../components/ToastProvider'
 import { WeightQuickCard } from '../features/weight/WeightQuickCard'
 import { selectedLogDay } from '../lib/logDate'
 import { toLocalDay } from '../lib/localDate'
@@ -19,11 +20,8 @@ export function LogPage({ profile }: { profile: Profile }) {
   // A missing review is a loaded, not-yet-completed day (null), not a pending query (undefined).
   const review = useLiveQuery(async () => (await db.dayReviews.get(dayKey)) ?? null, [dayKey], undefined)
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
+  const toast = useToast()
   const actionDate = '?date=' + encodeURIComponent(dayKey)
-  const saved = searchParams.get('saved')
-  const savedVolume = searchParams.get('volume')
 
   // Older Today / Calendar bookmarks used ?add=... in the combined Log page.
   if (legacyAction && ['food', 'drink', 'exercise', 'water'].includes(legacyAction)) {
@@ -34,21 +32,17 @@ export function LogPage({ profile }: { profile: Profile }) {
   function selectDay(value: string) {
     const next = selectedLogDay(value)
     if (next !== value) return
-    setError('')
-    setNotice('')
     setSearchParams({date: next})
   }
 
   async function toggleComplete() {
     setBusy(true)
-    setError('')
-    setNotice('')
     try {
       const nextComplete = !review?.isComplete
       await setDayComplete(dayKey, nextComplete)
-      setNotice(nextComplete ? 'Day marked complete.' : 'Day reopened.')
+      toast.success(nextComplete ? 'Day marked complete.' : 'Day reopened.')
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not update day completion.')
+      toast.error(cause instanceof Error ? cause.message : 'Could not update day completion.')
     } finally {
       setBusy(false)
     }
@@ -65,10 +59,6 @@ export function LogPage({ profile }: { profile: Profile }) {
       </label>
     </header>
 
-    {saved === 'food' && <p role="status" className="rounded-xl bg-evergreen-50 p-3 text-sm text-evergreen-900">Intake entry saved on this device.</p>}
-    {saved === 'exercise' && <p role="status" className="rounded-xl bg-evergreen-50 p-3 text-sm text-evergreen-900">Exercise saved locally.</p>}
-    {saved === 'water' && <p role="status" className="rounded-xl bg-evergreen-50 p-3 text-sm text-evergreen-900">Logged {savedVolume ?? ''} ml of water.</p>}
-
     <section aria-label="Quick actions" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="mb-4 text-lg font-bold">Quick actions</h2>
       <nav aria-label="Quick actions" className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -82,8 +72,6 @@ export function LogPage({ profile }: { profile: Profile }) {
       <WeightQuickCard key={dayKey} dayKey={dayKey} unit={profile.units.mass} />
     </section>
 
-    {notice && <p role="status" className="rounded-xl bg-evergreen-50 p-3 text-sm text-evergreen-900">{notice}</p>}
-    {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}
     <button type="button" onClick={() => {void toggleComplete()}} disabled={review === undefined || busy}
       aria-pressed={review?.isComplete === true}
       className="min-h-14 w-full rounded-xl bg-evergreen-600 px-5 py-3 text-base font-bold text-white hover:bg-evergreen-700 disabled:opacity-50">

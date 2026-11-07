@@ -5,11 +5,13 @@ import { db } from '../db/database'
 import type { Profile } from '../domain/models'
 import { deleteExercise } from '../data/exerciseRepository'
 import { PageInfoLink } from '../components/PageInfoLink'
+import { useToast } from '../components/ToastProvider'
 import { ExerciseForm } from '../features/exercise/ExerciseLog'
 import { selectedLogDay } from '../lib/logDate'
 
 export function ExerciseEntryPage({profile}: {profile:Profile}) {
   const navigate=useNavigate()
+  const toast=useToast()
   const [params]=useSearchParams()
   const dayKey=selectedLogDay(params.get('date'))
   const editId=params.get('edit')
@@ -19,12 +21,13 @@ export function ExerciseEntryPage({profile}: {profile:Profile}) {
   const [error,setError]=useState('')
   const back='/log?date='+encodeURIComponent(dayKey)
   function done(date:string) {
-    navigate(editId?'/calendar/'+date:'/log?date='+encodeURIComponent(date)+'&saved=exercise',{replace:true})
+    toast.success(editId?'Exercise updated.':'Exercise saved.')
+    navigate(editId?'/calendar/'+date:'/log?date='+encodeURIComponent(date),{replace:true})
   }
   async function remove() {
     if(!editId)return
     setBusy(true);setError('')
-    try{await deleteExercise(editId);navigate('/calendar/'+dayKey,{replace:true})}
+    try{await deleteExercise(editId);toast.success('Exercise deleted.');navigate('/calendar/'+dayKey,{replace:true})
     catch(cause){setError(cause instanceof Error?cause.message:'Could not delete exercise.')}
     finally{setBusy(false)}
   }

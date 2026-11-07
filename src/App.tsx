@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from './components/AppShell'
+import { ToastProvider } from './components/ToastProvider'
 import { db } from './db/database'
 import { readProfile } from './data/profileRepository'
 import { TodayPage } from './pages/TodayPage'
@@ -25,6 +26,10 @@ import { DocsTopicPage } from './pages/DocsTopicPage'
 export type StorageStatus = 'opening' | 'ready' | 'unavailable'
 
 export default function App() {
+  return <ToastProvider><TrackerApp /></ToastProvider>
+}
+
+function TrackerApp() {
   const [storage, setStorage] = useState<StorageStatus>('opening')
   const profile = useLiveQuery(() => readProfile(), [], undefined)
 

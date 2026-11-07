@@ -5,6 +5,7 @@ import { db } from '../db/database'
 import { deleteIntake, listRecentIntake, saveWater } from '../data/intakeRepository'
 import { readWaterPresets } from '../data/settingsRepository'
 import { PageInfoLink } from '../components/PageInfoLink'
+import { useToast } from '../components/ToastProvider'
 import { FoodEntryForm } from '../features/nutrition/FoodEntryForm'
 import { selectedLogDay } from '../lib/logDate'
 import { toLocalDay } from '../lib/localDate'
@@ -13,6 +14,7 @@ const field='mt-1 block min-h-11 w-full rounded-xl border border-slate-300 bg-wh
 
 export function IntakeEntryPage({kind}: {kind:'food'|'beverage'}) {
   const navigate=useNavigate()
+  const toast=useToast()
   const [params]=useSearchParams()
   const dayKey=selectedLogDay(params.get('date'))
   const editId=params.get('edit')
@@ -35,12 +37,11 @@ export function IntakeEntryPage({kind}: {kind:'food'|'beverage'}) {
     }
   },[editId,entry?.id,entry?.updatedAt])
   const back='/log?date='+encodeURIComponent(dayKey)
-  const destination=(date:string,source?:'water'|'food')=>
-    editId?'/calendar/'+date:'/log?date='+encodeURIComponent(date)+'&saved='+(source??'food')+
-      (source==='water'?'&volume='+encodeURIComponent(volume):'')
-
-  function finish(date:string,source?:'water'|'food') {
-    navigate(destination(date,source),{replace:true})
+  function finish(date:string, source:'water'|'food'='food', amount?:number) {
+    toast.success(source==='water'
+      ? editId ? 'Water updated.' : 'Logged '+amount+' ml of water.'
+      : editId ? 'Intake entry updated.' : 'Intake entry saved.')
+    navigate(editId?'/calendar/'+date:'/log?date='+encodeURIComponent(date),{replace:true})
   }
 
   async function savePlainWater(event:FormEvent<HTMLFormElement>) {
@@ -50,7 +51,7 @@ export function IntakeEntryPage({kind}: {kind:'food'|'beverage'}) {
       const amount=Number(volume)
       if(!volume.trim()||!Number.isFinite(amount)||amount<=0)throw new Error('Enter a valid water amount.')
       await saveWater(waterDay,amount,editId??undefined)
-      finish(waterDay,'water')
+      finish(waterDay,'water',amount)
     }catch(cause){setError(cause instanceof Error?cause.message:'Could not log water.')}
     finally{setBusy(false)}
   }
@@ -58,14 +59,14 @@ export function IntakeEntryPage({kind}: {kind:'food'|'beverage'}) {
     setBusy(true);setError('')
     try{
       await saveWater(dayKey,amount)
-      navigate('/log?date='+encodeURIComponent(dayKey)+'&saved=water&volume='+encodeURIComponent(amount),{replace:true})
+      finish(dayKey,'water',amount)
     }catch(cause){setError(cause instanceof Error?cause.message:'Could not log water.')}
     finally{setBusy(false)}
   }
   async function remove() {
     if(!editId)return
     setBusy(true);setError('')
-    try{await deleteIntake(editId);navigate('/calendar/'+dayKey,{replace:true})}
+    try{await deleteIntake(editId);toast.success('Entry deleted.');navigate('/calendar/'+dayKey,{replace:true})
     catch(cause){setError(cause instanceof Error?cause.message:'Could not delete entry.')}
     finally{setBusy(false)}
   }
