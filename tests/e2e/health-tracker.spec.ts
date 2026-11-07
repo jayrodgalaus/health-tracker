@@ -286,7 +286,48 @@ test('five illustrated Calendar cards route to their own detailed sections and k
   await expect(page.getByRole('heading',{name:'Daily goal alignment'})).toBeVisible()
   await expect(page.getByRole('heading',{name:'Recorded nutrition and fluids'})).toHaveCount(0)
   await expect(page.getByRole('heading',{name:'Detailed entries · ' + day})).toHaveCount(0)
-  await expect(cards.getByRole('link',{name:/^Energy — Est\. difference/})).toBeVisible()
+  const energyCard = cards.getByRole('link',{name:/^Energy —/})
+  const nutritionCard = cards.getByRole('link',{name:/^Nutrition —/})
+  const fluidsCard = cards.getByRole('link',{name:/^Fluids —/})
+  const activityCard = cards.getByRole('link',{name:/^Activity —/})
+  const weightCard = cards.getByRole('link',{name:/^Weight —/})
+  await expect(energyCard).toBeVisible()
+  await expect(nutritionCard).toContainText('405 kcal')
+  await expect(fluidsCard).toContainText('≥250 mL')
+  await expect(activityCard).toContainText(/(?:≈ |≥)[\\d,.]+ kcal/)
+  await expect(weightCard).toContainText('71.5 kg')
+  await expect(cards).not.toContainText('Est. difference:')
+  for (const card of [energyCard, nutritionCard, fluidsCard, activityCard, weightCard]) {
+    await expect(card.getByText('View details', {exact:true})).toBeVisible()
+  }
+  const styling = await nutritionCard.evaluate(element => {
+    const blob = element.querySelector('.absolute')!
+    const pill = element.querySelector('span.rounded-full.border')!
+    const circle = pill.querySelector('span.rounded-full')!
+    const bounds = element.getBoundingClientRect()
+    return {
+      centered: getComputedStyle(element).textAlign,
+      blobPosition: getComputedStyle(blob).position,
+      blobRight: bounds.right - blob.getBoundingClientRect().right,
+      blobTop: blob.getBoundingClientRect().top - bounds.top,
+      blobRadius: parseFloat(getComputedStyle(blob).borderTopLeftRadius),
+      pillRadius: parseFloat(getComputedStyle(pill).borderTopLeftRadius),
+      pillBorder: getComputedStyle(pill).borderTopWidth,
+      pillBackground: getComputedStyle(pill).backgroundColor,
+      circleBackground: getComputedStyle(circle).backgroundColor,
+      circleWidth: circle.getBoundingClientRect().width,
+      circleHeight: circle.getBoundingClientRect().height
+    }
+  })
+  expect(styling.centered).toBe('center')
+  expect(styling.blobPosition).toBe('absolute')
+  expect(styling.blobRight).toBeGreaterThan(0)
+  expect(styling.blobTop).toBeGreaterThan(0)
+  expect(styling.blobRadius).toBeGreaterThanOrEqual(48)
+  expect(styling.pillRadius).toBeGreaterThan(18)
+  expect(styling.pillBorder).toBe('1px')
+  expect(styling.pillBackground).not.toBe(styling.circleBackground)
+  expect(styling.circleWidth).toBe(styling.circleHeight)
   const widths = await cards.getByRole('link').evaluateAll(links =>
     links.slice(0,4).map(link => link.getBoundingClientRect().width))
   expect(Math.max(...widths) - Math.min(...widths)).toBeLessThan(2)
