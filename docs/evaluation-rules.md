@@ -19,6 +19,16 @@ A day may be scored only when all are true:
 4. Every configured, supported target has fully known relevant logged entries.
    Energy needs at least one non-water food/drink entry with fully known calories;
    water-only logs cannot establish complete meal intake.
+- **Plain water is hydration-only for every nutrient**, including calories.
+  Entries explicitly tagged `beverageType: 'water'` are excluded from every
+  nutritional aggregate and its coverage denominator, but their measured
+  `fluidMl` remains included once in logged fluids. For example, 13
+  sodium-known food/other-drink entries plus 3 plain-water logs yield
+  **13/13** sodium coverage, not 13/16. This applies to existing saved days
+  on recalculation without rewriting historical nutrient snapshots.
+  Other beverages with unknown nutrient values remain unknown and do
+  reduce that nutrient's coverage. Water-only logs are not evidence of
+  complete nutritional intake; fluid goal coverage remains independent.
 5. All mandatory values are finite and valid.
 
 Otherwise status is **incomplete**. An unmarked day can show provisional rules
