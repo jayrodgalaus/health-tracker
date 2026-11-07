@@ -39,7 +39,7 @@ export function TodayPage({ profile }: { profile: Profile }) {
       <div className="flex flex-wrap items-end gap-2" aria-label="Day navigation">
         <button type="button" aria-label="Previous day" className="min-h-11 rounded-xl border border-slate-300 bg-white px-4 font-semibold"
           onClick={() => changeDay(addLocalDays(dayKey, -1))}>‹</button>
-        <label className="text-xs font-semibold text-slate-600">Selected local date
+        <label className="text-xs font-semibold text-slate-600">Date
           <input className="mt-1 block min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-base" type="date"
             min="1900-01-01" max={today} value={dayKey} onChange={event => changeDay(event.target.value)} />
         </label>

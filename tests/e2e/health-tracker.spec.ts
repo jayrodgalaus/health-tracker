@@ -408,3 +408,18 @@ test('blanched cabbage query explains the nearest USDA boiled reference is not t
   await expect(page.getByText(/not an exact measurement of blanched cabbage/)).toBeVisible()
   await expect(page.getByRole('combobox', {name:'Ingredient variety / preparation'}).locator('option[value="169976"]')).toBeAttached()
 })
+
+
+test('routine log dates have concise labels without changing their selected day', async ({page}) => {
+  await onboard(page)
+  await page.goto('/today')
+  await expect(page.getByLabel('Date', {exact: true})).toBeVisible()
+
+  await page.goto('/log')
+  // Food-and-fluid day picker, exercise day picker, and weight measurement date.
+  await expect(page.getByLabel('Date', {exact: true})).toHaveCount(3)
+  await page.getByRole('button', {name: '+ Food', exact: true}).click()
+  // The food-entry form uses the same short label as the other log forms.
+  await expect(page.getByLabel('Date', {exact: true})).toHaveCount(4)
+  await expect(page.getByLabel('Date', {exact: true}).last()).not.toHaveValue('')
+})

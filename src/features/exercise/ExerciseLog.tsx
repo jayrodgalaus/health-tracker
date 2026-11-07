@@ -94,7 +94,7 @@ function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel }: {
         {type === 'Other' && <label className="block text-sm font-semibold">Custom activity
           <input className={inputClass} maxLength={120} value={custom} onChange={event => setCustom(event.target.value)} placeholder="e.g. Swimming" required />
         </label>}
-        <label className="block text-sm font-semibold">Local exercise date
+        <label className="block text-sm font-semibold">Date
           <input className={inputClass} type="date" value={date} max={today()} onChange={event => setDate(event.target.value)} required />
         </label>
         <label className="block text-sm font-semibold">Local time (optional)
@@ -188,7 +188,7 @@ export function ExerciseLog({ profile }: { profile: Profile }) {
         <p className="mt-2 text-sm leading-6 text-slate-600">Record actual workouts, duration and intensity. A rest day is not a failed day, and an empty log is never treated as zero activity.</p>
       </div>
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <label className="block text-sm font-semibold">Local day
+        <label className="block text-sm font-semibold">Date
           <input className={inputClass} type="date" value={dayKey} max={today()}
             onChange={event => { setDayKey(event.target.value); setAdding(false); setEditing(null); setError('') }} />
         </label>

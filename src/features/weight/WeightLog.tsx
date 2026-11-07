@@ -87,7 +87,7 @@ export function WeightLog({ profile }: { profile: Profile }) {
         <h2 className="text-lg font-bold">{editingFrom ? 'Edit dated weight' : 'Add a weight measurement'}</h2>
         <p className="mt-2 text-sm text-slate-600">One primary measured value per date. Edit a past entry rather than adding a duplicate. Never filled in automatically.</p>
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <label className="text-sm font-medium">Measurement date
+          <label className="text-sm font-medium">Date
             <input className={inputClass} type="date" max={today()} value={date} onChange={e => setDate(e.target.value)} required />
           </label>
           <label className="text-sm font-medium">Weight ({unit})

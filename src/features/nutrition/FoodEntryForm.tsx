@@ -161,7 +161,7 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
           }}
           onChoose={chooseLookup}
         />
-        <label className="block text-sm font-medium">Local log date
+        <label className="block text-sm font-medium">Date
           <input className={input} type="date" max={toLocalDay(new Date())} value={date} onChange={event => setDate(event.target.value)} required />
         </label>
         {kind === 'food' && <label className="block text-sm font-medium">Meal (optional)

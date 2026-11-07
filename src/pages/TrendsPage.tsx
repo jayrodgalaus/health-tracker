@@ -57,12 +57,12 @@ export function TrendsPage({ profile }: { profile:Profile }) {
           </button>)}
       </div>
       {range==='custom'&&<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="text-sm font-semibold">From (local)
+        <label className="text-sm font-semibold">From
           <input type="date" min="1900-01-01" max={today}
             className="mt-1 block min-h-11 w-full rounded-xl border border-slate-300 px-3 text-base"
             value={customStart} onChange={event=>setCustomStart(event.target.value)} />
         </label>
-        <label className="text-sm font-semibold">Through (local)
+        <label className="text-sm font-semibold">Through
           <input type="date" min="1900-01-01" max={today}
             className="mt-1 block min-h-11 w-full rounded-xl border border-slate-300 px-3 text-base"
             value={customEnd} onChange={event=>setCustomEnd(event.target.value)} />

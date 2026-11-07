@@ -93,7 +93,7 @@ export function IntakeLog() {
     <div id="intake" className="scroll-mt-6 space-y-6">
       <section aria-labelledby="intake-section-title" className="space-y-3">
         <h2 id="intake-section-title" className="text-xl font-bold">Food and fluids</h2>
-        <label className="block max-w-xs text-sm font-semibold">Log date (local)
+        <label className="block max-w-xs text-sm font-semibold">Date
           <input type="date" className={dateInput} max={toLocalDay(new Date())} value={dayKey}
             onChange={event => { setDayKey(event.target.value); setEditor(null); setNotice(''); setError('') }} />
         </label>
