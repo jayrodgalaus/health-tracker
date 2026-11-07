@@ -27,16 +27,91 @@ test('shared branding banner is absent on onboarding and every main page', async
   await expect(page.getByRole('navigation',{name:'Primary navigation'})).toBeVisible()
 })
 
+
+test('Log shows only quick actions, a weight card, then the day-completion button',async({page})=>{
+  await onboard(page)
+  await page.goto('/log?date=2026-01-15')
+  await expect(page.getByRole('heading',{name:'Quick actions'})).toBeVisible()
+  const actions=page.getByRole('navigation',{name:'Quick actions'})
+  await expect(actions.getByRole('link')).toHaveCount(3)
+  for(const label of ['+ Food','+ Drink','+ Exercise']){
+    await expect(actions.getByRole('link',{name:label,exact:true})).toBeVisible()
+  }
+  await expect(page.getByRole('heading',{name:'Weight',exact:true})).toBeVisible()
+  await expect(page.getByRole('heading',{name:/Recorded exercise|Entries for|Nutrition and fluids|Weight history/})).toHaveCount(0)
+  await expect(page.locator('#main-content > div > :last-child')).toHaveText('Mark day complete')
+  await page.getByLabel('Weight (kg)').fill('71.5')
+  await page.getByRole('button',{name:'Save weight'}).click()
+  await expect(page.getByText('Weight saved on this device.')).toBeVisible()
+  await page.getByRole('button',{name:'Mark day complete'}).click()
+  await expect(page.getByRole('button',{name:'Reopen day'})).toHaveAttribute('aria-pressed','true')
+  await expect(page.locator('#main-content > div > :last-child')).toHaveText('Reopen day')
+  await page.goto('/calendar/2026-01-15')
+  await expect(page.getByRole('heading',{name:'Detailed entries · 2026-01-15'})).toBeVisible()
+  await expect(page.getByText('71.5 kg measured')).toBeVisible()
+  await page.getByRole('link',{name:'Add or edit weight'}).click()
+  await expect(page).toHaveURL(/\/log\?date=2026-01-15#weight$/)
+  await expect(page.getByLabel('Weight (kg)')).toHaveValue('71.5')
+  await page.getByLabel('Weight (kg)').fill('72')
+  await page.getByRole('button',{name:'Update weight'}).click()
+  await expect(page.getByText('Weight saved on this device.')).toBeVisible()
+  await page.getByRole('button',{name:'Reopen day'}).click()
+  await expect(page.getByRole('button',{name:'Mark day complete'})).toHaveAttribute('aria-pressed','false')
+})
+
+test('dedicated food, drink and exercise forms save and Calendar can edit/delete them',async({page})=>{
+  await onboard(page)
+  await page.goto('/log?date=2026-01-15')
+  await page.getByRole('link',{name:'+ Food',exact:true}).click()
+  await expect(page).toHaveURL(/\/log\/food\?date=2026-01-15$/)
+  await page.getByRole('combobox',{name:'Name'}).fill('Synthetic cabbage')
+  await page.getByLabel('Calories (kcal)').fill('25')
+  await page.getByRole('button',{name:'Add to log'}).click()
+  await expect(page).toHaveURL(/\/log\?date=2026-01-15&saved=food$/)
+  await expect(page.getByText('Intake entry saved on this device.')).toBeVisible()
+  await page.getByRole('link',{name:'+ Exercise',exact:true}).click()
+  await page.getByLabel('Duration (minutes)').fill('30')
+  await page.getByRole('button',{name:'Save exercise'}).click()
+  await expect(page.getByText('Exercise saved locally.')).toBeVisible()
+  await page.getByRole('link',{name:'+ Drink',exact:true}).click()
+  await expect(page).toHaveURL(/\/log\/drink\?date=2026-01-15$/)
+  await page.getByRole('link',{name:'Log plain water instead'}).click()
+  await page.getByLabel('Volume (ml)').fill('250')
+  await page.getByRole('button',{name:'Save water',exact:true}).click()
+  await expect(page.getByText('Logged 250 ml of water.')).toBeVisible()
+  await expect(page.getByRole('heading',{name:'Detailed entries'})).toHaveCount(0)
+  await page.goto('/calendar/2026-01-15')
+  await expect(page.getByText('Synthetic cabbage')).toBeVisible()
+  await expect(page.getByText('Walking',{exact:true})).toBeVisible()
+  await expect(page.getByRole('heading',{name:'Drinks and water (1)'})).toBeVisible()
+  await page.getByRole('link',{name:'Edit / delete'}).first().click()
+  await expect(page).toHaveURL(/\/log\/food\?date=2026-01-15&edit=/)
+  await expect(page.getByRole('heading',{name:'Edit food'})).toBeVisible()
+  await page.getByRole('button',{name:'Delete entry'}).click()
+  await page.getByRole('button',{name:'Confirm delete'}).click()
+  await expect(page).toHaveURL(/\/calendar\/2026-01-15$/)
+  await expect(page.getByText('Synthetic cabbage')).toHaveCount(0)
+  await page.getByRole('link',{name:'Edit / delete'}).first().click()
+  await expect(page).toHaveURL(/\/log\/drink\?date=2026-01-15&edit=/)
+  await expect(page.getByRole('heading',{name:'Log water'})).toBeVisible()
+  await expect(page.getByLabel('Volume (ml)')).toHaveValue('250')
+  await page.getByRole('link',{name:/Back to Calendar/}).click()
+  await page.getByRole('link',{name:'Edit / delete'}).last().click()
+  await expect(page).toHaveURL(/\/log\/exercise\?date=2026-01-15&edit=/)
+  await expect(page.getByRole('heading',{name:'Edit exercise'})).toBeVisible()
+})
+
 test('mobile logging persists and the cached production PWA reloads offline',async({page,context})=>{
   await onboard(page)
   await page.goto('/log')
-  await page.getByRole('button',{name:'+ Food',exact:true}).click()
+  await page.getByRole('link',{name:'+ Food',exact:true}).click()
   await page.getByLabel('Name',{exact:true}).fill('Synthetic cereal')
   await page.getByLabel('Amount consumed').fill('1.5')
   await page.getByLabel('Calories (kcal)').fill('230')
   await page.getByRole('button',{name:'Add to log'}).click()
   await expect(page.getByText('Intake entry saved on this device.')).toBeVisible()
-  await page.getByRole('button',{name:'+ 250'}).click()
+  await page.goto('/log/drink?water=1')
+  await page.getByRole('button',{name:'+ 250 ml'}).click()
   await expect(page.getByText('Logged 250 ml of water.')).toBeVisible()
 
   await page.goto('/today')
@@ -58,7 +133,8 @@ test('mobile logging persists and the cached production PWA reloads offline',asy
 test('backup export, confirmed reset and replace restore preserve local entries',async({page})=>{
   await onboard(page)
   await page.goto('/log')
-  await page.getByRole('button',{name:'+ 350'}).click()
+  await page.goto('/log/drink?water=1')
+  await page.getByRole('button',{name:'+ 350 ml'}).click()
   await expect(page.getByText('Logged 350 ml of water.')).toBeVisible()
 
   await page.goto('/settings/data')
@@ -103,7 +179,8 @@ async function onboardAfterReset(page:Page){
 test('malformed import never alters existing IndexedDB data',async({page})=>{
   await onboard(page)
   await page.goto('/log')
-  await page.getByRole('button',{name:'+ 500'}).click()
+  await page.goto('/log/drink?water=1')
+  await page.getByRole('button',{name:'+ 500 ml'}).click()
   await expect(page.getByText('Logged 500 ml of water.')).toBeVisible()
   await page.goto('/settings/data')
   await page.getByLabel('Choose JSON file').setInputFiles({
@@ -150,7 +227,8 @@ test('cached tabs support offline navigation and newly saved records', async ({p
   }
 
   await page.goto('/log', {waitUntil: 'domcontentloaded'})
-  await page.getByRole('button', {name: '+ 150'}).click()
+  await page.goto('/log/drink?water=1')
+  await page.getByRole('button',{name:'+ 150 ml'}).click()
   await expect(page.getByText('Logged 150 ml of water.')).toBeVisible()
   await page.goto('/today', {waitUntil: 'domcontentloaded'})
   await expect(page.getByText('150 ml', {exact: true}).first()).toBeVisible()
@@ -323,7 +401,7 @@ test('explicit food lookup autofills verified per-100g nutrients without auto-co
     })})
   })
   await page.goto('/log')
-  await page.getByRole('button', {name: '+ Food', exact: true}).click()
+  await page.getByRole('link', {name: '+ Food', exact: true}).click()
   const name = page.getByRole('combobox', {name: 'Name'})
   await name.fill('Synthetic test')
   expect(networkCalls).toBe(0)
@@ -378,7 +456,7 @@ test('saved foods remain selectable locally without online lookup', async ({page
     onlineSearches++
     await route.abort()
   })
-  await page.goto('/log')
+  await page.goto('/log/saved-foods')
   await page.getByRole('button', {name: '+ Save a label'}).click()
   await page.getByLabel('Product name').fill('Synthetic offline rice')
   await page.getByLabel('Brand (optional)').fill('Synthetic')
@@ -387,7 +465,7 @@ test('saved foods remain selectable locally without online lookup', async ({page
   await page.getByRole('button', {name: 'Save label'}).click()
   await expect(page.getByText('Label saved locally.')).toBeVisible()
 
-  await page.getByRole('button', {name: '+ Food', exact: true}).click()
+  await page.getByRole('link', {name: /Back to Food/}).click()
   await page.getByRole('combobox', {name: 'Name'}).fill('offline rice')
   const item = page.getByRole('option', {name: /Synthetic offline rice.*Saved on device/})
   await expect(item).toBeVisible()
@@ -399,7 +477,7 @@ test('saved foods remain selectable locally without online lookup', async ({page
 
 test('saved beverage combobox scales both volume and calories once', async ({page}) => {
   await onboard(page)
-  await page.goto('/log')
+  await page.goto('/log/saved-foods')
   await page.getByRole('button', {name: '+ Save a label'}).click()
   await page.getByLabel('Product name').fill('Synthetic serving drink')
   await page.getByRole('combobox', {name: 'Product type'}).selectOption('beverage')
@@ -408,7 +486,7 @@ test('saved beverage combobox scales both volume and calories once', async ({pag
   await page.getByRole('button', {name: 'Save label'}).click()
   await expect(page.getByText('Label saved locally.')).toBeVisible()
 
-  await page.getByRole('button', {name: '+ Drink', exact: true}).click()
+  await page.goto('/log/drink')
   await page.getByRole('combobox', {name: 'Name'}).fill('serving drink')
   const saved = page.getByRole('option', {name: /Synthetic serving drink.*Saved on device/})
   await expect(saved).toBeVisible()
@@ -430,7 +508,7 @@ test('offline USDA cabbage preparation dropdown autofills per-100-g and scales t
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true)
   await context.setOffline(true)
   await page.goto('/log', {waitUntil:'domcontentloaded'})
-  await page.getByRole('button', {name:'+ Food',exact:true}).click()
+  await page.getByRole('link', {name:'+ Food',exact:true}).click()
   await page.getByRole('combobox', {name:'Name'}).fill('cabbage')
   const preparation = page.getByRole('combobox', {name:'Ingredient variety / preparation'})
   await expect(preparation).toBeVisible()
@@ -479,7 +557,7 @@ test('offline USDA cabbage preparation dropdown autofills per-100-g and scales t
 test('USDA rice variants distinguish cooked white and brown rice in the ingredient dropdown', async ({page}) => {
   await onboard(page)
   await page.goto('/log')
-  await page.getByRole('button', {name:'+ Food',exact:true}).click()
+  await page.getByRole('link', {name:'+ Food',exact:true}).click()
   const name = page.getByRole('combobox', {name:'Name'})
   await name.fill('rice')
   const preparation = page.getByRole('combobox', {name:'Ingredient variety / preparation'})
@@ -499,23 +577,24 @@ test('USDA rice variants distinguish cooked white and brown rice in the ingredie
 test('blanched cabbage query explains the nearest USDA boiled reference is not the same method', async ({page}) => {
   await onboard(page)
   await page.goto('/log')
-  await page.getByRole('button', {name:'+ Food',exact:true}).click()
+  await page.getByRole('link', {name:'+ Food',exact:true}).click()
   await page.getByRole('combobox', {name:'Name'}).fill('blanched cabbage')
   await expect(page.getByText(/not an exact measurement of blanched cabbage/)).toBeVisible()
   await expect(page.getByRole('combobox', {name:'Ingredient variety / preparation'}).locator('option[value="169976"]')).toBeAttached()
 })
 
 
-test('routine log dates have concise labels without changing their selected day', async ({page}) => {
+test('log overview and dedicated input pages keep short date labels', async ({page}) => {
   await onboard(page)
   await page.goto('/today')
-  await expect(page.getByLabel('Date', {exact: true})).toBeVisible()
-
+  await expect(page.getByLabel('Date',{exact:true})).toBeVisible()
   await page.goto('/log')
-  // Food-and-fluid day picker, exercise day picker, and weight measurement date.
-  await expect(page.getByLabel('Date', {exact: true})).toHaveCount(3)
-  await page.getByRole('button', {name: '+ Food', exact: true}).click()
-  // The food-entry form uses the same short label as the other log forms.
-  await expect(page.getByLabel('Date', {exact: true})).toHaveCount(4)
-  await expect(page.getByLabel('Date', {exact: true}).last()).not.toHaveValue('')
+  await expect(page.getByLabel('Date',{exact:true})).toHaveCount(1)
+  for(const [name,route] of [['+ Food','food'],['+ Drink','drink'],['+ Exercise','exercise']] as const){
+    await page.getByRole('link',{name,exact:true}).click()
+    await expect(page).toHaveURL(new RegExp('/log/'+route))
+    await expect(page.getByLabel('Date',{exact:true})).toHaveCount(1)
+    await expect(page.getByLabel('Date',{exact:true})).not.toHaveValue('')
+    await page.getByRole('link',{name:/Back to Log/}).click()
+  }
 })
