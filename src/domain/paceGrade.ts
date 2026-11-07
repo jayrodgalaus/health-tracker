@@ -29,7 +29,18 @@ export const PACE_SPEED_BOUNDS: Record<PaceActivity, readonly [number, number]> 
   Walking: [2, 8],
   Running: [6, 25]
 }
-export const MAX_INCLINE_PERCENT = 15
+/**
+ * Walking/running input uses degrees (°), but historical records and backups
+ * keep grade in percent. A 10° angle corresponds to about 17.6% grade.
+ */
+export const MAX_INCLINE_DEGREES = 15
+export function degreesToGradePercent(degrees: number): number {
+  return Math.tan(degrees * Math.PI / 180) * 100
+}
+export function gradePercentToDegrees(percent: number): number {
+  return Math.atan(percent / 100) * 180 / Math.PI
+}
+export const MAX_INCLINE_PERCENT = degreesToGradePercent(MAX_INCLINE_DEGREES)
 
 export function validPaceSpeed(activity: PaceActivity, kmh: number): boolean {
   const [min, max] = PACE_SPEED_BOUNDS[activity]
@@ -80,6 +91,7 @@ export function paceGradeNetKcal(
       (distanceKm !== null && (!Number.isFinite(distanceKm) || distanceKm <= 0 || distanceKm > 300)) ||
       (durationMinutes !== null && (!Number.isFinite(durationMinutes) || durationMinutes <= 0 || durationMinutes > 1440)) ||
       (distanceKm === null && durationMinutes === null)) return null
+  // The canonical stored percent is converted from the entered angle via tan(°).
   const grade = inclinePercent ?? 0
   if (!validUphillGrade(grade)) return null
   const speed = speedForEstimate(activity, distanceKm, durationMinutes, speedKmh)

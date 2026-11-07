@@ -2,6 +2,7 @@ import type {
   AppSettings, DayReview, ExerciseEntry, FoodEntry, GoalPeriod, Profile, SavedFood, WeightEntry
 } from './models'
 import { assertLocalDay } from './profile'
+import { MAX_INCLINE_PERCENT } from './paceGrade'
 import { portionRatio, scaleNutrition, validatePortion } from './nutrition'
 
 export const BACKUP_FORMAT_VERSION = 1
@@ -295,7 +296,7 @@ function validateRecord(table:BackupTableName,raw:unknown,field:string){
     }
     if(grade!=null){
       if(!walkRun)invalid(field,'incline supported only for walking/running')
-      numeric(grade,field+'.inclinePercent',0,15)
+      numeric(grade,field+'.inclinePercent',0,MAX_INCLINE_PERCENT)
     }
     if(r.durationMinutes==null&&(!walkRun||r.distanceKm==null))invalid(field,'duration or walking/running distance required')
     choice(r.intensity,field+'.intensity',['light','moderate','vigorous'],true)

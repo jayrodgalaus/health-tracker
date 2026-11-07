@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useSearchParams } from 'react-router-dom'
 import { estimateWorkout, isDistanceActivity } from '../../domain/activity'
+import { degreesToGradePercent, gradePercentToDegrees, MAX_INCLINE_DEGREES } from '../../domain/paceGrade'
 import { ageOnDay } from '../../domain/profile'
 import type { ExerciseEnergyMethod, ExerciseEntry, Profile } from '../../domain/models'
 import { listWeights } from '../../data/weightRepository'
@@ -24,6 +25,11 @@ function previewNumber(raw: string): number | null {
 }
 
 
+/** Unit adapter: degree input to canonical percent for previews and saved entries. */
+function enteredInclinePercent(raw: string): number | null {
+  const degrees = previewNumber(raw)
+  return degrees === null ? null : degreesToGradePercent(degrees)
+}
 function isAdult(profile: Profile, day: string): boolean {
   const age = ageOnDay({
     birthDate: profile.birthDate, ageYears: profile.ageYears ?? null, ageAsOf: profile.ageAsOf ?? null
@@ -46,7 +52,7 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
   const [duration, setDuration] = useState(editing?.durationMinutes == null ? '' : String(editing.durationMinutes))
   const [distance, setDistance] = useState(editing?.distanceKm == null ? '' : String(editing.distanceKm))
   const [speed, setSpeed] = useState(editing?.speedKmh == null ? '' : String(editing.speedKmh))
-  const [incline, setIncline] = useState(editing?.inclinePercent == null ? '' : String(editing.inclinePercent))
+  const [incline, setIncline] = useState(editing?.inclinePercent == null ? '' : String(Number(gradePercentToDegrees(editing.inclinePercent).toFixed(4))))
   const [strength, setStrength] = useState(editing?.isStrengthTraining ?? (editing?.activity === 'Strength training'))
   const [method, setMethod] = useState<'auto' | 'unknown' | 'metNet' | 'manualActive'>(
     editing?.estimationMethod === 'distanceNet' || editing?.estimationMethod === 'activityTimeNet' || editing?.estimationMethod === 'paceGradeNet'
@@ -70,7 +76,7 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
     activity: type === 'Other' ? custom : type, durationMinutes: previewNumber(duration),
     distanceKm: walkRun ? previewNumber(distance) : null,
     speedKmh: walkRun ? previewNumber(speed) : null,
-    inclinePercent: walkRun ? previewNumber(incline) : null,
+    inclinePercent: walkRun ? enteredInclinePercent(incline) : null,
     intensity: editing?.intensity ?? null, estimationMethod: effectiveMethod,
     estimatedEnergyKcal: effectiveMethod === 'manualActive' ? previewNumber(manual) : null,
     met: effectiveMethod === 'metNet' ? previewNumber(met) : null
@@ -95,13 +101,14 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
     setSaving(true)
     try {
       const activity = type === 'Other' ? custom : type
+      const inclineDegrees = walkRun ? parseNumber(incline, 'incline (°)', true) : null
       await saveExercise({
         dayKey: date,
         activity,
         durationMinutes: parseNumber(duration, 'duration', walkRun),
         distanceKm: walkRun ? parseNumber(distance, 'distance (km)', true) : null,
         speedKmh: walkRun ? parseNumber(speed, 'speed (km/h)', true) : null,
-        inclinePercent: walkRun ? parseNumber(incline, 'incline (%)', true) : null,
+        inclinePercent: inclineDegrees === null ? null : degreesToGradePercent(inclineDegrees),
         intensity: editing?.intensity ?? null,
         calorieMethod: effectiveMethod,
         met: effectiveMethod === 'metNet' ? parseNumber(met, 'MET') : null,
@@ -147,10 +154,13 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
             max={type === 'Walking' ? '8' : '25'} step="any" value={speed}
             onChange={event => setSpeed(event.target.value)} placeholder="Auto from distance and time" />
         </label>}
-        {walkRun && <label className="block text-sm font-semibold">Incline (%, uphill only)
-          <input className={inputClass} type="number" inputMode="decimal" min="0" max="15"
+        {walkRun && <label className="block text-sm font-semibold">Incline (°, uphill only)
+          <input className={inputClass} type="number" inputMode="decimal" min="0" max={MAX_INCLINE_DEGREES}
             step="any" value={incline} onChange={event => setIncline(event.target.value)}
             placeholder="Assume level ground" />
+          <span className="mt-1 block text-xs font-normal text-slate-600">
+            Enter the angle in degrees; 10° ≈ 17.6% grade. Blank assumes level ground for the estimate.
+          </span>
         </label>}
       </div>
       <label className="flex min-h-11 items-center gap-3 text-sm font-semibold">
@@ -260,7 +270,7 @@ export function ExerciseLog({ profile }: { profile: Profile }) {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h4 className="font-semibold">{entry.activity}</h4>
-                <p className="mt-1 text-xs text-slate-600">{entry.timeOfDay ? `${entry.timeOfDay} · ` : ''}{entry.durationMinutes === null ? 'Duration not recorded' : entry.durationMinutes + ' min'}{entry.distanceKm != null ? ' · ' + entry.distanceKm + ' km' : ''}{entry.speedKmh != null ? ' · ' + entry.speedKmh + ' km/h' : ''}{entry.inclinePercent != null ? ' · ' + entry.inclinePercent + '% incline' : ''}{entry.isStrengthTraining ? ' · Strength' : ''}</p>
+                <p className="mt-1 text-xs text-slate-600">{entry.timeOfDay ? `${entry.timeOfDay} · ` : ''}{entry.durationMinutes === null ? 'Duration not recorded' : entry.durationMinutes + ' min'}{entry.distanceKm != null ? ' · ' + entry.distanceKm + ' km' : ''}{entry.speedKmh != null ? ' · ' + entry.speedKmh + ' km/h' : ''}{entry.inclinePercent != null ? ' · ' + Number(gradePercentToDegrees(entry.inclinePercent).toFixed(2)) + '° incline' : ''}{entry.isStrengthTraining ? ' · Strength' : ''}</p>
                 <p className="mt-2 text-sm">
                   Additional workout kcal: {!adult ? 'Not evaluated (adult model)' : estimated?.kcal == null ? 'Unknown' : `≈ ${Number(estimated.kcal.toFixed(1))} kcal`}
                 </p>

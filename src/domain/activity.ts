@@ -1,6 +1,6 @@
 import type { ExerciseEntry, LocalDay, WeightEntry } from './models'
 import { parseLocalDay, toLocalDay } from '../lib/localDate'
-import { paceGradeNetKcal, speedForEstimate } from './paceGrade'
+import { gradePercentToDegrees, paceGradeNetKcal, speedForEstimate } from './paceGrade'
 
 /**
  * Deterministic exercise calculations. There are NO IndexedDB, network or React
@@ -107,7 +107,7 @@ export function estimateWorkout(entry: ExerciseEntry, weights: readonly WeightEn
       kcal, method: 'paceGradeNet', weight,
       explanation: kcal === null
         ? 'Pace/grade estimate unavailable: a valid walking/running distance or duration, supported speed/grade, and an unambiguous weight recorded on or before the date are required.'
-        : `Approximate net above-rest kcal from ${activity.toLowerCase()} at ${Number(effectiveSpeed!.toFixed(2))} km/h (${speedSource}), ${incline === null ? 'assumed level ground' : incline + '% uphill grade'}, and ${distance !== null ? distance + ' km' : duration + ' recorded min'}. Pace-based 2024 Adult Compendium MET plus ACSM uphill oxygen component. Weight ${weight.weightKg} kg ${weight.source === 'carriedForward' ? 'carried forward from ' + weight.sourceDay : 'recorded on ' + entry.dayKey}. Only one workout energy estimate is counted; speed overrides recorded duration for energy when distance is present.`
+        : `Approximate net above-rest kcal from ${activity.toLowerCase()} at ${Number(effectiveSpeed!.toFixed(2))} km/h (${speedSource}), ${incline === null ? 'assumed level ground' : Number(gradePercentToDegrees(incline).toFixed(2)) + '° uphill incline'}, and ${distance !== null ? distance + ' km' : duration + ' recorded min'}. Pace-based 2024 Adult Compendium MET plus ACSM uphill oxygen component. Weight ${weight.weightKg} kg ${weight.source === 'carriedForward' ? 'carried forward from ' + weight.sourceDay : 'recorded on ' + entry.dayKey}. Only one workout energy estimate is counted; speed overrides recorded duration for energy when distance is present.`
     }
   }
   if (entry.estimationMethod === 'distanceNet') {

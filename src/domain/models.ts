@@ -150,7 +150,7 @@ export interface ExerciseEntry {
   distanceKm?: number | null
   /** Optional measured or entered pace for walking/running. */
   speedKmh?: number | null
-  /** Optional nonnegative average uphill grade; null means unmeasured. */
+  /** Canonical uphill percent grade for backward compatibility; UI accepts an angle in degrees (°). */
   inclinePercent?: number | null
   /** Historical intensity preserved for old entries; no longer asked in the form. */
   intensity: ExerciseIntensity | null

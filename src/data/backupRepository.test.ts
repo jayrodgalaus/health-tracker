@@ -1,4 +1,5 @@
 import 'fake-indexeddb/auto'
+import { degreesToGradePercent } from '../domain/paceGrade'
 import { afterEach, describe, expect, it } from 'vitest'
 import { HealthTrackerDatabase } from '../db/database'
 import { parseBackupJson, validateBackup } from '../domain/backup'
@@ -166,20 +167,20 @@ describe('complete local JSON backup and restore',()=>{
     workout.durationMinutes = null
     workout.distanceKm = 5
     workout.speedKmh = 5.5
-    workout.inclinePercent = 4
+    workout.inclinePercent = degreesToGradePercent(10)
     workout.met = null
     workout.estimationMethod = 'paceGradeNet'
     await replaceLocalData(pace, database)
     const restored = parseBackupJson(JSON.stringify(await readLocalBackup(database)))
     expect(restored.tables.exerciseEntries[0]).toMatchObject({
-      durationMinutes: null, distanceKm: 5, speedKmh: 5.5, inclinePercent: 4,
+      durationMinutes: null, distanceKm: 5, speedKmh: 5.5, inclinePercent: degreesToGradePercent(10),
       estimationMethod: 'paceGradeNet'
     })
     const badSpeed = structuredClone(restored)
     badSpeed.tables.exerciseEntries[0]!.speedKmh = 25
     await expect(replaceLocalData(badSpeed, database)).rejects.toThrow(/invalid number/)
     const badGrade = structuredClone(restored)
-    badGrade.tables.exerciseEntries[0]!.inclinePercent = -3
+    badGrade.tables.exerciseEntries[0]!.inclinePercent = degreesToGradePercent(16)
     await expect(replaceLocalData(badGrade, database)).rejects.toThrow(/invalid number/)
     const badActivity = structuredClone(restored)
     badActivity.tables.exerciseEntries[0]!.activity = 'Cycling'

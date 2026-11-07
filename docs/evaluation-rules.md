@@ -162,7 +162,7 @@ Only for a confirmed adult date with required inputs:
   `distanceKm / durationMinutes × 60`, or from a disclosed 5 km/h walking
   or 10 km/h running assumption when pace is unavailable.
   The base net kcal is `(paceMET − 1) × 3.5 × recordedKg / 200 × calculationMinutes`.
-  An optional 0–15% uphill grade adds ACSM's vertical VO₂ component,
+  An optional 0–15° uphill angle is converted to gradeFraction = tan(angle × π/180) and adds ACSM's vertical VO₂ component,
   `1.8 × speed(m/min) × gradeFraction` for walking and
   `0.9 × speed(m/min) × gradeFraction` for running, converted to net kcal
   with weight and calculationMinutes
@@ -183,7 +183,7 @@ Only for a confirmed adult date with required inputs:
   minutes as partial when such a session exists. No guessed minutes or
   synthetic energy measurements are stored. The exercise preview calls the
   same pure calculation as the saved day and charts, updating immediately
-  as inputs change. The new optional `speedKmh` and `inclinePercent` fields
+  as inputs change. The optional `speedKmh` and internally percent-based `inclinePercent` fields (user input/output is in degrees)
   and `paceGradeNet` method are backward compatible with Dexie v2 and
   historical JSON backups; recorded legacy intensity values are preserved
   even though the selector and intensity chart are no longer shown.

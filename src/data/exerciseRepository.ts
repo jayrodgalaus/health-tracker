@@ -13,7 +13,7 @@ export interface ExerciseDraft {
   /** Optional for walking/running when distance is recorded. */
   durationMinutes: number | null
   distanceKm?: number | null
-  /** Optional pace (km/h) and uphill slope (%) for walking/running only. */
+  /** Optional pace (km/h) and canonical grade (%) converted from entered °. */
   speedKmh?: number | null
   inclinePercent?: number | null
   /** Legacy field retained to avoid losing historical labels; new forms use null. */
@@ -54,7 +54,7 @@ export function validateExerciseDraft(draft: ExerciseDraft, today: LocalDay): vo
       : 'Running speed must be between 6 and 25 km/h.')
   }
   if (grade !== null && !validUphillGrade(grade)) {
-    throw new Error('Incline must be between 0% and 15% (uphill only).')
+    throw new Error('Incline must be between 0° and 15° (uphill only).')
   }
   if (draft.durationMinutes === null && (!walkRun || distance === null)) {
     throw new Error(walkRun ? 'Enter duration or distance for walking/running.' : 'Enter a duration for this activity.')

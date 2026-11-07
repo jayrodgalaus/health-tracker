@@ -1,3 +1,4 @@
+import { gradePercentToDegrees } from '../../domain/paceGrade'
 import { Link } from 'react-router-dom'
 import type { DayRecords } from '../../data/dayRepository'
 import type { Profile } from '../../domain/models'
@@ -47,7 +48,7 @@ export function DayEntries({ dayKey, records, profile, locked = false }: { dayKe
       {!records.activities.length && <p className="text-sm text-slate-600">No workouts recorded. Rest or missing entries are not penalized.</p>}
       {records.activities.map(entry => <article key={entry.id} className={itemClass}>
         <h4 className="font-semibold">{entry.activity}</h4>
-        <p className="mt-1 text-sm text-slate-600">{entry.durationMinutes === null ? 'Duration not recorded' : entry.durationMinutes + ' minutes'}{entry.distanceKm != null ? ' · ' + entry.distanceKm + ' km' : ''}{entry.speedKmh != null ? ' · ' + entry.speedKmh + ' km/h' : ''}{entry.inclinePercent != null ? ' · ' + entry.inclinePercent + '% incline' : ''} · {entry.estimationMethod === 'manualActive' ? 'Manual active kcal' : entry.estimationMethod === 'metNet' ? 'MET-based increment' : entry.estimationMethod === 'paceGradeNet' ? 'Pace and incline estimate' : entry.estimationMethod === 'distanceNet' ? 'Distance-based estimate' : entry.estimationMethod === 'activityTimeNet' ? 'Time-based estimate' : 'Energy unknown'}</p>
+        <p className="mt-1 text-sm text-slate-600">{entry.durationMinutes === null ? 'Duration not recorded' : entry.durationMinutes + ' minutes'}{entry.distanceKm != null ? ' · ' + entry.distanceKm + ' km' : ''}{entry.speedKmh != null ? ' · ' + entry.speedKmh + ' km/h' : ''}{entry.inclinePercent != null ? ' · ' + Number(gradePercentToDegrees(entry.inclinePercent).toFixed(2)) + '° incline' : ''} · {entry.estimationMethod === 'manualActive' ? 'Manual active kcal' : entry.estimationMethod === 'metNet' ? 'MET-based increment' : entry.estimationMethod === 'paceGradeNet' ? 'Pace and incline estimate' : entry.estimationMethod === 'distanceNet' ? 'Distance-based estimate' : entry.estimationMethod === 'activityTimeNet' ? 'Time-based estimate' : 'Energy unknown'}</p>
         {entry.notes && <p className="mt-1 text-sm text-slate-600">{entry.notes}</p>}
         {!locked && <Link to={'/log/exercise' + query + '&edit=' + encodeURIComponent(entry.id)} className="mt-2 inline-block text-sm font-semibold text-evergreen-700 underline">Edit / delete</Link>}
       </article>)}

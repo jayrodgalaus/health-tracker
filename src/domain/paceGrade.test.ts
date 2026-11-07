@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { metForPace, paceGradeNetKcal, speedForEstimate } from './paceGrade'
+import { degreesToGradePercent, gradePercentToDegrees, metForPace, paceGradeNetKcal, speedForEstimate } from './paceGrade'
 
 describe('walking/running pace and uphill grade (net above-rest kcal)', () => {
   it('compares walking pace at a fixed distance instead of treating intensity labels as calories', () => {
@@ -22,6 +22,15 @@ describe('walking/running pace and uphill grade (net above-rest kcal)', () => {
     expect(paceGradeNetKcal('Running', 70, 5, 30, null, 0)).toBeCloseTo(305.025)
     expect(paceGradeNetKcal('Running', 70, 5, 30, null, 5)).toBeCloseTo(383.775)
     expect(paceGradeNetKcal('Running', 70, 5, 50, 10, 0)).toBeCloseTo(305.025)
+  })
+  it('converts angle to slope without reinterpreting old percent grades', () => {
+    const converted = degreesToGradePercent(10)
+    expect(converted).toBeCloseTo(17.6326980708, 6)
+    expect(gradePercentToDegrees(converted)).toBeCloseTo(10, 9)
+    expect(gradePercentToDegrees(15)).toBeCloseTo(8.53076561, 6)
+    expect(paceGradeNetKcal('Walking', 68, 1, null, 8, converted)).toBeCloseTo(173.0646122, 5)
+    expect(paceGradeNetKcal('Running', 68, 1.01, null, 16, converted)).toBeCloseTo(116.6939417, 5)
+    expect(paceGradeNetKcal('Walking', 68, 1, null, 8, degreesToGradePercent(16))).toBeNull()
   })
   it('keeps unknown and physiologically out-of-model inputs unassessable', () => {
     expect(paceGradeNetKcal('Walking', 70, null, null, 5, 0)).toBeNull()

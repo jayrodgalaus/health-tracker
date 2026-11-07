@@ -4,6 +4,7 @@ import { HealthTrackerDatabase } from '../db/database'
 import { calculateActivityDay, calculateActivityWeek } from '../domain/activity'
 import { deleteExercise, listExerciseForDay, listExerciseForWeek, saveExercise, type ExerciseDraft } from './exerciseRepository'
 import { listWeights, saveWeight } from './weightRepository'
+import { degreesToGradePercent, gradePercentToDegrees } from '../domain/paceGrade'
 
 const created: HealthTrackerDatabase[] = []
 const make = (name: string) => { const value = new HealthTrackerDatabase(name); created.push(value); return value }
@@ -116,6 +117,23 @@ describe('IndexedDB exercise repository', () => {
     })
   })
 
+  it('persists a 10° incline, recomputes net kcal, and round-trips the compatible stored grade', async () => {
+    const database = make('degree-incline-persistence')
+    const saved = await saveExercise({
+      ...base, activity: 'Running', durationMinutes: null, distanceKm: 1.01,
+      speedKmh: 16, inclinePercent: degreesToGradePercent(10), intensity: null,
+      calorieMethod: 'paceGradeNet'
+    }, undefined, database, '2026-11-06')
+    expect(saved.inclinePercent).toBeCloseTo(17.632698, 5)
+    database.close()
+    const reopened = make('degree-incline-persistence')
+    const actual = (await listExerciseForDay('2026-11-06', reopened))[0]!
+    expect(gradePercentToDegrees(actual.inclinePercent!)).toBeCloseTo(10, 6)
+    await saveWeight('2026-11-06', 68, reopened, '2026-11-06')
+    expect(calculateActivityDay('2026-11-06', [actual], await listWeights(reopened), true)
+      .knownIncrementalKcal).toBeCloseTo(116.6939417, 5)
+  })
+
   it('rejects impossible duration, timestamps, future day, gross/ambiguous method and bad numbers', async () => {
     const database = make('activity-validation')
     const invalid: ExerciseDraft[] = [
@@ -131,7 +149,7 @@ describe('IndexedDB exercise repository', () => {
       { ...base, activity: 'Running', speedKmh: 3 },
       { ...base, activity: 'Walking', speedKmh: Number.NaN },
       { ...base, activity: 'Running', inclinePercent: -1 },
-      { ...base, activity: 'Running', inclinePercent: 16 },
+      { ...base, activity: 'Running', inclinePercent: degreesToGradePercent(16) },
       { ...base, activity: 'Cycling', speedKmh: 10 },
       { ...base, activity: 'Table tennis', inclinePercent: 0 },
       { ...base, calorieMethod: 'paceGradeNet' },
