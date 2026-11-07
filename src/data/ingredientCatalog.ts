@@ -8,7 +8,7 @@ export interface IngredientFood {
   group: string
   preparation: string
   nutrients: NutrientSnapshot
-  nutritionSource: Extract<NutritionSource, {provider: 'usda-sr-legacy'}>
+  nutritionSource: Extract<NutritionSource, {provider: 'usda-sr-legacy' | 'usda-foundation'}>
   basisUnit: 'g'
   servingDescription: null
 }
