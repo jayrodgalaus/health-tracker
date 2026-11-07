@@ -7,6 +7,7 @@ import { parseNumber } from './NutritionFields'
 export function NutrientLimitSettings() {
   const limits = useLiveQuery(() => readNutrientComparisonLimits(), [], undefined)
   const toast = useToast()
+  const [carbs, setCarbs] = useState('')
   const [sugars, setSugars] = useState('')
   const [sodium, setSodium] = useState('')
   const [saving, setSaving] = useState(false)
@@ -14,10 +15,11 @@ export function NutrientLimitSettings() {
 
   useEffect(() => {
     if (limits !== undefined) {
+      setCarbs(limits.carbohydratesG === null ? '' : String(limits.carbohydratesG))
       setSugars(limits.sugarsG === null ? '' : String(limits.sugarsG))
       setSodium(limits.sodiumMg === null ? '' : String(limits.sodiumMg))
     }
-  }, [limits?.sugarsG, limits?.sodiumMg])
+  }, [limits?.carbohydratesG, limits?.sugarsG, limits?.sodiumMg])
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -25,6 +27,7 @@ export function NutrientLimitSettings() {
     setError('')
     try {
       await saveNutrientComparisonLimits({
+        carbohydratesG: parseNumber(carbs, 'carbs daily limit', true),
         sugarsG: parseNumber(sugars, 'total sugar daily limit', true),
         sodiumMg: parseNumber(sodium, 'sodium daily limit', true)
       })
@@ -41,6 +44,12 @@ export function NutrientLimitSettings() {
     {limits === undefined ? <p role="status" className="mt-2 text-sm text-slate-600">Loading limits…</p> :
       <form onSubmit={event => { void save(event) }} className="mt-4 space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
+          <label className="text-sm font-semibold">Carbs upper limit (g/day)
+            <input type="number" step="any" min="0.1" max="2000" inputMode="decimal"
+              placeholder="Not set"
+              className="mt-1 block min-h-11 w-full rounded-xl border border-slate-300 p-2 text-base"
+              value={carbs} onChange={event => setCarbs(event.target.value)} />
+          </label>
           <label className="text-sm font-semibold">Total sugars upper limit (g/day)
             <input type="number" step="any" min="0.1" max="3000" inputMode="decimal"
               placeholder="Not set"
