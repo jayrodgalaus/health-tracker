@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useSearchParams } from 'react-router-dom'
 import { estimateWorkout, isDistanceActivity } from '../../domain/activity'
 import { ageOnDay } from '../../domain/profile'
-import type { ExerciseEnergyMethod, ExerciseEntry, ExerciseIntensity, Profile } from '../../domain/models'
+import type { ExerciseEnergyMethod, ExerciseEntry, Profile } from '../../domain/models'
 import { listWeights } from '../../data/weightRepository'
 import { deleteExercise, listExerciseForDay, listExerciseForWeek, saveExercise } from '../../data/exerciseRepository'
 import { toLocalDay } from '../../lib/localDate'
@@ -45,10 +45,11 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
   const [time, setTime] = useState(editing?.timeOfDay ?? '')
   const [duration, setDuration] = useState(editing?.durationMinutes == null ? '' : String(editing.durationMinutes))
   const [distance, setDistance] = useState(editing?.distanceKm == null ? '' : String(editing.distanceKm))
-  const [intensity, setIntensity] = useState<ExerciseIntensity | ''>(editing?.intensity ?? '')
+  const [speed, setSpeed] = useState(editing?.speedKmh == null ? '' : String(editing.speedKmh))
+  const [incline, setIncline] = useState(editing?.inclinePercent == null ? '' : String(editing.inclinePercent))
   const [strength, setStrength] = useState(editing?.isStrengthTraining ?? (editing?.activity === 'Strength training'))
   const [method, setMethod] = useState<'auto' | 'unknown' | 'metNet' | 'manualActive'>(
-    editing?.estimationMethod === 'distanceNet' || editing?.estimationMethod === 'activityTimeNet'
+    editing?.estimationMethod === 'distanceNet' || editing?.estimationMethod === 'activityTimeNet' || editing?.estimationMethod === 'paceGradeNet'
       ? 'auto' : editing?.estimationMethod === 'metNet' || editing?.estimationMethod === 'manualActive'
         ? editing.estimationMethod : editing ? 'unknown' : 'auto'
   )
@@ -61,14 +62,16 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
   const walkRun = isDistanceActivity(type)
   const effectiveMethod: ExerciseEnergyMethod = !adult ? 'unknown'
     : method === 'auto' && walkRun
-      ? distance.trim() ? 'distanceNet' : 'activityTimeNet'
+      ? 'paceGradeNet'
       : method === 'auto' ? 'unknown' : method
   const weights = useLiveQuery(() => listWeights(), [], undefined)
   const previewEntry: ExerciseEntry = {
     id: 'preview', dayKey: date, startedAt: '', createdAt: '', updatedAt: '',
     activity: type === 'Other' ? custom : type, durationMinutes: previewNumber(duration),
     distanceKm: walkRun ? previewNumber(distance) : null,
-    intensity: intensity || null, estimationMethod: effectiveMethod,
+    speedKmh: walkRun ? previewNumber(speed) : null,
+    inclinePercent: walkRun ? previewNumber(incline) : null,
+    intensity: editing?.intensity ?? null, estimationMethod: effectiveMethod,
     estimatedEnergyKcal: effectiveMethod === 'manualActive' ? previewNumber(manual) : null,
     met: effectiveMethod === 'metNet' ? previewNumber(met) : null
   }
@@ -97,7 +100,9 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
         activity,
         durationMinutes: parseNumber(duration, 'duration', walkRun),
         distanceKm: walkRun ? parseNumber(distance, 'distance (km)', true) : null,
-        intensity: intensity || null,
+        speedKmh: walkRun ? parseNumber(speed, 'speed (km/h)', true) : null,
+        inclinePercent: walkRun ? parseNumber(incline, 'incline (%)', true) : null,
+        intensity: editing?.intensity ?? null,
         calorieMethod: effectiveMethod,
         met: effectiveMethod === 'metNet' ? parseNumber(met, 'MET') : null,
         manualActiveKcal: effectiveMethod === 'manualActive' ? parseNumber(manual, 'active calories') : null,
@@ -137,12 +142,16 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
         {walkRun && <label className="block text-sm font-semibold">Distance (km, optional with duration)
           <input className={inputClass} type="number" inputMode="decimal" min="0.01" max="300" step="any" value={distance} onChange={event => setDistance(event.target.value)} placeholder="e.g. 3.5" />
         </label>}
-        <label className="block text-sm font-semibold">Intensity (optional)
-          <select className={inputClass} value={intensity} onChange={event => setIntensity(event.target.value as ExerciseIntensity | '')}>
-            <option value="">Not classified</option>
-            <option value="light">Light</option><option value="moderate">Moderate</option><option value="vigorous">Vigorous</option>
-          </select>
-        </label>
+        {walkRun && <label className="block text-sm font-semibold">Speed (km/h, optional)
+          <input className={inputClass} type="number" inputMode="decimal" min={type === 'Walking' ? '2' : '6'}
+            max={type === 'Walking' ? '8' : '25'} step="any" value={speed}
+            onChange={event => setSpeed(event.target.value)} placeholder="Auto from distance and time" />
+        </label>}
+        {walkRun && <label className="block text-sm font-semibold">Incline (%, uphill only)
+          <input className={inputClass} type="number" inputMode="decimal" min="0" max="15"
+            step="any" value={incline} onChange={event => setIncline(event.target.value)}
+            placeholder="Assume level ground" />
+        </label>}
       </div>
       <label className="flex min-h-11 items-center gap-3 text-sm font-semibold">
         <input type="checkbox" checked={strength} onChange={event => setStrength(event.target.checked)} />
@@ -156,7 +165,7 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
         {!adult ? <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900">
           This date has no confirmed adult age. Simple exercise logging is available, but adult-oriented energy estimates are not.
         </p> : <div className="space-y-2 text-sm">
-          {walkRun && <label className="flex min-h-11 items-center gap-2"><input type="radio" name="exercise-method" checked={method === 'auto'} onChange={() => setMethod('auto')} /> Estimate automatically (distance preferred, otherwise time)</label>}
+          {walkRun && <label className="flex min-h-11 items-center gap-2"><input type="radio" name="exercise-method" checked={method === 'auto'} onChange={() => setMethod('auto')} /> Estimate automatically (speed, incline, distance or time)</label>}
           <label className="flex min-h-11 items-center gap-2"><input type="radio" name="exercise-method" checked={effectiveMethod === 'unknown'} onChange={() => setMethod('unknown')} /> No energy estimate</label>
           <label className="flex min-h-11 items-center gap-2"><input type="radio" name="exercise-method" checked={effectiveMethod === 'metNet'} onChange={() => setMethod('metNet')} /> Calculate net incremental kcal from a MET I provide</label>
           <label className="flex min-h-11 items-center gap-2"><input type="radio" name="exercise-method" checked={effectiveMethod === 'manualActive'} onChange={() => setMethod('manualActive')} /> Enter active/incremental kcal manually</label>
@@ -177,6 +186,7 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
         <p className="mt-1 text-2xl font-bold tabular-nums text-evergreen-900">{weights === undefined ? 'Calculating…' : estimateText}</p>
         <p className="mt-1 text-xs text-evergreen-800">
           {!adult ? 'Adult-oriented estimate unavailable for this date.'
+            : effectiveMethod === 'paceGradeNet' ? 'Based on pace, uphill grade and recorded weight.'
             : effectiveMethod === 'distanceNet' ? 'Based on distance and recorded weight.'
             : effectiveMethod === 'activityTimeNet' ? 'Based on time, a typical activity MET and recorded weight.'
             : effectiveMethod === 'metNet' ? 'Based on supplied MET, time and recorded weight.'
@@ -252,7 +262,7 @@ export function ExerciseLog({ profile }: { profile: Profile }) {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h4 className="font-semibold">{entry.activity}</h4>
-                <p className="mt-1 text-xs text-slate-600">{entry.timeOfDay ? `${entry.timeOfDay} · ` : ''}{entry.durationMinutes === null ? 'Duration not recorded' : entry.durationMinutes + ' min'}{entry.distanceKm != null ? ' · ' + entry.distanceKm + ' km' : ''} · {entry.intensity ?? 'Unclassified intensity'}{entry.isStrengthTraining ? ' · Strength' : ''}</p>
+                <p className="mt-1 text-xs text-slate-600">{entry.timeOfDay ? `${entry.timeOfDay} · ` : ''}{entry.durationMinutes === null ? 'Duration not recorded' : entry.durationMinutes + ' min'}{entry.distanceKm != null ? ' · ' + entry.distanceKm + ' km' : ''}{entry.speedKmh != null ? ' · ' + entry.speedKmh + ' km/h' : ''}{entry.inclinePercent != null ? ' · ' + entry.inclinePercent + '% incline' : ''}{entry.isStrengthTraining ? ' · Strength' : ''}</p>
                 <p className="mt-2 text-sm">
                   Additional workout kcal: {!adult ? 'Not evaluated (adult model)' : estimated?.kcal == null ? 'Unknown' : `≈ ${Number(estimated.kcal.toFixed(1))} kcal`}
                 </p>
