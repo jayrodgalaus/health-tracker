@@ -5,6 +5,7 @@ import { parseBackupJson, validateBackup } from '../domain/backup'
 import { EMPTY_TARGETS } from '../domain/profile'
 import { emptyNutrition } from '../domain/nutrition'
 import { countLocalRecords, deleteAllLocalRecords, readLocalBackup, replaceLocalData } from './backupRepository'
+import { setDayComplete } from './dayRepository'
 
 const names:string[]=[]
 const newDb=(name:string)=>{names.push(name);return new HealthTrackerDatabase(name)}
@@ -46,9 +47,7 @@ async function seed(db:HealthTrackerDatabase){
     id:'weight',dayKey:'2026-11-06',recordedAt:now,
     weightKg:70,createdAt:now,updatedAt:now
   })
-  await db.dayReviews.add({
-    dayKey:'2026-11-06',isComplete:true,markedAt:now,updatedAt:now
-  })
+  await setDayComplete('2026-11-06', true, db, '2026-11-07')
   await db.appSettings.add({
     id:'local',waterPresetsMl:[100,250,400,600],updatedAt:now
   })
@@ -60,7 +59,7 @@ describe('complete local JSON backup and restore',()=>{
     await seed(database)
     const backup=await readLocalBackup(database)
     expect(backup.formatVersion).toBe(1)
-    expect(backup.app.schemaVersion).toBe(2)
+    expect(backup.app.schemaVersion).toBe(3)
     expect(backup.tables.foodEntries[0]?.referenceNutrientsSnapshot?.energyKcal).toBe(400)
     const serialized=JSON.stringify(backup)
     await deleteAllLocalRecords(database)
