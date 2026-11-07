@@ -309,7 +309,7 @@ test('walking and running prefer distance or fall back to time with live kcal an
   await page.goto('/calendar/' + day)
   await expect(page.getByText('Duration not recorded')).toBeVisible()
   await expect(page.getByText('4 km')).toBeVisible()
-  await expect(page.getByText('168 kcal')).toBeVisible()
+  await expect(page.getByRole('heading',{name:'Estimated additional workout kcal'}).locator('..').getByText('168 kcal',{exact:true})).toBeVisible()
   await page.getByRole('heading', {name:'Walking',exact:true}).locator('..')
     .getByRole('link',{name:'Edit / delete'}).click()
   await expect(page.getByLabel(/Distance \(km/)).toHaveValue('4')
