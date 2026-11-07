@@ -91,6 +91,31 @@ describe('IndexedDB exercise repository', () => {
     })
   })
 
+  it('persists walking pace/incline and recomputes as speed, grade or historical weight changes', async () => {
+    const database = make('pace-grade-persistence')
+    const draft = { ...base, activity: 'Walking', durationMinutes: null, distanceKm: 5,
+      speedKmh: 5, inclinePercent: 0, intensity: null, calorieMethod: 'paceGradeNet' as const }
+    const saved = await saveExercise(draft, undefined, database, '2026-11-06')
+    await saveWeight('2026-11-05', 70, database, '2026-11-06')
+    const weights = await listWeights(database)
+    expect(saved).toMatchObject({ distanceKm: 5, durationMinutes: null, speedKmh: 5,
+      inclinePercent: 0, estimationMethod: 'paceGradeNet', intensity: null })
+    expect(calculateActivityDay('2026-11-06', [saved], weights, true).knownIncrementalKcal).toBeCloseTo(205.8)
+    const revised = await saveExercise({ ...draft, speedKmh: 6, inclinePercent: 5 },
+      saved.id, database, '2026-11-06')
+    expect(revised.id).toBe(saved.id)
+    expect(calculateActivityDay('2026-11-06', [revised], weights, true).knownIncrementalKcal)
+      .toBeCloseTo(390.25)
+    await saveWeight('2026-11-05', 80, database, '2026-11-06')
+    expect(calculateActivityDay('2026-11-06', [revised], await listWeights(database), true)
+      .knownIncrementalKcal).toBeCloseTo(390.25 * 80 / 70)
+    database.close()
+    const reopened = make('pace-grade-persistence')
+    expect((await listExerciseForDay('2026-11-06', reopened))[0]).toMatchObject({
+      speedKmh: 6, inclinePercent: 5, durationMinutes: null
+    })
+  })
+
   it('rejects impossible duration, timestamps, future day, gross/ambiguous method and bad numbers', async () => {
     const database = make('activity-validation')
     const invalid: ExerciseDraft[] = [
@@ -102,6 +127,15 @@ describe('IndexedDB exercise repository', () => {
       { ...base, activity: 'Walking', distanceKm: -1 },
       { ...base, activity: 'Running', distanceKm: Number.NaN },
       { ...base, activity: 'Walking', distanceKm: 301 },
+      { ...base, activity: 'Walking', speedKmh: 15 },
+      { ...base, activity: 'Running', speedKmh: 3 },
+      { ...base, activity: 'Walking', speedKmh: Number.NaN },
+      { ...base, activity: 'Running', inclinePercent: -1 },
+      { ...base, activity: 'Running', inclinePercent: 16 },
+      { ...base, activity: 'Cycling', speedKmh: 10 },
+      { ...base, activity: 'Table tennis', inclinePercent: 0 },
+      { ...base, calorieMethod: 'paceGradeNet' },
+      { ...base, activity: 'Walking', calorieMethod: 'paceGradeNet', met: 3 },
       { ...base, activity: 'Running', durationMinutes: null, distanceKm: 3, calorieMethod: 'metNet', met: 3 },
       { ...base, activity: 'Walking', distanceKm: null, calorieMethod: 'distanceNet' },
       { ...base, activity: 'Running', distanceKm: 3, calorieMethod: 'activityTimeNet' },

@@ -1,6 +1,7 @@
 import { db, type HealthTrackerDatabase } from '../db/database'
 import type { ExerciseEnergyMethod, ExerciseEntry, ExerciseIntensity, LocalDay } from '../domain/models'
 import { isDistanceActivity, weekBounds } from '../domain/activity'
+import { validPaceSpeed, validUphillGrade } from '../domain/paceGrade'
 import { assertLocalDay } from '../domain/profile'
 import { toLocalDay } from '../lib/localDate'
 
@@ -11,6 +12,10 @@ export interface ExerciseDraft {
   /** Optional for walking/running when distance is recorded. */
   durationMinutes: number | null
   distanceKm?: number | null
+  /** Optional pace (km/h) and uphill slope (%) for walking/running only. */
+  speedKmh?: number | null
+  inclinePercent?: number | null
+  /** Legacy field retained to avoid losing historical labels; new forms use null. */
   intensity: ExerciseIntensity | null
   calorieMethod: ExerciseEnergyMethod
   /** Only for method=metNet, chosen and supplied by the user. */
@@ -37,6 +42,19 @@ export function validateExerciseDraft(draft: ExerciseDraft, today: LocalDay): vo
     throw new Error('Distance must be greater than zero and no more than 300 km.')
   }
   if (!walkRun && distance !== null) throw new Error('Distance is supported for walking and running only.')
+  const speed = draft.speedKmh ?? null
+  const grade = draft.inclinePercent ?? null
+  if (!walkRun && (speed !== null || grade !== null)) {
+    throw new Error('Speed and incline apply to walking and running only.')
+  }
+  if (walkRun && speed !== null && !validPaceSpeed(activity, speed)) {
+    throw new Error(activity === 'Walking'
+      ? 'Walking speed must be between 2 and 8 km/h.'
+      : 'Running speed must be between 6 and 25 km/h.')
+  }
+  if (grade !== null && !validUphillGrade(grade)) {
+    throw new Error('Incline must be between 0% and 15% (uphill only).')
+  }
   if (draft.durationMinutes === null && (!walkRun || distance === null)) {
     throw new Error(walkRun ? 'Enter duration or distance for walking/running.' : 'Enter a duration for this activity.')
   }
@@ -51,6 +69,10 @@ export function validateExerciseDraft(draft: ExerciseDraft, today: LocalDay): vo
   if (draft.calorieMethod === 'unknown') {
     if (draft.met !== null || draft.manualActiveKcal !== null) {
       throw new Error('Unknown energy method must not contain calorie or MET data.')
+    }
+  } else if (draft.calorieMethod === 'paceGradeNet') {
+    if (!walkRun || draft.met !== null || draft.manualActiveKcal !== null) {
+      throw new Error('Speed/incline estimate requires walking or running, without a manual MET or kcal amount.')
     }
   } else if (draft.calorieMethod === 'metNet') {
     if (draft.durationMinutes === null) throw new Error('A duration is required for MET calculations.')
@@ -107,6 +129,8 @@ export async function saveExercise(
       activity: draft.activity.trim(),
       durationMinutes: draft.durationMinutes,
       distanceKm: draft.distanceKm ?? null,
+      speedKmh: draft.speedKmh ?? null,
+      inclinePercent: draft.inclinePercent ?? null,
       intensity: draft.intensity,
       estimatedEnergyKcal: draft.calorieMethod === 'manualActive' ? draft.manualActiveKcal : null,
       estimationMethod: draft.calorieMethod,

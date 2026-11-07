@@ -1,5 +1,6 @@
 import type { ExerciseEntry, LocalDay, WeightEntry } from './models'
 import { parseLocalDay, toLocalDay } from '../lib/localDate'
+import { paceGradeNetKcal, speedForEstimate } from './paceGrade'
 
 /**
  * Deterministic exercise calculations. There are NO IndexedDB, network or React
@@ -65,7 +66,7 @@ export function netMetKcal(met: number, kg: number, minutes: number): number | n
 
 export interface WorkoutEstimate {
   kcal: number | null
-  method: 'distanceNet' | 'activityTimeNet' | 'metNet' | 'manualActive' | 'unknown'
+  method: 'distanceNet' | 'activityTimeNet' | 'paceGradeNet' | 'metNet' | 'manualActive' | 'unknown'
   weight: WeightEvidence | null
   explanation: string
 }
@@ -85,6 +86,28 @@ export function estimateWorkout(entry: ExerciseEntry, weights: readonly WeightEn
         kcal, method: 'manualActive', weight: null,
         explanation: 'User-entered ACTIVE/incremental workout kcal, not gross/device-total kcal. Approximate; no other workout estimate added.'
       }
+    }
+  }
+  if (entry.estimationMethod === 'paceGradeNet') {
+    const weight = weightForDay(entry.dayKey, weights)
+    const distance = entry.distanceKm ?? null
+    const duration = entry.durationMinutes
+    const pace = entry.speedKmh ?? null
+    const incline = entry.inclinePercent ?? null
+    const activity = entry.activity
+    const kcal = isDistanceActivity(activity) && weight.weightKg !== null
+      ? paceGradeNetKcal(activity, weight.weightKg, distance, duration, pace, incline)
+      : null
+    const effectiveSpeed = isDistanceActivity(activity)
+      ? speedForEstimate(activity, distance, duration, pace) : null
+    const speedSource = pace !== null ? 'entered'
+      : distance !== null && duration !== null ? 'calculated from distance and time'
+      : 'representative default'
+    return {
+      kcal, method: 'paceGradeNet', weight,
+      explanation: kcal === null
+        ? 'Pace/grade estimate unavailable: a valid walking/running distance or duration, supported speed/grade, and an unambiguous weight recorded on or before the date are required.'
+        : `Approximate net above-rest kcal from ${activity.toLowerCase()} at ${Number(effectiveSpeed!.toFixed(2))} km/h (${speedSource}), ${incline === null ? 'assumed level ground' : incline + '% uphill grade'}, and ${distance !== null ? distance + ' km' : duration + ' recorded min'}. Pace-based 2024 Adult Compendium MET plus ACSM uphill oxygen component. Weight ${weight.weightKg} kg ${weight.source === 'carriedForward' ? 'carried forward from ' + weight.sourceDay : 'recorded on ' + entry.dayKey}. Only one workout energy estimate is counted; speed overrides recorded duration for energy when distance is present.`
     }
   }
   if (entry.estimationMethod === 'distanceNet') {
