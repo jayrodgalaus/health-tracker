@@ -1,5 +1,5 @@
 import type { DayReview, DailyTargets, EvaluationRuleSettings, ExerciseEntry, FoodEntry, GoalPeriod, LocalDay, Profile, WeightEntry } from './models'
-import { aggregateIntake, type IntakeSummary, type MetricCoverage } from './nutrition'
+import { aggregateIntake, isPlainWaterEntry, type IntakeSummary, type MetricCoverage } from './nutrition'
 import { calculateActivityDay, type ActivityDaySummary } from './activity'
 import { ageOnDay } from './profile'
 import { calculateExpenditure, type ExpenditureSummary } from './expenditure'
@@ -124,9 +124,9 @@ export function evaluateDay(context: DayCalculationContext, intake: IntakeSummar
     if (target === null || target === undefined || !Number.isFinite(target) || target < 0 ||
       (check.direction === 'range' && target === 0)) return []
     const relevant = check.key === 'energyKcal' ?
-      context.intake.some(entry => entry.dayKey === context.dayKey && entry.beverageType !== 'water') :
+      context.intake.some(entry => entry.dayKey === context.dayKey && !isPlainWaterEntry(entry)) :
         check.key === 'fluidMl' ? context.intake.some(entry => entry.dayKey === context.dayKey && entry.kind === 'beverage') :
-          context.intake.some(entry => entry.dayKey === context.dayKey)
+          context.intake.some(entry => entry.dayKey === context.dayKey && !isPlainWaterEntry(entry))
     return [ruleFor(check, target, metricFor(check.key, intake), relevant, ruleSettings)]
   }) : []
   const assessed = results.filter(rule => rule.state !== 'notEvaluated')
