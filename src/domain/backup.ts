@@ -234,13 +234,14 @@ function validateRecord(table:BackupTableName,raw:unknown,field:string){
     if(r.updatedAt!==undefined)iso(r.updatedAt,field+'.updatedAt')
   } else {
     const r=shape(raw,field,
-      ['id','waterPresetsMl','sugarLimitG','sodiumLimitMg','updatedAt'],
+      ['id','waterPresetsMl','carbohydrateLimitG','sugarLimitG','sodiumLimitMg','updatedAt'],
       ['id','waterPresetsMl','updatedAt'])
     if(r.id!=='local')invalid(field,'unexpected settings id')
     if(!Array.isArray(r.waterPresetsMl)||r.waterPresetsMl.length!==4)invalid(field,'four presets required')
     const amounts=r.waterPresetsMl as unknown[]
     for(const x of amounts)numeric(x,field+'.waterPresetsMl',25,3000)
     if(new Set(amounts).size!==4)invalid(field,'duplicate presets')
+    numeric(r.carbohydrateLimitG,field+'.carbohydrateLimitG',0.1,2000,true)
     numeric(r.sugarLimitG,field+'.sugarLimitG',0.1,3000,true)
     numeric(r.sodiumLimitMg,field+'.sodiumLimitMg',1,100000,true)
     iso(r.updatedAt,field+'.updatedAt')
