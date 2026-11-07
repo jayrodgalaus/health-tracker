@@ -1,4 +1,5 @@
-import type { FoodEntry } from '../../domain/models'
+import type { FoodEntry, Profile } from '../../domain/models'
+import { reniPercent, reniReferenceForDay } from '../../domain/reni'
 import { aggregateIntake, type MetricCoverage, type NutrientField } from '../../domain/nutrition'
 import { NUTRIENT_LABELS } from './NutritionFields'
 
@@ -16,7 +17,15 @@ function coverageDescription(metric: MetricCoverage): string {
   return `Known for all ${metric.totalEntryCount} entries`
 }
 
-export function NutritionSummary({ entries, loading = false }: { entries?: readonly FoodEntry[]; loading?: boolean }) {
+export function NutritionSummary({
+  entries, loading = false, reniProfile, reniDayKey
+}: {
+  entries?: readonly FoodEntry[]
+  loading?: boolean
+  /** Only Calendar day details request FNRI comparison; Today retains logged-only totals. */
+  reniProfile?: Profile
+  reniDayKey?: string
+}) {
   if (loading || entries === undefined) return <p role="status" className="rounded-2xl bg-white p-4 text-sm text-slate-600">Loading recorded nutrition…</p>
   const summary = aggregateIntake(entries)
   const primary = [
@@ -45,9 +54,15 @@ export function NutritionSummary({ entries, loading = false }: { entries?: reado
         <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {viewFields.map(field => {
             const metric = summary.nutrients[field]
+            const reference = reniProfile && reniDayKey
+              ? reniReferenceForDay(field, reniProfile, reniDayKey) : null
+            const percentage = reniPercent(metric, reference)
             return <div key={field}>
               <dt className="text-xs font-semibold text-slate-600">{NUTRIENT_LABELS[field]}</dt>
-              <dd className="mt-1 text-sm font-semibold">{metricLabel(metric, field.endsWith('Mg') ? 'mg' : 'g')}</dd>
+              <dd className="mt-1 text-sm font-semibold">
+                {metricLabel(metric, field.endsWith('Mg') ? 'mg' : 'g')}
+                {percentage !== null && <span title={reference!.description + ' · FNRI PDRI 2015'}>{' '}({percentage.toFixed(1)}%)</span>}
+              </dd>
               <dd className="mt-1 text-xs text-slate-500">{coverageDescription(metric)}</dd>
             </div>
           })}

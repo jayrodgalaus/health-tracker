@@ -40,7 +40,7 @@ export function DayDetailPage({ profile }: { profile: Profile }) {
     {records === undefined && <p role="status" className="rounded-xl bg-white p-4 text-sm text-slate-600">Loading records for {dayKey}…</p>}
     <DayAssessment summary={summary} fullRules />
     <ExpenditurePanel summary={summary} />
-    <NutritionSummary entries={records?.intake} />
+    <NutritionSummary entries={records?.intake} reniProfile={profile} reniDayKey={dayKey} />
     <ActivitySummary dayKey={dayKey} profile={profile} dayActivities={records?.activities} weekActivities={week} weights={records?.weights} />
     {records && <DayEntries dayKey={dayKey} profile={profile} records={records} />}
   </div>
