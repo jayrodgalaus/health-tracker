@@ -28,18 +28,6 @@ export function AppShell({ children, hideNavigation = false }: { children: React
   return (
     <div className="min-h-dvh bg-slate-50 text-slate-900">
       <a href="#main-content" className="skip-link">Skip to content</a>
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-evergreen-600 text-xl font-semibold text-white" aria-hidden="true">+</div>
-            <div>
-              <p className="text-base font-bold tracking-tight">Health Tracker</p>
-              <p className="text-xs text-slate-500">Your day, your data</p>
-            </div>
-          </div>
-          <span className="rounded-full bg-evergreen-50 px-3 py-1 text-xs font-semibold text-evergreen-700">Offline-first</span>
-        </div>
-      </header>
 
       <main id="main-content" className={`mx-auto w-full max-w-3xl px-5 pt-7 sm:pt-9 ${hideNavigation ? "pb-12" : "pb-32"}`} tabIndex={-1}>
         {children}

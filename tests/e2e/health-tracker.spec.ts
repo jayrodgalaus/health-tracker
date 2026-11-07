@@ -11,6 +11,22 @@ async function onboard(page: Page) {
   await expect(page.getByRole('heading',{name:'Your day, your pace.'})).toBeVisible()
 }
 
+test('shared branding banner is absent on onboarding and every main page', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByText('Your day, your data', {exact:true})).toHaveCount(0)
+  await onboard(page)
+  for (const route of [
+    '/today', '/log', '/calendar', '/trends', '/settings',
+    '/settings/profile', '/settings/goals', '/settings/preferences',
+    '/settings/data', '/settings/docs', '/settings/docs/food', '/settings/about'
+  ]) {
+    await page.goto(route)
+    await expect(page.getByText('Health Tracker', {exact:true})).toHaveCount(0)
+    await expect(page.getByText('Your day, your data', {exact:true})).toHaveCount(0)
+  }
+  await expect(page.getByRole('navigation',{name:'Primary navigation'})).toBeVisible()
+})
+
 test('mobile logging persists and the cached production PWA reloads offline',async({page,context})=>{
   await onboard(page)
   await page.goto('/log')
