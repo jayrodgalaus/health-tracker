@@ -55,11 +55,12 @@ export function NutritionSummary({
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {DISPLAY_NUTRIENT_FIELDS.map(field => {
               const metric = summary.nutrients[field]
-              const usesCustomLimit = field === 'sugarsG' || field === 'sodiumMg'
+              const usesCustomLimit = field === 'carbohydratesG' || field === 'sugarsG' || field === 'sodiumMg'
               const reference = !usesCustomLimit && reniProfile && reniDayKey
                 ? reniReferenceForDay(field, reniProfile, reniDayKey) : null
               const customLimit = usesCustomLimit && reniProfile && reniDayKey
-                ? (field === 'sugarsG' ? comparisonLimits?.sugarsG : comparisonLimits?.sodiumMg) ?? null : null
+                ? (field === 'carbohydratesG' ? comparisonLimits?.carbohydratesG
+                    : field === 'sugarsG' ? comparisonLimits?.sugarsG : comparisonLimits?.sodiumMg) ?? null : null
               const percentage = usesCustomLimit
                 ? knownAmountPercent(metric, customLimit)
                 : reniPercent(metric, reference)
