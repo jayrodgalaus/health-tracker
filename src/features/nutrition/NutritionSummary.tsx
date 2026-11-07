@@ -61,12 +61,23 @@ export function NutritionSummary({
               <dt className="text-xs font-semibold text-slate-600">{NUTRIENT_LABELS[field]}</dt>
               <dd className="mt-1 text-sm font-semibold">
                 {metricLabel(metric, field.endsWith('Mg') ? 'mg' : 'g')}
-                {percentage !== null && <span title={reference!.description + ' · FNRI PDRI 2015'}>{' '}({percentage.toFixed(1)}%)</span>}
+                {reference && (percentage !== null
+                  ? <span title={reference.description + ' · FNRI PDRI 2015' + (metric.complete ? '' : ' · Minimum based on known entries')}>
+                      {' '}({metric.complete ? '' : '≥'}{percentage.toFixed(1)}%)
+                    </span>
+                  : <span className="text-xs font-normal text-slate-500"> (unknown %)</span>)}
+                {reniProfile && reniDayKey && !reference &&
+                  <span className="text-xs font-normal text-slate-500"> (no reference %)</span>}
               </dd>
               <dd className="mt-1 text-xs text-slate-500">{coverageDescription(metric)}</dd>
             </div>
           })}
         </dl>
+        {reniProfile && reniDayKey && <p className="mt-3 text-xs leading-5 text-slate-500">
+          Percentages compare known logged amounts with applicable adult FNRI PDRI daily references, regardless of day completion.
+          ≥ means at least that percentage because some entries lack nutrient data; the true total may be higher.
+          Unknown or unavailable references are not treated as zero.
+        </p>}
       </div>}
     </section>
   )
