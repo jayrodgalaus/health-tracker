@@ -1,11 +1,12 @@
 # Health Tracker
 
-A personal, mobile-first, offline-capable nutrition and activity tracker built with **React + TypeScript + Vite, Tailwind CSS and Dexie/IndexedDB**. No cloud account, server, remote personal-data storage, AI, analytics, or health integrations.
+A personal, mobile-first, offline-capable nutrition and activity tracker built with **React + TypeScript + Vite, Tailwind CSS and Dexie/IndexedDB**. No cloud account, server, remote personal-data storage, AI, or analytics. An optional **user-triggered** Open Food Facts lookup can fetch public food-label data; core logging remains offline.
 
 ## Phase 3: local trends and JSON portability (in review)
 
 - **Phase 0:** Five-tab mobile navigation, installable PWA shell and service worker, typed models and local IndexedDB.
 - **Phase 1 profile/weight:** First-launch local profile, age/DOB, height, initial weight, editable unit preferences, user-selected targets with effective-date history, per-day weight add/edit/move/delete.
+- **Optional food lookup:** The editable food/drink name combobox proposes local saved foods as you type (works offline). Press **Search online** to query Open Food Facts for packaged-food labels and auto-populate per-100-g/per-100-ml nutrition. Only the entered search phrase leaves the device, not the profile or logs. Provider search is deliberately not automatic (rate-limited), and manual fields stay available. Imported snapshots preserve the source product code in historical entries and backups; review label accuracy before use. See `docs/food-lookup.md`.
 - **Phase 1 food/fluids:** Food and beverage logging with named amounts, optional meal category, nutrition fields, per-serving / per-piece / per-100-g / per-100-ml / custom label basis, saved reusable labels with favorites, recent entries, water presets and custom water volume, and edit/delete. Settings allows four local water-preset amounts.
 - **Phase 1 exercise:** Dated workout log with activity type, duration, optional intensity, strength-training flag, time and notes, plus edit/delete. Exercise energy is either deliberately unknown, user-entered *active/incremental* kcal, or a net estimate based on a manually supplied MET and the most recent weight measured on or before that day. All energy figures are explainable estimates, not measurements; missing prerequisites remain unknown.
 - **Live activity summaries:** Today and Log share pure `calculateActivityDay()` and `calculateActivityWeek()`; logged minutes, weekly moderate/vigorous/light minutes, and distinct logged strength days are visible, without scoring rest days. Historical weight corrections dynamically update MET estimates.

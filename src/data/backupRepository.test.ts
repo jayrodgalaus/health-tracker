@@ -74,6 +74,25 @@ describe('complete local JSON backup and restore',()=>{
     expect(restored.tables.foodEntries[0]?.nutrientsSnapshot.energyKcal).toBe(300)
     reopened.close()
   })
+  it('round-trips lookup provenance and rejects a forged source code', async () => {
+    const database = newDb('lookup-provenance')
+    await seed(database)
+    const original = await readLocalBackup(database)
+    const withSource = structuredClone(original)
+    withSource.tables.foodEntries[0]!.nutritionSource = {
+      provider: 'open-food-facts', productCode: '3017624010701',
+      fetchedAt: now
+    }
+    await replaceLocalData(withSource, database)
+    expect((await readLocalBackup(database)).tables.foodEntries[0]?.nutritionSource)
+      .toEqual(withSource.tables.foodEntries[0]?.nutritionSource)
+    const malformed = structuredClone(withSource)
+    malformed.tables.foodEntries[0]!.nutritionSource!.productCode = '../../wrong'
+    await expect(replaceLocalData(malformed, database)).rejects.toThrow(/invalid barcode/)
+    expect((await readLocalBackup(database)).tables.foodEntries[0]?.nutritionSource)
+      .toEqual(withSource.tables.foodEntries[0]?.nutritionSource)
+    database.close()
+  })
   it('rejects malformed, future versions, invalid values, and unknown fields with no data loss',async()=>{
     const database=newDb('backup-invalid')
     await seed(database)

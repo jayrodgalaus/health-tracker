@@ -205,3 +205,109 @@ test('everyday movement presets explain and persist their multiplier without a h
   await page.reload()
   await expect(dropdown).toHaveValue('')
 })
+
+test('explicit food lookup autofills verified per-100g nutrients without auto-contacting the provider', async ({page}) => {
+  await onboard(page)
+  let networkCalls = 0
+  await page.route('https://world.openfoodfacts.org/cgi/search.pl?**', async route => {
+    networkCalls++
+    await route.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify({
+      count: 1, products: [{
+        code: '3017624010701', product_name: 'Synthetic test oats',
+        brands: 'Synthetic label', quantity: '400 g', product_quantity_unit: 'g',
+        nutriments: {
+          'energy-kcal_100g': 400,
+          'proteins_100g': 13,
+          'carbohydrates_100g': 68,
+          'fat_100g': 7,
+          'sodium_100g': 0.02,
+          'sugars_100g': 1.2
+        }
+      }]
+    })})
+  })
+  await page.goto('/log')
+  await page.getByRole('button', {name: '+ Food', exact: true}).click()
+  const name = page.getByRole('combobox', {name: 'Name'})
+  await name.fill('Synthetic test')
+  expect(networkCalls).toBe(0)
+  await page.getByRole('button', {name: 'Search online'}).click()
+  await expect(page.getByRole('option', {name: /Synthetic test oats.*Open Food Facts/})).toBeVisible()
+  expect(networkCalls).toBe(1)
+  await page.getByRole('option', {name: /Synthetic test oats.*Open Food Facts/}).click()
+  await expect(name).toHaveValue('Synthetic test oats')
+  await expect(page.getByRole('combobox', {name: 'Nutrition is per'})).toHaveValue('100g')
+  await expect(page.getByLabel('Calories (kcal)')).toHaveValue('400')
+  await expect(page.getByLabel('Protein (g)')).toHaveValue('13')
+  await expect(page.getByLabel('Sodium (mg)')).toHaveValue('20')
+  await expect(page.getByLabel('Fiber (g)')).toHaveValue('')
+  await page.getByLabel('Amount consumed').fill('75')
+  await page.getByRole('button', {name: 'Add to log'}).click()
+  await expect(page.getByText('Intake entry saved on this device.')).toBeVisible()
+  const saved = await page.evaluate(async () => {
+    const open = indexedDB.open('health-tracker')
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      open.onsuccess = () => resolve(open.result)
+      open.onerror = () => reject(open.error)
+    })
+    try {
+      return await new Promise<unknown>((resolve, reject) => {
+        const tx = db.transaction('foodEntries', 'readonly')
+        const req = tx.objectStore('foodEntries').getAll()
+        req.onsuccess = () => resolve(req.result)
+        req.onerror = () => reject(req.error)
+      })
+    } finally {
+      db.close()
+    }
+  }) as Array<{
+    nutrientsSnapshot: {energyKcal: number; proteinG: number; sodiumMg: number; fiberG: number | null}
+    referenceNutrientsSnapshot: {energyKcal: number}
+    nutritionSource?: {provider: string; productCode: string}
+    labelBasis: {quantity: number; unit: string}
+  }>
+  const entry = saved.find(item => item.nutritionSource?.productCode === '3017624010701')
+  expect(entry?.nutrientsSnapshot.energyKcal).toBe(300)
+  expect(entry?.nutrientsSnapshot.proteinG).toBeCloseTo(9.75)
+  expect(entry?.nutrientsSnapshot.sodiumMg).toBeCloseTo(15)
+  expect(entry?.nutrientsSnapshot.fiberG).toBeNull()
+  expect(entry?.referenceNutrientsSnapshot.energyKcal).toBe(400)
+  expect(entry?.labelBasis).toEqual({quantity:100,unit:'g'})
+})
+
+test('saved foods remain selectable as combobox suggestions without any online lookup', async ({page,context}) => {
+  await onboard(page)
+  await page.goto('/log')
+  await page.evaluate(async () => {
+    const open = indexedDB.open('health-tracker')
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      open.onsuccess = () => resolve(open.result)
+      open.onerror = () => reject(open.error)
+    })
+    try {
+      const time = new Date().toISOString()
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction('savedFoods', 'readwrite')
+        tx.objectStore('savedFoods').put({
+          id: 'synthetic-offline-food', name: 'Synthetic offline rice', brand: 'Synthetic',
+          kind: 'food', labelBasis: {quantity:100,unit:'g'},
+          nutrientsPerBasis: {
+            energyKcal:130, proteinG:2.5, carbohydratesG:28, fatG:0.3,
+            saturatedFatG:null, fiberG:null, sugarsG:null, sodiumMg:null, potassiumMg:null
+          },
+          createdAt: time, updatedAt: time
+        })
+        tx.oncomplete = () => resolve()
+        tx.onerror = () => reject(tx.error)
+      })
+    } finally {
+      db.close()
+    }
+  })
+  await page.getByRole('button', {name: '+ Food', exact: true}).click()
+  await page.getByRole('combobox', {name: 'Name'}).fill('offline rice')
+  await expect(page.getByRole('option', {name: /Synthetic offline rice.*Saved on device/})).toBeVisible()
+  await page.getByRole('option', {name: /Synthetic offline rice.*Saved on device/}).click()
+  await expect(page.getByLabel('Calories (kcal)')).toHaveValue('130')
+  await expect(page.getByRole('combobox', {name: 'Nutrition is per'})).toHaveValue('100g')
+})
