@@ -35,7 +35,7 @@ export function DayEntries({ dayKey, records, profile }: { dayKey: string; recor
       {!drinks.length && <p className="text-sm text-slate-600">No drinks or water recorded.</p>}
       {drinks.map(entry => <article key={entry.id} className={itemClass}>
         <h4 className="font-semibold">{entry.name}</h4>
-        <p className="mt-1 text-sm text-slate-600">{entry.quantity} {entry.unit} · Calories {amount(entry.nutrientsSnapshot.energyKcal, 'kcal')} · Logged fluid {amount(entry.fluidMl, 'ml')}</p>
+        <p className="mt-1 text-sm text-slate-600">{entry.quantity} {entry.unit}{entry.beverageType === 'water' ? '' : ' · Calories ' + amount(entry.nutrientsSnapshot.energyKcal, 'kcal')} · Logged fluid {amount(entry.fluidMl, 'ml')}</p>
         <Link to={'/log/drink' + query + '&edit=' + encodeURIComponent(entry.id)} className="mt-2 inline-block text-sm font-semibold text-evergreen-700 underline">Edit / delete</Link>
       </article>)}
     </div>
