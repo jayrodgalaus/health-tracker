@@ -127,7 +127,8 @@ test('Calendar nutrient percentages remain visible as minimums when entries have
   await expect(nutrients.getByText('Fiber (g)',{exact:true}).locator('..')).toContainText('12.5 g (50.0%)')
   await expect(nutrients.getByText('Potassium (mg)',{exact:true}).locator('..')).toContainText('1,000 mg (50.0%)')
   await expect(nutrients.getByText('Carbs (g)',{exact:true}).locator('..')).toContainText('no reference %')
-  await expect(nutrients.getByText('Sodium (mg)',{exact:true}).locator('..')).toContainText('no reference %')
+  await expect(nutrients.getByText('Sodium (mg)',{exact:true}).locator('..')).toContainText('set limit in Preferences')
+  await expect(nutrients.getByText('Sugars (g)',{exact:true}).locator('..')).toContainText('set limit in Preferences')
   await expect(nutrients).not.toContainText('NaN%')
 
   // A second item lacks these three nutrients. Its missing values must not
