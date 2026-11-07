@@ -43,7 +43,7 @@ export function DayDetailPage({ profile }: { profile: Profile }) {
     <DayAssessment summary={summary} fullRules />
     <ExpenditurePanel summary={summary} />
     <NutritionSummary entries={records?.intake} loading={limits === undefined}
-      reniProfile={profile} reniDayKey={dayKey} comparisonLimits={limits} />
+      reniProfile={profile} reniDayKey={dayKey} comparisonLimits={limits} detailDayKey={dayKey} />
     <ActivitySummary dayKey={dayKey} profile={profile} dayActivities={records?.activities} weekActivities={week} weights={records?.weights} />
     {records && <DayEntries dayKey={dayKey} profile={profile} records={records} />}
   </div>

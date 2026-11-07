@@ -38,11 +38,6 @@ export function NutrientLimitSettings() {
 
   return <section aria-labelledby="nutrient-limits-title" className="rounded-2xl border border-slate-200 bg-white p-5">
     <h2 id="nutrient-limits-title" className="text-lg font-semibold">Calendar nutrient comparison limits</h2>
-    <p className="mt-2 text-sm leading-6 text-slate-600">
-      Set optional daily upper limits for total sugars and sodium. The Calendar Nutrients card
-      shows what percentage of each chosen limit is used by known recorded entries. These are
-      your tracking comparisons, not nutritional recommendations or daily evaluation scores.
-    </p>
     {limits === undefined ? <p role="status" className="mt-2 text-sm text-slate-600">Loading limits…</p> :
       <form onSubmit={event => { void save(event) }} className="mt-4 space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
@@ -59,11 +54,6 @@ export function NutrientLimitSettings() {
               value={sodium} onChange={event => setSodium(event.target.value)} />
           </label>
         </div>
-        <p className="text-xs leading-5 text-slate-600">
-          Leave a field blank to disable its percentage. Sugars means total sugars, not added sugars.
-          Limits apply when viewing any Calendar date, including past dates; changing them never alters logged nutrients or dated goal rules.
-          If a log is missing a nutrient value, its displayed percentage is a minimum (≥).
-        </p>
         {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}
         <button type="submit" disabled={saving}
           className="min-h-11 rounded-xl bg-evergreen-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">

@@ -15,6 +15,7 @@ import { TrendsPage } from './pages/TrendsPage'
 import { DataPage } from './pages/DataPage'
 import { CalendarPage } from './pages/CalendarPage'
 import { DayDetailPage } from './pages/DayDetailPage'
+import { NutrientDetailPage } from './pages/NutrientDetailPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { ProfileSettingsPage } from './pages/ProfileSettingsPage'
 import { GoalsSettingsPage } from './pages/GoalsSettingsPage'
@@ -69,6 +70,7 @@ function TrackerApp() {
         <Route path="/log/exercise" element={<ExerciseEntryPage profile={profile} />} />
         <Route path="/log/saved-foods" element={<SavedFoodsPage />} />
         <Route path="/calendar" element={<CalendarPage profile={profile} />} />
+        <Route path="/calendar/:dayKey/nutrients/:field" element={<NutrientDetailPage />} />
         <Route path="/calendar/:dayKey" element={<DayDetailPage profile={profile} />} />
         <Route path="/trends" element={<TrendsPage profile={profile} />} />
         <Route path="/settings" element={<SettingsPage storage={storage} />} />

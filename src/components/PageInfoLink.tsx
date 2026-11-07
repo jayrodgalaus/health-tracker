@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 
 export type DocsTopic = 'today' | 'log' | 'food' | 'exercise' | 'weight' |
   'calendar' | 'day-detail' | 'trends' | 'profile' | 'goals' |
-  'preferences' | 'data' | 'about'
+  'preferences' | 'data' | 'about' | 'nutrition'
 
 /** Topic-specific help is deliberately one touch away on every main screen. */
 export function PageInfoLink({ topic }: {topic: DocsTopic}) {
