@@ -1,4 +1,5 @@
 import { db, type HealthTrackerDatabase } from '../db/database'
+import { assertDayEditable } from './dayRepository'
 import type { ExerciseEnergyMethod, ExerciseEntry, ExerciseIntensity, LocalDay } from '../domain/models'
 import { isDistanceActivity, weekBounds } from '../domain/activity'
 import { validPaceSpeed, validUphillGrade } from '../domain/paceGrade'
@@ -119,9 +120,11 @@ export async function saveExercise(
   today: LocalDay = toLocalDay(new Date())
 ): Promise<ExerciseEntry> {
   validateExerciseDraft(draft, today)
-  return database.transaction('rw', database.exerciseEntries, async () => {
+  return database.transaction('rw', database.exerciseEntries, database.dayReviews, async () => {
     const previous = id ? await database.exerciseEntries.get(id) : undefined
     if (id && !previous) throw new Error('This exercise entry no longer exists.')
+    await assertDayEditable(draft.dayKey, database)
+    if (previous && previous.dayKey !== draft.dayKey) await assertDayEditable(previous.dayKey, database)
     const now = new Date().toISOString()
     const entry: ExerciseEntry = {
       id: previous?.id ?? crypto.randomUUID(),
@@ -148,5 +151,11 @@ export async function saveExercise(
 }
 
 export async function deleteExercise(id: string, database: HealthTrackerDatabase = db): Promise<void> {
-  await database.exerciseEntries.delete(id)
+  await database.transaction('rw', database.exerciseEntries, database.dayReviews, async () => {
+    const prior = await database.exerciseEntries.get(id)
+    if (prior) {
+      await assertDayEditable(prior.dayKey, database)
+      await database.exerciseEntries.delete(id)
+    }
+  })
 }
