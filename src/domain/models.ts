@@ -183,6 +183,8 @@ export interface WeightEntry {
 export interface CompletedDaySnapshot {
   version: 1
   summary: import('./evaluation').DailySummary
+  /** The week summary shown on the locked date is preserved as displayed. */
+  week: import('./activity').ActivityWeekSummary
   profile: Profile
   comparisonLimits: import('./nutrientLimits').NutrientComparisonLimits
 }
