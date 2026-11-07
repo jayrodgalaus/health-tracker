@@ -2,12 +2,13 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { readWaterPresets, saveWaterPresets } from '../../data/settingsRepository'
 import { parseNumber } from './NutritionFields'
+import { useToast } from '../../components/ToastProvider'
 
 export function WaterPresetSettings() {
+  const toast = useToast()
   const presets = useLiveQuery(() => readWaterPresets(), [], undefined)
   const [amounts, setAmounts] = useState<string[]>(['150', '250', '350', '500'])
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -17,11 +18,10 @@ export function WaterPresetSettings() {
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
-    setNotice('')
     setSaving(true)
     try {
       await saveWaterPresets(amounts.map(value => parseNumber(value, 'water preset')!))
-      setNotice('Quick water amounts saved on this device.')
+      toast.success('Water presets saved.')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to save water amounts.')
     } finally {
@@ -41,7 +41,6 @@ export function WaterPresetSettings() {
         </label>)}
       </div>
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}
-      {notice && <p role="status" className="text-sm text-evergreen-700">{notice}</p>}
       <button type="submit" disabled={saving} className="min-h-11 rounded-xl bg-evergreen-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
         {saving ? 'Saving…' : 'Save water presets'}
       </button>

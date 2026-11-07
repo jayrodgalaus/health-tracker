@@ -5,6 +5,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { BACKUP_MAX_BYTES, BACKUP_TABLES, backupCounts, parseBackupJson, type HealthBackup } from '../domain/backup'
 import { countLocalRecords, deleteAllLocalRecords, readLocalBackup, replaceLocalData } from '../data/backupRepository'
 import { toLocalDay } from '../lib/localDate'
+import { useToast } from '../components/ToastProvider'
 
 const titles: Record<(typeof BACKUP_TABLES)[number], string> = {
   profiles:'Profiles', goalPeriods:'Dated goal periods', savedFoods:'Saved foods / drinks',
@@ -16,6 +17,7 @@ const action='min-h-11 rounded-xl px-4 py-2 text-sm font-semibold disabled:opaci
 const readable=(iso:string)=>new Date(iso).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'})
 
 export function DataPage() {
+  const toast = useToast()
   const navigate = useNavigate()
   const counts = useLiveQuery(() => countLocalRecords(), [], undefined)
   const [preview,setPreview]=useState<HealthBackup|null>(null)
@@ -26,16 +28,15 @@ export function DataPage() {
   const [resetExpanded,setResetExpanded]=useState(false)
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
-  const [notice,setNotice]=useState('')
 
   async function prepareExport() {
-    setBusy(true);setError('');setNotice('');setExportPreview(null)
+    setBusy(true);setError('');setExportPreview(null)
     try {
       const backup=await readLocalBackup()
       const json=JSON.stringify(backup,null,2)
       if(new TextEncoder().encode(json).length>BACKUP_MAX_BYTES)throw new Error('Backup exceeds the supported 25 MiB size; no file was created.')
       setExportPreview(backup)
-      setNotice('Export preview ready. Review its record counts and timestamp, then download the file.')
+      toast.success('Backup preview ready.')
     } catch(cause) {
       setError(cause instanceof Error?cause.message:'Could not prepare your local export.')
     } finally {setBusy(false)}
@@ -43,7 +44,7 @@ export function DataPage() {
 
   async function exportFile() {
     if(!exportPreview)return
-    setBusy(true);setError('');setNotice('')
+    setBusy(true);setError('')
     try {
       const backup=exportPreview
       const json=JSON.stringify(backup,null,2)
@@ -57,14 +58,14 @@ export function DataPage() {
       link.click()
       link.remove()
       window.setTimeout(()=>URL.revokeObjectURL(url),3000)
-      setNotice('Backup download requested for '+readable(backup.exportedAt)+'. Confirm the file is saved before resetting your data.')
+      toast.success('Backup download started. Confirm the file was saved.')
     } catch(cause) {
       setError(cause instanceof Error?cause.message:'Could not export your local data.')
     } finally {setBusy(false)}
   }
 
   async function selectedFile(event:ChangeEvent<HTMLInputElement>){
-    setPreview(null);setFilename('');setConfirmReplace('');setError('');setNotice('')
+    setPreview(null);setFilename('');setConfirmReplace('');setError('')
     const file=event.target.files?.[0]
     if(!file)return
     setBusy(true)
@@ -84,12 +85,12 @@ export function DataPage() {
 
   async function restore() {
     if(!preview||confirmReplace!=='REPLACE')return
-    setBusy(true);setError('');setNotice('')
+    setBusy(true);setError('')
     try {
       const counts=await replaceLocalData(preview)
       setPreview(null);setConfirmReplace('');setExportPreview(null)
       const total=Object.values(counts).reduce((sum,value)=>sum+value,0)
-      setNotice('Successfully restored '+total+' records on this device. No records were uploaded.')
+      toast.success('Restored '+total+' records.')
       navigate('/today')
     } catch(cause) {
       setError(cause instanceof Error?cause.message:'Restore failed. Existing records should remain unchanged.')
@@ -98,11 +99,11 @@ export function DataPage() {
 
   async function reset() {
     if(confirmReset!=='DELETE')return
-    setBusy(true);setError('');setNotice('')
+    setBusy(true);setError('')
     try {
       await deleteAllLocalRecords()
       setResetExpanded(false);setConfirmReset('');setExportPreview(null)
-      setNotice('All browser-local Health Tracker records were deleted. Start again with a new profile.')
+      toast.success('All records deleted.')
       navigate('/onboarding')
     } catch(cause) {
       setError(cause instanceof Error?cause.message:'Could not delete local records; no reset was confirmed.')
@@ -120,7 +121,6 @@ export function DataPage() {
     </header>
 
     {error&&<p role="alert" className="rounded-xl bg-rose-50 p-4 text-sm text-rose-900">{error}</p>}
-    {notice&&<p role="status" className="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-900">{notice}</p>}
 
     <section aria-labelledby="local-data-title" className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
       <h2 id="local-data-title" className="text-xl font-bold">Local storage status</h2>

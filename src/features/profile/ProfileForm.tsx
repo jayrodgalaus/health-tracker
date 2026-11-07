@@ -6,6 +6,7 @@ import { BACKGROUND_MOVEMENT_PRESETS, hasCustomBackgroundMultiplier } from '../.
 import { centimetersFromInches, displayNumber, fluidFrom, fluidTo, inchesFromCentimeters, kilogramsFrom, kilogramsTo } from '../../domain/units'
 import { saveGoalSettings, saveProfileAndGoals, saveProfileSettings } from '../../data/profileRepository'
 import { toLocalDay } from '../../lib/localDate'
+import { useToast } from '../../components/ToastProvider'
 
 const inputClass = 'mt-1 block min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 focus:border-evergreen-600'
 const labelClass = 'block text-sm font-medium text-slate-800'
@@ -33,6 +34,7 @@ interface Props {
 }
 
 export function ProfileForm({ mode, section = 'profile', initialProfile, initialGoal, onSaved }: Props) {
+  const toast = useToast()
   const onboarding = mode === 'onboarding'
   const initialUnits: UnitPreferences = initialProfile?.units ?? { mass: 'kg', height: 'cm', fluid: 'ml' }
   const baseHeight = initialProfile?.heightCm ?? null
@@ -67,7 +69,6 @@ export function ProfileForm({ mode, section = 'profile', initialProfile, initial
   const [fluidTargetTouched, setFluidTargetTouched] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [saved, setSaved] = useState(false)
 
   function updateMass(next: UnitPreferences['mass']) {
     if (units.mass === next) return
@@ -113,7 +114,6 @@ export function ProfileForm({ mode, section = 'profile', initialProfile, initial
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
-    setSaved(false)
     setSaving(true)
     try {
       if (!goalType) throw new Error('Select your primary goal.')
@@ -167,7 +167,7 @@ export function ProfileForm({ mode, section = 'profile', initialProfile, initial
       if (onboarding) await saveProfileAndGoals(profileValues, goalValues, weight)
       else if (section === 'profile') await saveProfileSettings(profileValues)
       else await saveGoalSettings(goalValues)
-      setSaved(true)
+      if (onboarding) toast.success('Profile created.')
       onSaved?.()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to save. Please check local storage and retry.')
@@ -323,7 +323,6 @@ export function ProfileForm({ mode, section = 'profile', initialProfile, initial
         </fieldset>
       </fieldset>}
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}
-      {saved && <p role="status" className="rounded-xl bg-evergreen-50 p-3 text-sm text-evergreen-900">Saved to this browser's IndexedDB.</p>}
       <button type="submit" disabled={saving} className="min-h-12 w-full rounded-xl bg-evergreen-600 px-5 py-3 font-semibold text-white disabled:opacity-50 hover:bg-evergreen-700">
         {saving ? 'Saving locally…' : onboarding ? 'Create local profile' : section === 'profile' ? 'Save profile' : 'Save goals'}
       </button>

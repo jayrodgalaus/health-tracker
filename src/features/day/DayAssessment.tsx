@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { DailySummary, EvaluationStatus } from '../../domain/evaluation'
 import { setDayComplete } from '../../data/dayRepository'
 import { toLocalDay } from '../../lib/localDate'
+import { useToast } from '../../components/ToastProvider'
 
 export const DAY_STATUS: Record<EvaluationStatus, { label: string; short: string; className: string; symbol: string }> = {
   onTarget: { label: 'On target', short: 'On', className: 'bg-emerald-50 text-emerald-900 border-emerald-200', symbol: '●' },
@@ -11,9 +12,9 @@ export const DAY_STATUS: Record<EvaluationStatus, { label: string; short: string
 }
 
 export function DayAssessment({ summary, fullRules = false }: { summary?: DailySummary; fullRules?: boolean }) {
+  const toast = useToast()
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
   if (!summary) return <p role="status" className="rounded-2xl bg-white p-4 text-sm text-slate-600">Loading day evaluation…</p>
   const evalResult = summary.evaluation
   const style = DAY_STATUS[evalResult.status]
@@ -21,10 +22,9 @@ export function DayAssessment({ summary, fullRules = false }: { summary?: DailyS
   async function toggle() {
     setPending(true)
     setError('')
-    setNotice('')
     try {
       await setDayComplete(summary!.dayKey, !evalResult.isComplete)
-      setNotice(!evalResult.isComplete ? 'Day marked complete. Status updated from recorded data.' : 'Day reopened for editing. No overall status is assigned.')
+      toast.success(!evalResult.isComplete ? 'Day marked complete.' : 'Day reopened.')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to update day completion.')
     } finally {
@@ -57,7 +57,6 @@ export function DayAssessment({ summary, fullRules = false }: { summary?: DailyS
         </button> : <p className="text-sm text-slate-600">Future dates cannot be marked complete.</p>}
       </div>
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}
-      {notice && <p role="status" className="text-sm text-evergreen-800">{notice}</p>}
       <details open={fullRules} className="rounded-xl border border-slate-200 p-3">
         <summary className="cursor-pointer font-semibold text-sm">Review each rule and its source</summary>
         {evalResult.results.length === 0 ? <p className="mt-3 text-sm text-slate-600">No supported daily target was configured for this date. Add optional targets in Settings. Activity is assessed weekly, not as a daily pass/fail condition.</p> :

@@ -3,16 +3,17 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import type { UnitPreferences } from '../../domain/models'
 import { displayNumber, kilogramsFrom, kilogramsTo } from '../../domain/units'
 import { deleteWeight, readWeightForDay, saveWeight } from '../../data/weightRepository'
+import { useToast } from '../../components/ToastProvider'
 
 const inputClass='mt-1 block min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base'
 
 export function WeightQuickCard({ dayKey, unit }: {dayKey: string; unit: UnitPreferences['mass']}) {
   const entry = useLiveQuery(() => readWeightForDay(dayKey), [dayKey], undefined)
+  const toast = useToast()
   const [amount, setAmount] = useState('')
   const [changed, setChanged] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   useEffect(() => {
@@ -25,12 +26,11 @@ export function WeightQuickCard({ dayKey, unit }: {dayKey: string; unit: UnitPre
     event.preventDefault()
     setSaving(true)
     setError('')
-    setNotice('')
     try {
       if (!amount.trim() || !Number.isFinite(Number(amount))) throw new Error('Enter a valid weight.')
       await saveWeight(dayKey, kilogramsFrom(Number(amount),unit))
       setChanged(false)
-      setNotice('Weight saved on this device.')
+      toast.success('Weight saved.')
     } catch(cause) {
       setError(cause instanceof Error ? cause.message : 'Could not save weight.')
     } finally {setSaving(false)}
@@ -39,13 +39,12 @@ export function WeightQuickCard({ dayKey, unit }: {dayKey: string; unit: UnitPre
   async function remove() {
     setSaving(true)
     setError('')
-    setNotice('')
     try {
       await deleteWeight(dayKey)
       setChanged(false)
       setAmount('')
       setConfirmDelete(false)
-      setNotice('Weight measurement deleted.')
+      toast.success('Weight deleted.')
     } catch(cause) {
       setError(cause instanceof Error ? cause.message : 'Could not delete weight.')
     } finally {setSaving(false)}
@@ -58,7 +57,7 @@ export function WeightQuickCard({ dayKey, unit }: {dayKey: string; unit: UnitPre
         <label className="block max-w-xs text-sm font-semibold">Weight ({unit})
           <input type="number" min="0" step="any" inputMode="decimal" required className={inputClass}
             placeholder="Enter measured weight" value={amount}
-            onChange={event=>{setAmount(event.target.value);setChanged(true);setError('');setNotice('')}} />
+            onChange={event=>{setAmount(event.target.value);setChanged(true);setError('')}} />
         </label>
         <div className="flex flex-wrap gap-2">
           <button type="submit" disabled={saving}
@@ -80,7 +79,6 @@ export function WeightQuickCard({ dayKey, unit }: {dayKey: string; unit: UnitPre
           className="min-h-11 rounded-xl border border-slate-300 px-4 font-semibold">Cancel</button>
       </div>
     </div>}
-    {notice && <p role="status" className="mt-3 text-sm text-evergreen-800">{notice}</p>}
     {error && <p role="alert" className="mt-3 text-sm text-rose-800">{error}</p>}
   </div>
 }
