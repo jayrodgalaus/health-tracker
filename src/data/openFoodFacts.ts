@@ -1,4 +1,4 @@
-import type { NutrientSnapshot, NutritionSource, ServingUnit } from '../domain/models'
+import type { NutrientSnapshot, NutritionSource } from '../domain/models'
 import { emptyNutrition } from '../domain/nutrition'
 
 /**

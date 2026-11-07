@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from 'react'
-import type { FoodEntry, MealCategory, NutrientSnapshot, SavedFood, ServingUnit } from '../../domain/models'
+import type { FoodEntry, MealCategory, NutrientSnapshot, NutritionSource, SavedFood, ServingUnit } from '../../domain/models'
 import { portionRatio, referenceNutritionForEntry } from '../../domain/nutrition'
 import { saveIntake } from '../../data/intakeRepository'
 import { toLocalDay } from '../../lib/localDate'
+import { FoodLookupCombobox, type FoodLookupChoice } from './FoodLookupCombobox'
+import { externalFoodUrl } from '../../data/openFoodFacts'
 import { basisFor, inferBasisMode, SERVING_UNITS, type BasisMode } from './labelBasis'
 import { NutritionFields, inputsFromNutrition, nutritionFromInputs, parseNumber } from './NutritionFields'
 
@@ -23,6 +25,12 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
   const initialBasis = source?.labelBasis ?? saved?.labelBasis ?? { quantity: 1, unit: 'serving' as const }
   const initialMode = inferBasisMode(initialBasis)
   const [name, setName] = useState(source?.name ?? saved?.name ?? '')
+  const [selectedSavedFoodId, setSelectedSavedFoodId] = useState<string | null>(
+    editing?.savedFoodId ?? recent?.savedFoodId ?? saved?.id ?? null
+  )
+  const [nutritionSource, setNutritionSource] = useState<NutritionSource | null>(
+    source?.nutritionSource ?? null
+  )
   const [meal, setMeal] = useState<MealCategory | ''>(source?.meal ?? '')
   const [date, setDate] = useState(dayKey)
   const [mode, setMode] = useState<BasisMode>(initialMode)
@@ -41,6 +49,26 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
   const compatibleUnits: ServingUnit[] = basis.unit === 'g' || basis.unit === 'oz' ? ['g', 'oz'] :
     basis.unit === 'ml' || basis.unit === 'fl-oz' ? ['ml', 'fl-oz'] : [basis.unit]
   const effectiveUnit = compatibleUnits.includes(unit) ? unit : basis.unit
+
+  function chooseLookup(choice: FoodLookupChoice) {
+    const item = choice.product
+    const basis = choice.type === 'saved'
+      ? item.labelBasis : { quantity: 100, unit: item.basisUnit }
+    const resolvedMode = inferBasisMode(basis)
+    setName(item.name)
+    setMode(resolvedMode)
+    setBasisQuantity(String(basis.quantity))
+    setBasisUnit(basis.unit)
+    setQuantity(String(basis.quantity))
+    setUnit(basis.unit)
+    setServingDescription(item.servingDescription ?? '')
+    setNutrition(inputsFromNutrition(choice.type === 'saved' ? item.nutrientsPerBasis : item.nutrients))
+    setSelectedSavedFoodId(choice.type === 'saved' ? item.id : null)
+    setNutritionSource(choice.type === 'remote' ? item.nutritionSource : null)
+    setFluid('')
+    setFluidChanged(false)
+    setError('')
+  }
 
   function changeMode(next: BasisMode) {
     const nextBasis = basisFor(next, basisQuantity, basisUnit)
@@ -74,7 +102,8 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
       await saveIntake({
         dayKey: date, kind,
         name, meal: kind === 'food' ? meal || null : null,
-        savedFoodId: editing?.savedFoodId ?? saved?.id ?? recent?.savedFoodId ?? null,
+        savedFoodId: selectedSavedFoodId,
+        nutritionSource,
         quantity: amount, unit: effectiveUnit, labelBasis: resolvedBasis,
         servingDescription,
         referenceNutrients, fluidMl
@@ -94,9 +123,17 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
         <p className="mt-1 text-xs leading-5 text-slate-600">Nutrition values refer to the label basis below. The saved log keeps its own copy even if you later edit the reusable product.</p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block text-sm font-medium">Name
-          <input className={input} maxLength={150} value={name} onChange={event => setName(event.target.value)} placeholder={kind === 'food' ? 'Food or meal name' : 'Drink name'} required />
-        </label>
+        <FoodLookupCombobox
+          name={name}
+          kind={kind}
+          inputClass={input}
+          onNameChange={next => {
+            setName(next)
+            setSelectedSavedFoodId(null)
+            setNutritionSource(null)
+          }}
+          onChoose={chooseLookup}
+        />
         <label className="block text-sm font-medium">Local log date
           <input className={input} type="date" max={toLocalDay(new Date())} value={date} onChange={event => setDate(event.target.value)} required />
         </label>
@@ -140,6 +177,11 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
         </label>}
       </div>
       {kind === 'beverage' && (effectiveUnit === 'ml' || effectiveUnit === 'fl-oz') && <p className="text-xs text-slate-600">Logged fluid volume will be calculated from the entered {effectiveUnit}. Drink calories are counted only once.</p>}
+      {nutritionSource && <p className="text-xs leading-5 text-slate-600">
+        Nutrition source: <a className="font-semibold text-evergreen-700 underline" target="_blank" rel="noopener noreferrer"
+          href={externalFoodUrl(nutritionSource.productCode) ?? 'https://world.openfoodfacts.org/'}>Open Food Facts product {nutritionSource.productCode}</a>.
+        Data is community-contributed and may be incomplete or inaccurate. Verify the actual package before logging.
+      </p>}
       <NutritionFields values={nutrition} onChange={(field, value) => setNutrition(previous => ({ ...previous, [field]: value }))} />
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}
       <div className="flex flex-wrap gap-3">
