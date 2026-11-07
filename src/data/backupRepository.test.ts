@@ -117,6 +117,34 @@ describe('complete local JSON backup and restore',()=>{
       .toEqual(restored.tables.foodEntries[0]?.nutritionSource)
     database.close()
   })
+  it('round-trips verified Foundation Food provenance and rejects mismatched USDA releases',async()=>{
+    const database=newDb('usda-foundation-provenance')
+    await seed(database)
+    const base=await readLocalBackup(database)
+    const withFoundation=structuredClone(base)
+    withFoundation.tables.foodEntries[0]!.nutritionSource={
+      provider:'usda-foundation',fdcId:790577,release:'2026-04'
+    }
+    await replaceLocalData(withFoundation,database)
+    const restored=await readLocalBackup(database)
+    expect(restored.tables.foodEntries[0]?.nutritionSource).toEqual({
+      provider:'usda-foundation',fdcId:790577,release:'2026-04'
+    })
+    expect(restored.tables.foodEntries[0]?.nutrientsSnapshot.energyKcal).toBe(300)
+    const badRelease=structuredClone(withFoundation)
+    badRelease.tables.foodEntries[0]!.nutritionSource={
+      provider:'usda-foundation',fdcId:790577,release:'2018-04'
+    } as typeof badRelease.tables.foodEntries[number]['nutritionSource']
+    await expect(replaceLocalData(badRelease,database)).rejects.toThrow(/unsupported USDA release/)
+    const invalidId=structuredClone(withFoundation)
+    invalidId.tables.foodEntries[0]!.nutritionSource={
+      provider:'usda-foundation',fdcId:-2,release:'2026-04'
+    }
+    await expect(replaceLocalData(invalidId,database)).rejects.toThrow(/invalid number/)
+    expect((await readLocalBackup(database)).tables.foodEntries[0]?.nutritionSource)
+      .toEqual(restored.tables.foodEntries[0]?.nutritionSource)
+    database.close()
+  })
   it('rejects malformed, future versions, invalid values, and unknown fields with no data loss',async()=>{
     const database=newDb('backup-invalid')
     await seed(database)

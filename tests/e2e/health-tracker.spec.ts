@@ -559,6 +559,53 @@ test('offline USDA cabbage preparation dropdown autofills per-100-g and scales t
   expect(cabbage?.labelBasis).toEqual({quantity:100,unit:'g'})
 })
 
+test('red/purple onion lookup supplies independently sourced raw USDA nutrition offline',async({page,context})=>{
+  await onboard(page)
+  await page.goto('/today')
+  await page.evaluate(async()=>{await navigator.serviceWorker.ready})
+  await page.reload()
+  await expect.poll(()=>page.evaluate(()=>Boolean(navigator.serviceWorker.controller))).toBe(true)
+  await context.setOffline(true)
+  await page.goto('/log/food',{waitUntil:'domcontentloaded'})
+  const name=page.getByRole('combobox',{name:'Name'})
+  await name.fill('purple onion')
+  const variety=page.getByRole('combobox',{name:'Ingredient variety / preparation'})
+  await expect(variety.locator('option[value="790577"]')).toHaveText('Onions, red, raw')
+  await variety.selectOption('790577')
+  await page.getByRole('button',{name:'Use ingredient nutrition'}).click()
+  await expect(name).toHaveValue('Onions, red, raw')
+  await expect(page.getByRole('combobox',{name:'Nutrition is per'})).toHaveValue('100g')
+  await expect(page.getByLabel('Calories (kcal)')).toHaveValue('44')
+  await expect(page.getByLabel('Protein (g)')).toHaveValue('0.94')
+  await expect(page.getByLabel('Fiber (g)')).toHaveValue('2.2')
+  await expect(page.getByRole('link',{name:/USDA FoodData Central Foundation Foods/}))
+    .toHaveAttribute('href',/790577/)
+  await page.getByLabel('Amount consumed').fill('75')
+  await page.getByRole('button',{name:'Add to log'}).click()
+  await expect(page.getByText('Intake entry saved on this device.')).toBeVisible()
+  const entries=await page.evaluate(async()=>{
+    const req=indexedDB.open('health-tracker')
+    const database=await new Promise<IDBDatabase>((resolve,reject)=>{
+      req.onsuccess=()=>resolve(req.result)
+      req.onerror=()=>reject(req.error)
+    })
+    try {
+      return await new Promise<unknown[]>((resolve,reject)=>{
+        const query=database.transaction('foodEntries','readonly').objectStore('foodEntries').getAll()
+        query.onsuccess=()=>resolve(query.result as unknown[])
+        query.onerror=()=>reject(query.error)
+      })
+    }finally{database.close()}
+  }) as Array<{nutritionSource:{provider:string;fdcId:number;release:string};
+    nutrientsSnapshot:{energyKcal:number;sugarsG:number|null};
+    referenceNutrientsSnapshot:{energyKcal:number}}>
+  const selected=entries.find(item=>item.nutritionSource?.fdcId===790577)
+  expect(selected?.nutritionSource).toEqual({provider:'usda-foundation',fdcId:790577,release:'2026-04'})
+  expect(selected?.referenceNutrientsSnapshot.energyKcal).toBe(44)
+  expect(selected?.nutrientsSnapshot.energyKcal).toBe(33)
+  expect(selected?.nutrientsSnapshot.sugarsG).toBeNull()
+})
+
 test('USDA rice variants distinguish cooked white and brown rice in the ingredient dropdown', async ({page}) => {
   await onboard(page)
   await page.goto('/log')

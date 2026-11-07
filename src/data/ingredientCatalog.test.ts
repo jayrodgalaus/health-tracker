@@ -44,6 +44,28 @@ describe('bundled USDA ingredient preparation reference', () => {
     expect(await searchIngredientCatalog('unfindable-special-ingredient-zzzz')).toEqual([])
   })
 
+  it('finds authentic USDA red raw onion through red and purple names without inventing sautéed results', async () => {
+    for (const query of ['red onion', 'purple onion', 'purple onions', 'onion red']) {
+      const items = await searchIngredientCatalog(query)
+      const red = items.find(item => item.id === 790577)
+      expect(red?.name).toBe('Onions, red, raw')
+      expect(red?.nutritionSource).toEqual({provider:'usda-foundation',fdcId:790577,release:'2026-04'})
+      expect(red?.nutrients).toMatchObject({
+        energyKcal:44, proteinG:0.94, carbohydratesG:9.93, fatG:0.1,
+        fiberG:2.2, sodiumMg:1, potassiumMg:197, saturatedFatG:null, sugarsG:null
+      })
+    }
+    const allOnions=await searchIngredientCatalog('onion')
+    expect(allOnions.some(item => item.id===790577)).toBe(true)
+    expect(allOnions.some(item => item.id===170000)).toBe(true)
+    expect(allOnions.some(item => item.id===170004)).toBe(true)
+    expect((await searchIngredientCatalog('purple onion sauteed')).length).toBe(0)
+    const red=(await searchIngredientCatalog('purple onion'))[0]!
+    const portion=scaleNutrition(red.nutrients,{quantity:100,unit:'g'},75,'g')
+    expect(portion.energyKcal).toBe(33)
+    expect(portion.sugarsG).toBeNull()
+  })
+
   it('keeps unknown reference fields null rather than treating them as measured zeros', async () => {
     const mediumBrownRice = (await searchIngredientCatalog('rice brown')).find(item => item.id === 168875)
     expect(mediumBrownRice?.nutrients.sugarsG).toBeNull()
