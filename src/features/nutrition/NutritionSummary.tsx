@@ -13,7 +13,7 @@ function metricLabel(metric: MetricCoverage, unit: string): string {
 }
 
 export function NutritionSummary({
-  entries, loading = false, reniProfile, reniDayKey, comparisonLimits, detailDayKey
+  entries, loading = false, reniProfile, reniDayKey, comparisonLimits, detailDayKey, showFluids = true
 }: {
   entries?: readonly FoodEntry[]
   loading?: boolean
@@ -23,6 +23,8 @@ export function NutritionSummary({
   comparisonLimits?: NutrientComparisonLimits
   /** Allows the nutrient cards to link to a selected day's per-entry breakdown. */
   detailDayKey?: string
+  /** The dedicated Fluids page owns fluid totals in Calendar. */
+  showFluids?: boolean
 }) {
   if (loading || entries === undefined) {
     return <p role="status" className="rounded-2xl bg-white p-4 text-sm text-slate-600">Loading recorded nutrition…</p>
@@ -30,15 +32,19 @@ export function NutritionSummary({
   const summary = aggregateIntake(entries)
   const primary = [
     { name: 'Calories consumed', metric: summary.nutrients.energyKcal, unit: 'kcal' },
-    { name: 'Logged fluids', metric: summary.fluids, unit: 'ml' }
+    ...(showFluids ? [{ name: 'Logged fluids', metric: summary.fluids, unit: 'ml' }] : [])
   ]
   const selectedDay = detailDayKey ?? reniDayKey
   return (
     <section aria-labelledby="nutrition-summary-title" className="space-y-3">
       <div>
-        <h2 id="nutrition-summary-title" className="text-lg font-bold">Recorded nutrition and fluids</h2>
+        <h2 id="nutrition-summary-title" className="text-lg font-bold">{showFluids ? 'Recorded nutrition and fluids' : 'Recorded nutrition'}</h2>
         <p className="mt-1 text-sm text-slate-600">
-          {summary.entries ? `${summary.foods} foods · ${summary.beverages} drinks/water entries` : 'Nothing logged on this date'}
+          {showFluids
+            ? (summary.entries ? `${summary.foods} foods · ${summary.beverages} drinks/water entries` : 'Nothing logged on this date')
+            : summary.nutrients.energyKcal.totalEntryCount > 0
+              ? `${summary.foods} foods · ${summary.beverages - entries.filter(entry => entry.beverageType === 'water' && entry.kind === 'beverage').length} other drinks`
+              : 'No nutritional entries recorded'}
         </p>
       </div>
       <div className="grid grid-cols-2 gap-3">

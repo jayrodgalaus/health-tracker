@@ -77,9 +77,9 @@ export function NutrientDetailPage() {
   return <div className="space-y-6">
     <header className="space-y-2">
       <PageInfoLink topic="nutrition" />
-      <Link to={'/calendar/' + dayKey}
+      <Link to={'/calendar/' + dayKey + '/nutrition'}
         className="inline-flex min-h-11 items-center text-sm font-semibold text-evergreen-700 underline">
-        ‹ Back to day details
+        ‹ Back to nutrition
       </Link>
       <p className="text-sm font-semibold uppercase tracking-wide text-evergreen-700">{dayKey}</p>
       <h1 className="text-3xl font-bold tracking-tight">{nutrient}</h1>
