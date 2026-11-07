@@ -61,7 +61,10 @@ export function calculateExpenditure(
   const calories = aggregateIntake(intake.filter(entry => entry.dayKey === day)).nutrients.energyKcal
   // A logged water-only day cannot establish that all food calories are known.
   const hasNonWaterIntake = intake.some(entry => entry.dayKey === day && !isPlainWaterEntry(entry))
-  const difference = total !== null && review?.isComplete && calories.complete && hasNonWaterIntake &&
+  // The difference is available for an open day when current logged intake
+  // has complete energy coverage and every workout has assessable net kcal.
+  // It is provisional until the user completes the day, not a weight forecast.
+  const difference = total !== null && calories.complete && hasNonWaterIntake &&
     calories.knownAmount !== null ? calories.knownAmount - total : null
 
   const explanation: string[] = []
@@ -80,7 +83,10 @@ export function calculateExpenditure(
   else explanation.push('Known active/incremental workout kcal are added once, above the background estimate; gross workout calories are not included.')
   if (!review?.isComplete && total !== null) explanation.push(
     'This is a provisional FULL-DAY expenditure estimate from current workout logs, not energy already spent so far; the day is not yet marked complete.')
-  if (difference === null) explanation.push('Estimated energy difference needs fully known logged intake and total estimated expenditure; it is not a weight-change prediction.')
+  if (difference === null) explanation.push('Estimated energy difference needs fully known logged intake and total estimated expenditure; missing energy is not zero.')
+  else explanation.push(review?.isComplete
+    ? 'Estimated difference = logged consumed kcal − estimated full-day expended kcal. This is not a measured deficit or a weight-change prediction.'
+    : 'Provisional estimated difference = currently logged consumed kcal − estimated FULL-DAY expended kcal. Intake and workouts may still be logged; this is not a measured deficit or a weight-change prediction.')
   return {
     restingKcal: rmr, backgroundKcal: background, workoutIncrementKcal: increment,
     totalExpenditureKcal: total, differenceKcal: difference,

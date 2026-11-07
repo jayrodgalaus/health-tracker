@@ -52,7 +52,7 @@ describe('conservative reproducible goal alignment', () => {
     expect(report.activity.knownIncrementalKcal).toBe(90)
     expect(report.expenditure.workoutIncrementKcal).toBe(90)
     expect(report.expenditure.totalExpenditureKcal).not.toBeNull()
-    expect(report.expenditure.differenceKcal).toBeNull()
+    expect(report.expenditure.differenceKcal).toBeCloseTo(2000 - report.expenditure.totalExpenditureKcal!)
     expect(report.evaluation.status).toBe('incomplete')
   })
   it('requires at least one fully known non-water intake for energy alignment', () => {

@@ -199,10 +199,15 @@ Only for a confirmed adult date with required inputs:
   A marked-complete day with no workouts recorded contributes a zero
   *logged workout increment* for that completed record only.
 - **Estimated difference** = known complete logged calories consumed −
-  total estimated expenditure, and remains hidden on open days even if
-  provisional expenditure is available. Partial intake calories, a water-only
-  day, or unknown total expenditure also keeps the difference unknown.
-  Completion is still required for scoring, not for showing workout expenditure.
+  total estimated expenditure, and appears provisionally even on open days
+  when both values are known. Partial intake calories, a water-only day, or
+  unknown total expenditure keeps the difference unknown. This is a
+  logged-intake-vs-full-day-estimate comparison, not a measured deficit,
+  energy balance already incurred, or same-day weight prediction.
+  Completion is still required for scoring, not for displaying energy values.
+- **Energy panel copy** stays compact and displays only the figures and
+  coverage labels such as "Known portion". Explanatory text and uncertainty
+  disclosures are maintained under Settings → Docs → Today and Exercise.
 
 All values are estimates; body composition, conditions, medication, routine
 movement and energy absorption can change real needs. No same-day predicted

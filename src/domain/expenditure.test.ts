@@ -39,12 +39,23 @@ describe('optional adult expenditure', () => {
     const open = calculateExpenditure('2026-11-06', profile, w, [workout], [meal], null)
     expect(open.workoutIncrementKcal).toBeCloseTo(110.25)
     expect(open.totalExpenditureKcal).toBeCloseTo(1856.5)
-    expect(open.differenceKcal).toBeNull() // Day is still open; intake may not be finished.
+    expect(open.differenceKcal).toBeCloseTo(143.5) // Provisional, even while day is open.
     expect(open.explanation.join(' ')).toContain('provisional FULL-DAY')
     const explicitOpen = calculateExpenditure('2026-11-06', profile, w, [workout], [meal], {
       dayKey: '2026-11-06', isComplete: false, markedAt: null
     })
     expect(explicitOpen.totalExpenditureKcal).toBeCloseTo(1856.5)
+    expect(explicitOpen.differenceKcal).toBeCloseTo(143.5)
+  })
+  it('withholds provisional difference for incomplete intake or water-only logs', () => {
+    const w = [weight('2026-11-06', 70)]
+    const incomplete = { ...meal, id: 'unknown-energy', nutrientsSnapshot: { ...emptyNutrition(), energyKcal: null } }
+    expect(calculateExpenditure('2026-11-06', profile, w, [workout], [meal, incomplete], null).differenceKcal).toBeNull()
+    const water = { ...meal, id: 'water', kind: 'beverage' as const,
+      beverageType: 'water' as const, fluidMl: 250,
+      nutrientsSnapshot: { ...emptyNutrition(), energyKcal: 0 } }
+    expect(calculateExpenditure('2026-11-06', profile, w, [workout], [water], null).differenceKcal).toBeNull()
+    expect(calculateExpenditure('2026-11-06', profile, w, [workout], [], null).differenceKcal).toBeNull()
   })
   it('shows only the known workout subtotal when another session has unknown energy', () => {
     const w = [weight('2026-11-06', 70)]

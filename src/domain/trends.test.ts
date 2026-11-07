@@ -52,7 +52,7 @@ describe('trend math matches Today and Calendar',()=>{
       weights:[weight('2026-11-06',70)],goals:[],reviews:[]
     },now)
     expect(series.days[0]?.expenditureKcal.value).not.toBeNull()
-    expect(series.days[0]?.differenceKcal.value).toBeNull()
+    expect(series.days[0]?.differenceKcal.value).toBeCloseTo(400 - series.days[0]!.expenditureKcal.value!)
     expect(series.days[0]?.status).toBe('incomplete')
     expect(series.adherence.assessable).toBe(0)
   })
