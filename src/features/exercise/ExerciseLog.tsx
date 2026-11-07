@@ -187,8 +187,6 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
         <p className="mt-1 text-xs text-evergreen-800">
           {!adult ? 'Adult-oriented estimate unavailable for this date.'
             : effectiveMethod === 'paceGradeNet' ? 'Based on pace, uphill grade and recorded weight.'
-            : effectiveMethod === 'distanceNet' ? 'Based on distance and recorded weight.'
-            : effectiveMethod === 'activityTimeNet' ? 'Based on time, a typical activity MET and recorded weight.'
             : effectiveMethod === 'metNet' ? 'Based on supplied MET, time and recorded weight.'
             : effectiveMethod === 'manualActive' ? 'Manually entered active kcal.'
             : 'No estimate selected.'}
