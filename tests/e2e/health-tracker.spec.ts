@@ -58,6 +58,10 @@ test('completing a day requires confirmation, locks every form, and reopening re
   await expect(page.getByText('71.5 kg measured')).toBeVisible()
   await expect(page.getByRole('link',{name:'Add or edit weight'})).toHaveCount(0)
   await expect(page.getByRole('link',{name:'Edit / delete'})).toHaveCount(0)
+  for (const section of ['nutrition','fluids','activity','weight']) {
+    await page.goto('/calendar/2026-01-15/' + section)
+    await expect(page.getByRole('link',{name:/Add or edit|Edit \/ delete/})).toHaveCount(0)
+  }
   await page.goto('/log/food?date=2026-01-15')
   await expect(page.getByRole('heading',{name:'Completed day · Read only'})).toBeVisible()
   await expect(page.getByRole('button',{name:'Add to log'})).toHaveCount(0)
