@@ -84,3 +84,59 @@ export async function saveProfileAndGoals(
     }
   })
 }
+
+/** Profile-only edits must not create or overwrite dated goals. */
+export async function saveProfileSettings(
+  values: ProfileValues,
+  database: HealthTrackerDatabase = db,
+  today: string = toLocalDay(new Date())
+): Promise<void> {
+  validateProfile(values, today)
+  await database.transaction('rw', database.profiles, async () => {
+    const previous = await database.profiles.get('primary')
+    if (!previous) throw new Error('Create a local profile before editing settings.')
+    await database.profiles.put({
+      ...previous,
+      birthDate: values.birthDate,
+      ageYears: values.ageYears,
+      ageAsOf: values.ageAsOf,
+      heightCm: values.heightCm,
+      sexForEquation: values.sexForEquation,
+      activityLevel: values.activityLevel,
+      backgroundActivityMultiplier: values.backgroundActivityMultiplier ?? null,
+      units: {...values.units},
+      // A profile-only edit must never silently change the active goal.
+      goal: previous.goal,
+      updatedAt: new Date().toISOString()
+    })
+  })
+}
+
+/** Goal-only edits preserve profile stats, preferences and dated record history. */
+export async function saveGoalSettings(
+  values: GoalValues,
+  database: HealthTrackerDatabase = db,
+  today: string = toLocalDay(new Date())
+): Promise<void> {
+  validateGoal(values, today, true)
+  await database.transaction('rw', database.profiles, database.goalPeriods, async () => {
+    const prior = await database.profiles.get('primary')
+    if (!prior) throw new Error('Create a local profile before editing settings.')
+    const sameDate = await database.goalPeriods.where('effectiveFrom').equals(values.effectiveFrom).toArray()
+    if (sameDate.length > 1) throw new Error('Multiple goals already exist on this date. No changes were saved.')
+    const previousGoal = sameDate[0]
+    await database.goalPeriods.put({
+      id: previousGoal?.id ?? crypto.randomUUID(),
+      effectiveFrom: values.effectiveFrom,
+      goalType: values.goalType,
+      targetWeightKg: values.targetWeightKg,
+      ruleSettings: values.ruleSettings ?? previousGoal?.ruleSettings,
+      targets: {...values.targets},
+      createdAt: previousGoal?.createdAt ?? new Date().toISOString()
+    })
+    // Future-dated changes should not change today's visible goal selection.
+    if (values.effectiveFrom <= today) {
+      await database.profiles.put({...prior, goal: values.goalType, updatedAt: new Date().toISOString()})
+    }
+  })
+}

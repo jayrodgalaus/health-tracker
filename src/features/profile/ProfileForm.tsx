@@ -4,7 +4,7 @@ import { EMPTY_TARGETS, type GoalValues, type ProfileValues } from '../../domain
 import { ALIGNMENT_RULES } from '../../domain/evaluation'
 import { BACKGROUND_MOVEMENT_PRESETS, findBackgroundMovementPreset, hasCustomBackgroundMultiplier } from '../../domain/backgroundMovement'
 import { centimetersFromInches, displayNumber, fluidFrom, fluidTo, inchesFromCentimeters, kilogramsFrom, kilogramsTo } from '../../domain/units'
-import { saveProfileAndGoals } from '../../data/profileRepository'
+import { saveGoalSettings, saveProfileAndGoals, saveProfileSettings } from '../../data/profileRepository'
 import { toLocalDay } from '../../lib/localDate'
 
 const inputClass = 'mt-1 block min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 focus:border-evergreen-600'
@@ -26,12 +26,13 @@ function parseNumber(value: string, field: string, optional = false): number | n
 
 interface Props {
   mode: 'onboarding' | 'settings'
+  section?: 'profile' | 'goals'
   initialProfile?: Profile | null
   initialGoal?: GoalPeriod | null
   onSaved?: () => void
 }
 
-export function ProfileForm({ mode, initialProfile, initialGoal, onSaved }: Props) {
+export function ProfileForm({ mode, section = 'profile', initialProfile, initialGoal, onSaved }: Props) {
   const onboarding = mode === 'onboarding'
   const initialUnits: UnitPreferences = initialProfile?.units ?? { mass: 'kg', height: 'cm', fluid: 'ml' }
   const baseHeight = initialProfile?.heightCm ?? null
@@ -164,7 +165,9 @@ export function ProfileForm({ mode, initialProfile, initialGoal, onSaved }: Prop
         }
       }
       const weight = onboarding ? kilogramsFrom(parseNumber(firstWeight, 'initial weight')!, units.mass) : null
-      await saveProfileAndGoals(profileValues, goalValues, weight)
+      if (onboarding) await saveProfileAndGoals(profileValues, goalValues, weight)
+      else if (section === 'profile') await saveProfileSettings(profileValues)
+      else await saveGoalSettings(goalValues)
       setSaved(true)
       onSaved?.()
     } catch (cause) {
@@ -176,7 +179,7 @@ export function ProfileForm({ mode, initialProfile, initialGoal, onSaved }: Prop
 
   return (
     <form onSubmit={(event) => { void submit(event) }} className="space-y-6" noValidate>
-      <fieldset className="rounded-2xl border border-slate-200 bg-white p-5">
+      {(onboarding || section === 'profile') && <fieldset className="rounded-2xl border border-slate-200 bg-white p-5">
         <legend className="px-1 text-lg font-bold">Personal profile</legend>
         <p className="mb-4 text-sm text-slate-600">Only these details stay on this device. You can update them later without deleting logs.</p>
         <div className="mb-4 grid grid-cols-2 gap-3">
@@ -284,9 +287,9 @@ export function ProfileForm({ mode, initialProfile, initialGoal, onSaved }: Prop
           </p>
         )}
         <p className="mt-3 text-xs leading-5 text-slate-600">An adult resting estimate requires a recorded current/prior weight, age, height and equation constant. A total daily estimate also needs this explicit background multiplier and known workout increments on a marked-complete day. If inputs are missing, no total is shown.</p>
-      </fieldset>
+      </fieldset>}
 
-      <fieldset className="rounded-2xl border border-slate-200 bg-white p-5">
+      {(onboarding || section === 'goals') && <fieldset className="rounded-2xl border border-slate-200 bg-white p-5">
         <legend className="px-1 text-lg font-bold">Your goals</legend>
         <label className={labelClass}>Primary goal
           <select className={inputClass} value={goalType} onChange={e => setGoalType(e.target.value as HealthGoal | '')} required>
@@ -343,11 +346,11 @@ export function ProfileForm({ mode, initialProfile, initialGoal, onSaved }: Prop
           </div>
         </fieldset>
         <p className="mt-4 text-xs leading-5 text-slate-600">Targets are chosen by you, not prescribed by the app. A weight goal does not automatically set a calorie target.</p>
-      </fieldset>
+      </fieldset>}
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}
       {saved && <p role="status" className="rounded-xl bg-evergreen-50 p-3 text-sm text-evergreen-900">Saved to this browser's IndexedDB.</p>}
       <button type="submit" disabled={saving} className="min-h-12 w-full rounded-xl bg-evergreen-600 px-5 py-3 font-semibold text-white disabled:opacity-50 hover:bg-evergreen-700">
-        {saving ? 'Saving locally…' : onboarding ? 'Create local profile' : 'Save profile and goals'}
+        {saving ? 'Saving locally…' : onboarding ? 'Create local profile' : section === 'profile' ? 'Save profile' : 'Save goals'}
       </button>
     </form>
   )

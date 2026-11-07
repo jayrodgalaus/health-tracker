@@ -12,6 +12,11 @@ import { DataPage } from './pages/DataPage'
 import { CalendarPage } from './pages/CalendarPage'
 import { DayDetailPage } from './pages/DayDetailPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { ProfileSettingsPage } from './pages/ProfileSettingsPage'
+import { GoalsSettingsPage } from './pages/GoalsSettingsPage'
+import { PreferencesPage } from './pages/PreferencesPage'
+import { AboutPage } from './pages/AboutPage'
+import { DocsPage } from './pages/DocsPage'
 
 export type StorageStatus = 'opening' | 'ready' | 'unavailable'
 
@@ -53,7 +58,12 @@ export default function App() {
         <Route path="/calendar" element={<CalendarPage profile={profile} />} />
         <Route path="/calendar/:dayKey" element={<DayDetailPage profile={profile} />} />
         <Route path="/trends" element={<TrendsPage profile={profile} />} />
-        <Route path="/settings" element={<SettingsPage storage={storage} profile={profile} />} />
+        <Route path="/settings" element={<SettingsPage storage={storage} />} />
+        <Route path="/settings/profile" element={<ProfileSettingsPage profile={profile} />} />
+        <Route path="/settings/goals" element={<GoalsSettingsPage profile={profile} />} />
+        <Route path="/settings/preferences" element={<PreferencesPage />} />
+        <Route path="/settings/about" element={<AboutPage />} />
+        <Route path="/settings/docs" element={<DocsPage />} />
         <Route path="/settings/data" element={<DataPage />} />
         <Route path="*" element={<Navigate to="/today" replace />} />
       </Routes>

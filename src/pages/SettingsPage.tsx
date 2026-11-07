@@ -1,70 +1,35 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useLiveQuery } from 'dexie-react-hooks'
-import type { Profile } from '../domain/models'
-import { listGoalPeriods, readGoalForDay } from '../data/profileRepository'
-import { ProfileForm } from '../features/profile/ProfileForm'
-import { WaterPresetSettings } from '../features/nutrition/WaterPresetSettings'
-import { toLocalDay } from '../lib/localDate'
 import type { StorageStatus } from '../App'
 
-export function SettingsPage({ storage, profile }: { storage: StorageStatus; profile: Profile }) {
-  const activeGoal = useLiveQuery(() => readGoalForDay(toLocalDay(new Date())), [], undefined)
-  const goalHistory = useLiveQuery(() => listGoalPeriods(), [], undefined)
-  const [settingsSaved, setSettingsSaved] = useState(false)
+const items = [
+  { path: '/settings/profile', title: 'Profile', description: 'Age, height, preferred units and everyday movement' },
+  { path: '/settings/goals', title: 'Goals and targets', description: 'Daily targets, calendar rules and goal history' },
+  { path: '/settings/preferences', title: 'Preferences', description: 'Quick-add water amounts' },
+  { path: '/settings/data', title: 'Data and backups', description: 'Export, restore and erase local records' },
+  { path: '/settings/docs', title: 'Docs', description: 'Definitions, calculations, food sources and how to use the tracker' },
+  { path: '/settings/about', title: 'About and health notice', description: 'Privacy, limitations and safety information' }
+] as const
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-sm font-semibold uppercase tracking-wide text-evergreen-700">Personal preferences</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="mt-3 text-sm leading-6 text-slate-600">Edit your profile, units and dated goals without deleting previous measurements.</p>
-      </div>
-      {activeGoal === undefined ? (
-        <p role="status" className="rounded-2xl bg-white p-5 text-sm text-slate-600">Loading your saved settings…</p>
-      ) : (
-        <ProfileForm key={`${profile.updatedAt}:${activeGoal?.id ?? 'none'}`} mode="settings" initialProfile={profile} initialGoal={activeGoal} onSaved={() => setSettingsSaved(true)} />
-      )}
-      {settingsSaved && <p role="status" className="rounded-xl bg-evergreen-50 p-3 text-sm text-evergreen-900">Profile and goal changes saved locally.</p>}
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="goal-history-heading">
-        <h2 id="goal-history-heading" className="text-lg font-semibold">Goal history</h2>
-        <p className="mt-2 text-sm leading-6 text-slate-600">Future and previous targets are kept by effective date. Old days will use the targets active on their date.</p>
-        {goalHistory === undefined && <p role="status" className="mt-2 text-sm">Loading goals…</p>}
-        {goalHistory?.length === 0 && <p className="mt-2 text-sm text-slate-600">No goals saved yet.</p>}
-        <ul className="mt-3 space-y-2">
-          {goalHistory?.map(goal => <li key={goal.id} className="rounded-xl bg-slate-50 p-3 text-sm">
-            <strong>{goal.effectiveFrom}</strong> · {goal.goalType ?? 'Unspecified legacy goal'} · Energy target: {goal.targets.energyKcal === null ? 'not set' : `${goal.targets.energyKcal} kcal/day`}
-          </li>)}
-        </ul>
-      </section>
-      <WaterPresetSettings />
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="storage-heading">
-        <h2 id="storage-heading" className="text-lg font-semibold">On-device storage</h2>
-        <p className="mt-2 text-sm text-slate-600" role="status">
-          {storage === 'ready' ? 'IndexedDB is available on this device.' : storage === 'opening' ? 'Checking local storage…' : 'IndexedDB is unavailable.'}
-        </p>
-        <p className="mt-3 text-sm leading-6 text-slate-600">
-          No account, remote server, analytics or cloud sync is used. Clearing browser data can erase records.
-          Create and store a JSON backup regularly. Imports replace all local data only after file validation and explicit confirmation.
-        </p>
-        <Link to="/settings/data" className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-evergreen-600 px-4 py-2 text-sm font-semibold text-white">
-          Open Data: export, import or reset
-        </Link>
-      </section>
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="safety-heading">
-        <h2 id="safety-heading" className="text-lg font-semibold">About · Health information notice</h2>
-        <p className="mt-2 text-sm leading-6 text-slate-600">
-          This app provides general, estimated nutrition and activity evaluations for personal tracking.
-          Evaluations may be inaccurate or inappropriate for people with pre-existing medical conditions,
-          people taking medications that affect metabolism or fluid balance, and people with other
-          circumstances that alter nutritional or exercise needs. It is not a medical device and
-          does not diagnose, treat, or replace advice from a qualified healthcare professional.
-        </p>
-        <p className="mt-3 text-sm leading-6 text-slate-600">
-          Adult-oriented energy estimates and weight-goal evaluations do not apply to users under 18.
-          Basic logging remains available. No medical-condition histories are collected.
-        </p>
-      </section>
-    </div>
-  )
+export function SettingsPage({ storage }: { storage: StorageStatus }) {
+  return <div className="space-y-6">
+    <header>
+      <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+    </header>
+    <nav aria-label="Settings sections" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <ul className="divide-y divide-slate-200">
+        {items.map(item => <li key={item.path}>
+          <Link to={item.path} className="flex min-h-20 items-center justify-between gap-3 px-5 py-4 hover:bg-evergreen-50 focus-visible:bg-evergreen-50">
+            <span className="space-y-1">
+              <span className="block text-base font-semibold text-slate-900">{item.title}</span>
+              <span className="block text-xs leading-5 text-slate-600">{item.description}</span>
+            </span>
+            <span aria-hidden="true" className="text-xl text-evergreen-700">›</span>
+          </Link>
+        </li>)}
+      </ul>
+    </nav>
+    <p className="text-xs text-slate-600" role="status">
+      {storage === 'ready' ? 'Local storage ready.' : storage === 'opening' ? 'Checking local storage…' : 'Local storage unavailable.'}
+    </p>
+  </div>
 }
