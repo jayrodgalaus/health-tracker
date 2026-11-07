@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import type { DailySummary } from '../../domain/evaluation'
+import { kilogramsTo } from '../../domain/units'
 
 export const DAY_SECTIONS = ['energy', 'nutrition', 'fluids', 'activity', 'weight'] as const
 export type DaySection = typeof DAY_SECTIONS[number]
@@ -9,27 +10,46 @@ export function isDaySection(value: string | undefined): value is DaySection {
 }
 
 const cardInfo: Record<DaySection, {
-  title: string; label: string; backdrop: string; illustration: string; arrow: string
+  title: string
+  backdrop: string
+  illustration: string
+  pill: string
+  circle: string
 }> = {
   energy: {
-    title: 'Energy', label: 'Estimated energy difference',
-    backdrop: 'bg-violet-100', illustration: 'text-violet-700', arrow: 'bg-violet-100 text-violet-800'
+    title: 'Energy',
+    backdrop: 'bg-violet-200',
+    illustration: 'text-violet-700',
+    pill: 'border-violet-600 bg-violet-50 text-violet-800',
+    circle: 'bg-violet-600'
   },
   nutrition: {
-    title: 'Nutrition', label: 'Recorded nutrients',
-    backdrop: 'bg-rose-100', illustration: 'text-rose-700', arrow: 'bg-rose-100 text-rose-800'
+    title: 'Nutrition',
+    backdrop: 'bg-rose-200',
+    illustration: 'text-rose-700',
+    pill: 'border-rose-600 bg-rose-50 text-rose-800',
+    circle: 'bg-rose-600'
   },
   fluids: {
-    title: 'Fluids', label: 'Recorded drinks and water',
-    backdrop: 'bg-sky-100', illustration: 'text-sky-700', arrow: 'bg-sky-100 text-sky-800'
+    title: 'Fluids',
+    backdrop: 'bg-sky-200',
+    illustration: 'text-sky-700',
+    pill: 'border-sky-600 bg-sky-50 text-sky-800',
+    circle: 'bg-sky-600'
   },
   activity: {
-    title: 'Activity', label: 'Recorded exercises',
-    backdrop: 'bg-amber-100', illustration: 'text-amber-700', arrow: 'bg-amber-100 text-amber-800'
+    title: 'Activity',
+    backdrop: 'bg-amber-200',
+    illustration: 'text-amber-700',
+    pill: 'border-amber-700 bg-amber-50 text-amber-900',
+    circle: 'bg-amber-700'
   },
   weight: {
-    title: 'Weight', label: 'Recorded weight',
-    backdrop: 'bg-emerald-100', illustration: 'text-emerald-700', arrow: 'bg-emerald-100 text-emerald-800'
+    title: 'Weight',
+    backdrop: 'bg-emerald-200',
+    illustration: 'text-emerald-700',
+    pill: 'border-emerald-700 bg-emerald-50 text-emerald-900',
+    circle: 'bg-emerald-700'
   }
 }
 
@@ -67,40 +87,78 @@ export function DaySectionIcon({ section }: { section: DaySection }) {
   </svg>
 }
 
-export function energyDifferenceSubtitle(summary?: DailySummary): string {
-  const value = summary?.expenditure.differenceKcal
-  if (value === null || value === undefined || !Number.isFinite(value)) {
-    return 'Est. difference unavailable'
-  }
-  const shown = Number(Math.abs(value).toFixed(1)).toLocaleString('en-US')
-  const sign = value < 0 ? '−' : value > 0 ? '+' : ''
-  return 'Est. difference: ≈ ' + sign + shown + ' kcal'
+function amount(value: number | null | undefined): string | null {
+  if (value === null || value === undefined || !Number.isFinite(value)) return null
+  return Number(value.toFixed(1)).toLocaleString('en-US')
 }
 
-export function CalendarSectionCards({ dayKey, summary }: { dayKey: string; summary?: DailySummary }) {
+/** Display known recorded values only. Missing logs and unknown estimates are
+ * not zero. Partial nutrition, fluid and workout totals are lower bounds.
+ */
+export function calendarSectionValue(
+  section: DaySection,
+  summary: DailySummary | undefined,
+  massUnit: 'kg' | 'lb'
+): string {
+  if (!summary) return section === 'weight' ? 'No record' : '—'
+  if (section === 'energy') {
+    const value = summary.expenditure.differenceKcal
+    const formatted = amount(value === null ? null : Math.abs(value))
+    if (formatted === null) return '—'
+    const sign = value! < 0 ? '−' : value! > 0 ? '+' : ''
+    return '≈ ' + sign + formatted + ' kcal'
+  }
+  if (section === 'nutrition' || section === 'fluids') {
+    const coverage = section === 'nutrition'
+      ? summary.intake.nutrients.energyKcal : summary.intake.fluids
+    const formatted = amount(coverage.knownAmount)
+    if (formatted === null) return '—'
+    return (coverage.complete ? '' : '≥') + formatted + (section === 'nutrition' ? ' kcal' : ' mL')
+  }
+  if (section === 'activity') {
+    const activity = summary.activity
+    const formatted = amount(activity.knownIncrementalKcal)
+    if (formatted === null) return '—'
+    return (activity.energyCoverageComplete ? '≈ ' : '≥') + formatted + ' kcal'
+  }
+  const recorded = summary.recordedWeightKg
+  const formatted = amount(recorded === null ? null : kilogramsTo(recorded, massUnit))
+  return formatted === null ? 'No record' : formatted + ' ' + massUnit
+}
+
+export function CalendarSectionCards({
+  dayKey, summary, massUnit
+}: {
+  dayKey: string
+  summary?: DailySummary
+  massUnit: 'kg' | 'lb'
+}) {
   return <section aria-label="Day details by section">
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
       {DAY_SECTIONS.map((section, index) => {
         const item = cardInfo[section]
-        const subtitle = section === 'energy' ? energyDifferenceSubtitle(summary) : 'View details'
+        const value = calendarSectionValue(section, summary, massUnit)
         return <Link key={section} to={'/calendar/' + dayKey + '/' + section}
-          aria-label={item.title + ' — ' + subtitle}
-          className={'group relative flex min-h-[210px] min-w-0 flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-evergreen-700 ' +
+          aria-label={item.title + ' — ' + value + ' — View details'}
+          className={'group relative flex min-h-[245px] min-w-0 flex-col items-center overflow-hidden rounded-[2.25rem] border border-slate-200 bg-white px-3 pb-4 pt-3 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-evergreen-700 ' +
             (index === 4 ? 'col-span-2 sm:col-span-1' : '')}>
-          <div className="relative mb-4 flex h-[86px] items-start justify-end">
-            <span aria-hidden="true" className={'absolute right-0 top-0 h-20 w-24 rounded-[1.6rem] ' + item.backdrop} />
-            <span className={'relative -mr-1 mt-2 ' + item.illustration}><DaySectionIcon section={section} /></span>
+          <span aria-hidden="true" className={'pointer-events-none absolute right-3 top-3 h-28 w-28 rounded-[3.25rem] ' + item.backdrop} />
+          <div className={'relative mb-3 flex h-[112px] w-full items-center justify-end pr-3 pt-3 ' + item.illustration}>
+            <DaySectionIcon section={section} />
           </div>
-          <h3 className="text-base font-extrabold tracking-tight text-slate-900">{item.title}</h3>
-          <p className="mt-1 min-h-9 text-xs leading-4 text-slate-600">{subtitle}</p>
-          <div className="mt-auto flex justify-end pt-2">
-            <span aria-hidden="true" className={'flex h-9 w-9 items-center justify-center rounded-full transition-transform group-hover:translate-x-0.5 ' + item.arrow}>
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor"
+          <h3 className="relative text-lg font-extrabold tracking-tight text-slate-900">{item.title}</h3>
+          <p className="relative mt-1 flex min-h-10 max-w-full items-center justify-center break-words text-sm font-medium tabular-nums leading-5 text-slate-700">
+            {value}
+          </p>
+          <span className={'relative mt-auto inline-flex max-w-full items-center gap-1 rounded-full border py-1 pl-3 pr-1 text-xs font-semibold ' + item.pill}>
+            <span className="whitespace-nowrap text-[11px] sm:text-xs">View details</span>
+            <span aria-hidden="true" className={'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white transition-transform group-hover:translate-x-0.5 ' + item.circle}>
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor"
                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M5 12h14m-6-6 6 6-6 6" />
               </svg>
             </span>
-          </div>
+          </span>
         </Link>
       })}
     </div>
