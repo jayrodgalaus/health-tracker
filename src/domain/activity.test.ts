@@ -78,6 +78,22 @@ describe('exercise energy estimates', () => {
     expect(estimateWorkout({ ...walk, durationMinutes: null }, weights, true).kcal).toBeNull()
     expect(estimateWorkout(walk, weights, false).kcal).toBeNull()
   })
+  it('computes stored pace/grade estimates using historical weight without changing old method results', () => {
+    const weights = [weight('2026-11-04', 70), weight('2026-11-07', 82)]
+    const walking = exercise({
+      estimationMethod: 'paceGradeNet', met: null, durationMinutes: null,
+      distanceKm: 5, speedKmh: 5, inclinePercent: 0
+    })
+    expect(estimateWorkout(walking, weights, true)).toMatchObject({
+      method: 'paceGradeNet', kcal: 205.8, weight: { source: 'carriedForward', sourceDay: '2026-11-04' }
+    })
+    expect(estimateWorkout({ ...walking, speedKmh: 6 }, weights, true).kcal).toBeCloseTo(232.75)
+    expect(estimateWorkout({ ...walking, inclinePercent: 5 }, weights, true).kcal).toBeCloseTo(363.3)
+    expect(estimateWorkout(walking, [weight('2026-11-07', 82)], true).kcal).toBeNull()
+    expect(estimateWorkout(walking, weights, false).kcal).toBeNull()
+    const oldDistance = exercise({ estimationMethod: 'distanceNet', met: null, distanceKm: 5 })
+    expect(estimateWorkout(oldDistance, weights, true).kcal).toBe(210)
+  })
   it('does not invent workout minutes for distance-only sessions in day or week totals', () => {
     const walk = exercise({ estimationMethod: 'distanceNet', durationMinutes: null, distanceKm: 3, met: null })
     const run = exercise({ id: 'timed', activity: 'Running', estimationMethod: 'activityTimeNet',
