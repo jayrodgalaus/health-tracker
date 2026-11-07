@@ -13,7 +13,7 @@ export function ExerciseEntryPage({profile}: {profile:Profile}) {
   const [params]=useSearchParams()
   const dayKey=selectedLogDay(params.get('date'))
   const editId=params.get('edit')
-  const entry=useLiveQuery(()=>editId?db.exerciseEntries.get(editId):Promise.resolve(null),[editId],undefined)
+  const entry=useLiveQuery(async()=>editId?await db.exerciseEntries.get(editId):null,[editId],undefined)
   const [confirmDelete,setConfirmDelete]=useState(false)
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')

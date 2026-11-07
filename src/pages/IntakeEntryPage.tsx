@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { db } from '../db/database'
@@ -18,15 +18,22 @@ export function IntakeEntryPage({kind}: {kind:'food'|'beverage'}) {
   const editId=params.get('edit')
   const savedId=params.get('saved')
   const recentId=params.get('recent')
-  const entry=useLiveQuery(()=>editId?db.foodEntries.get(editId):Promise.resolve(null),[editId],undefined)
-  const saved=useLiveQuery(()=>savedId?db.savedFoods.get(savedId):Promise.resolve(null),[savedId],undefined)
-  const recent=useLiveQuery(()=>recentId?db.foodEntries.get(recentId):Promise.resolve(null),[recentId],undefined)
+  const entry=useLiveQuery(async()=>editId?await db.foodEntries.get(editId):null,[editId],undefined)
+  const saved=useLiveQuery(async()=>savedId?await db.savedFoods.get(savedId):null,[savedId],undefined)
+  const recent=useLiveQuery(async()=>recentId?await db.foodEntries.get(recentId):null,[recentId],undefined)
   const waterMode=kind==='beverage' && (params.get('water')==='1'||entry?.beverageType==='water')
   const [volume,setVolume]=useState('')
   const [waterDay,setWaterDay]=useState(dayKey)
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
   const [confirmDelete,setConfirmDelete]=useState(false)
+
+  useEffect(()=>{
+    if (editId&&entry?.beverageType==='water') {
+      setVolume(String(entry.fluidMl??entry.quantity))
+      setWaterDay(entry.dayKey)
+    }
+  },[editId,entry?.id,entry?.updatedAt])
   const back='/log?date='+encodeURIComponent(dayKey)
   const destination=(date:string,source?:'water'|'food')=>
     editId?'/calendar/'+date:'/log?date='+encodeURIComponent(date)+'&saved='+(source??'food')+
