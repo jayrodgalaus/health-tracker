@@ -1308,10 +1308,11 @@ test('blanched cabbage query explains the nearest USDA boiled reference is not t
 })
 
 
-test('log overview and dedicated input pages keep short date labels', async ({page}) => {
+test('Today uses a date heading while Log and dedicated input pages keep date inputs', async ({page}) => {
   await onboard(page)
   await page.goto('/today')
-  await expect(page.getByLabel('Date',{exact:true})).toBeVisible()
+  await expect(page.getByRole('heading',{name:/^\d{4}-\d{2}-\d{2}$/})).toBeVisible()
+  await expect(page.getByLabel('Date',{exact:true})).toHaveCount(0)
   await page.goto('/log')
   await expect(page.getByLabel('Date',{exact:true})).toHaveCount(1)
   for(const [name,route] of [['+ Food','food'],['+ Drink','drink'],['+ Exercise','exercise']] as const){
