@@ -65,7 +65,7 @@ export function CalendarSectionPage({ profile }: { profile: Profile }) {
       <h1 className="text-3xl font-bold tracking-tight">{headings[section]}</h1>
     </header>
 
-    {records === undefined ? <p role="status" className="rounded-xl bg-white p-4 text-sm text-slate-600">
+    {records == null ? <p role="status" className="rounded-xl bg-white p-4 text-sm text-slate-600">
       Loading recorded {headings[section].toLowerCase()}…
     </p> : <>
       {section === 'energy' && <ExpenditurePanel summary={summary} />}
