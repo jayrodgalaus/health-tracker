@@ -42,6 +42,20 @@ describe('trend math matches Today and Calendar',()=>{
     expect(series.days[0]?.expenditureKcal.value).toBeNull()
     expect(series.days[0]?.fluidMl.value).toBeNull()
   })
+  it('uses provisional logged expenditure on an open day while keeping adherence incomplete',()=>{
+    const pendingProfile: Profile = { ...profile, sexForEquation:'male', backgroundActivityMultiplier:1.2 }
+    const session: ExerciseEntry = {
+      ...exercise('2026-11-06'), estimationMethod:'manualActive', estimatedEnergyKcal:120, met:null
+    }
+    const series = buildTrends('2026-11-06','2026-11-06','2026-11-07',pendingProfile,{
+      intake:[meal('2026-11-06',400)],activities:[session],
+      weights:[weight('2026-11-06',70)],goals:[],reviews:[]
+    },now)
+    expect(series.days[0]?.expenditureKcal.value).not.toBeNull()
+    expect(series.days[0]?.differenceKcal.value).toBeNull()
+    expect(series.days[0]?.status).toBe('incomplete')
+    expect(series.adherence.assessable).toBe(0)
+  })
   it('preserves partial known sums and unknown coverage from same Today rule',()=>{
     const series=buildTrends('2026-11-06','2026-11-06','2026-11-07',profile,{
       intake:[meal('2026-11-06',400),{...meal('2026-11-06',null),id:'missing'}],

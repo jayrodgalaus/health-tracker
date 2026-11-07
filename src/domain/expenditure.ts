@@ -49,11 +49,15 @@ export function calculateExpenditure(
     candidate >= 1 && candidate <= 1.6 ? candidate : null
   const background = rmr !== null && multiplier !== null ? rmr * multiplier : null
   const exercise = calculateActivityDay(day, activities, weights, adult)
-  // No logged sessions is explicitly known zero ONLY on user-marked-complete days.
-  const increment = !review?.isComplete ? null :
-    exercise.entries === 0 ? 0 :
-      exercise.energyCoverageComplete ? exercise.knownIncrementalKcal : null
-  const total = background !== null && increment !== null ? background + increment : null
+  // Show every known logged workout increment immediately, even for open days.
+  // The subtotal may be partial: never add missing workout energy as zero.
+  // No logged sessions becomes known zero only after explicit completion.
+  const increment = exercise.knownIncrementalKcal ??
+    (review?.isComplete && exercise.entries === 0 ? 0 : null)
+  const workoutsAssessable = exercise.energyCoverageComplete ||
+    (review?.isComplete === true && exercise.entries === 0)
+  const total = background !== null && increment !== null && workoutsAssessable
+    ? background + increment : null
   const calories = aggregateIntake(intake.filter(entry => entry.dayKey === day)).nutrients.energyKcal
   // A logged water-only day cannot establish that all food calories are known.
   const hasNonWaterIntake = intake.some(entry => entry.dayKey === day && !isPlainWaterEntry(entry))
@@ -67,10 +71,15 @@ export function calculateExpenditure(
   if (evidence.source === 'carriedForward') explanation.push('Weight was carried forward from ' + evidence.sourceDay + '; no future weight was used.')
   if (background === null) explanation.push('Background energy unavailable until a non-workout multiplier (1.00–1.60) is explicitly chosen in Settings and resting inputs are complete.')
   else explanation.push('Background kcal ≈ resting kcal × user-selected non-workout multiplier ' + multiplier + '; this approximation excludes separately logged workouts.')
-  if (!review?.isComplete) explanation.push('Total daily expenditure remains unavailable until the day is explicitly marked complete.')
-  else if (exercise.entries === 0) explanation.push('Marked-complete day has no logged workouts; the workout increment is treated as zero for this completed record only.')
-  else if (!exercise.energyCoverageComplete) explanation.push('Some logged workouts have unknown incremental energy, so total expenditure is withheld.')
+  if (exercise.entries === 0) explanation.push(review?.isComplete
+    ? 'Marked-complete day has no logged workouts; the workout increment is zero for this completed record only.'
+    : 'No workouts have been logged; the workout increment is unknown, not zero, until the day is complete.')
+  else if (!exercise.energyCoverageComplete) explanation.push(
+    'Logged workout energy is known for ' + exercise.knownEnergyEntries + '/' + exercise.entries +
+    ' sessions; any known subtotal is displayed, but the full expenditure remains unavailable while a workout estimate is unknown.')
   else explanation.push('Known active/incremental workout kcal are added once, above the background estimate; gross workout calories are not included.')
+  if (!review?.isComplete && total !== null) explanation.push(
+    'This is a provisional FULL-DAY expenditure estimate from current workout logs, not energy already spent so far; the day is not yet marked complete.')
   if (difference === null) explanation.push('Estimated energy difference needs fully known logged intake and total estimated expenditure; it is not a weight-change prediction.')
   return {
     restingKcal: rmr, backgroundKcal: background, workoutIncrementKcal: increment,

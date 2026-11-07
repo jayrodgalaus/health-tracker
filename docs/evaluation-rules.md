@@ -187,14 +187,22 @@ Only for a confirmed adult date with required inputs:
   and `paceGradeNet` method are backward compatible with Dexie v2 and
   historical JSON backups; recorded legacy intensity values are preserved
   even though the selector and intensity chart are no longer shown.
-- **Estimated total daily expenditure** = background + additional workouts,
-  only for a marked-complete day where every logged workout has known incremental
-  energy. A marked-complete day with no workouts recorded contributes a
-  zero *logged workout increment* for that day; this is not a claim about
-  unrecorded spontaneous activity.
+- **Known logged workout expenditure** is visible as soon as its entries are
+  saved, whether or not the day has been marked complete. When some workouts
+  lack a reliable increment, the known portion is shown with coverage, but
+  the full workout total is unknown, not assumed zero.
+- **Estimated total daily expenditure** = background + known incremental
+  workouts, also on open days **only when every logged workout has assessable
+  energy**. An open day's value is a *provisional full-day estimate* (not
+  calories already burned so far); it can change as more exercises are logged.
+  With no workout records, open days do not assume a zero workout increment.
+  A marked-complete day with no workouts recorded contributes a zero
+  *logged workout increment* for that completed record only.
 - **Estimated difference** = known complete logged calories consumed −
-  total estimated expenditure. Partial calories, a water-only day, or
-  incomplete total expenditure means unknown.
+  total estimated expenditure, and remains hidden on open days even if
+  provisional expenditure is available. Partial intake calories, a water-only
+  day, or unknown total expenditure also keeps the difference unknown.
+  Completion is still required for scoring, not for showing workout expenditure.
 
 All values are estimates; body composition, conditions, medication, routine
 movement and energy absorption can change real needs. No same-day predicted

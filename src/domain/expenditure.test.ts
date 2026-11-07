@@ -34,6 +34,32 @@ describe('optional adult expenditure', () => {
     expect(summary.totalExpenditureKcal).toBeCloseTo(1856.5)
     expect(summary.differenceKcal).toBeCloseTo(143.5)
   })
+  it('shows logged workout expenditure and a provisional full-day estimate before completion', () => {
+    const w = [weight('2026-11-06', 70)]
+    const open = calculateExpenditure('2026-11-06', profile, w, [workout], [meal], null)
+    expect(open.workoutIncrementKcal).toBeCloseTo(110.25)
+    expect(open.totalExpenditureKcal).toBeCloseTo(1856.5)
+    expect(open.differenceKcal).toBeNull() // Day is still open; intake may not be finished.
+    expect(open.explanation.join(' ')).toContain('provisional FULL-DAY')
+    const explicitOpen = calculateExpenditure('2026-11-06', profile, w, [workout], [meal], {
+      dayKey: '2026-11-06', isComplete: false, markedAt: null
+    })
+    expect(explicitOpen.totalExpenditureKcal).toBeCloseTo(1856.5)
+  })
+  it('shows only the known workout subtotal when another session has unknown energy', () => {
+    const w = [weight('2026-11-06', 70)]
+    const unknown = { ...workout, id: 'unknown', estimationMethod: 'unknown' as const, met: null }
+    for (const review of [null, complete]) {
+      const result = calculateExpenditure('2026-11-06', profile, w, [workout, unknown], [meal], review)
+      expect(result.workoutIncrementKcal).toBeCloseTo(110.25)
+      expect(result.totalExpenditureKcal).toBeNull()
+      expect(result.differenceKcal).toBeNull()
+      expect(result.explanation.join(' ')).toContain('1/2')
+    }
+    const noneKnown = calculateExpenditure('2026-11-06', profile, w, [unknown], [meal], null)
+    expect(noneKnown.workoutIncrementKcal).toBeNull()
+    expect(noneKnown.totalExpenditureKcal).toBeNull()
+  })
   it('refuses TDEE without explicit multiplier, sex constant, DOB, or prior weight', () => {
     const weights = [weight('2026-11-07', 70)]
     expect(calculateExpenditure('2026-11-06', profile, weights, [], [meal], complete).totalExpenditureKcal).toBeNull()
@@ -42,7 +68,9 @@ describe('optional adult expenditure', () => {
   })
   it('requires complete workout and food logs for expenditure and difference', () => {
     const w = [weight('2026-11-06',70)]
-    expect(calculateExpenditure('2026-11-06', profile, w, [], [meal], null).totalExpenditureKcal).toBeNull()
+    const openWithoutWorkouts = calculateExpenditure('2026-11-06', profile, w, [], [meal], null)
+    expect(openWithoutWorkouts.workoutIncrementKcal).toBeNull()
+    expect(openWithoutWorkouts.totalExpenditureKcal).toBeNull()
     const exercise = { ...workout, met: null }
     const partial = calculateExpenditure('2026-11-06', profile, w, [exercise], [meal], complete)
     expect(partial.totalExpenditureKcal).toBeNull()

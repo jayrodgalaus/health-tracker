@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { calculateDay, EVALUATION_RULE_VERSION, type DayCalculationContext } from './evaluation'
-import type { FoodEntry, Profile } from './models'
+import type { ExerciseEntry, FoodEntry, Profile } from './models'
 import { EMPTY_TARGETS } from './profile'
 import { emptyNutrition } from './nutrition'
 
@@ -32,6 +32,28 @@ describe('conservative reproducible goal alignment', () => {
     expect(evaluation.isComplete).toBe(false)
     expect(evaluation.results[0]?.state).toBe('significantDeviation')
     expect(evaluation.evaluationRuleVersion).toBe(EVALUATION_RULE_VERSION)
+  })
+  it('shows provisional expenditure but keeps an unmarked day neutral across views', () => {
+    const exercise: ExerciseEntry = {
+      id: 'manual', dayKey: '2026-11-06', startedAt: now,
+      activity: 'Treadmill walking', durationMinutes: 30, intensity: null,
+      estimationMethod: 'manualActive', estimatedEnergyKcal: 90, met: null,
+      createdAt: now, updatedAt: now
+    }
+    const report = calculateDay(context({
+      review: null,
+      profile: { ...profile, sexForEquation: 'male', backgroundActivityMultiplier: 1.2 },
+      weights: [{
+        id: 'weight', dayKey: '2026-11-06', weightKg: 70,
+        recordedAt: now, createdAt: now, updatedAt: now
+      }],
+      activities: [exercise]
+    }), now)
+    expect(report.activity.knownIncrementalKcal).toBe(90)
+    expect(report.expenditure.workoutIncrementKcal).toBe(90)
+    expect(report.expenditure.totalExpenditureKcal).not.toBeNull()
+    expect(report.expenditure.differenceKcal).toBeNull()
+    expect(report.evaluation.status).toBe('incomplete')
   })
   it('requires at least one fully known non-water intake for energy alignment', () => {
     expect(assess({ intake: [] }).status).toBe('incomplete')
