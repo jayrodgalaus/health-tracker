@@ -35,7 +35,7 @@ export function DayDetailPage({
     <header className="space-y-3">
       <PageInfoLink topic="day-detail" />
       <Link className="text-sm font-semibold text-evergreen-700 underline" to={'/calendar?month=' + dayKey.slice(0, 7)}>Back to {dayKey.slice(0, 7)} calendar</Link>
-      <h1 className="text-3xl font-bold tracking-tight">{dayKey}</h1>
+      <h1 className="sr-only">Day details for {dayKey}</h1>
       <WeekDateNavigation selectedDay={dayKey} today={last} />
     </header>
     {records === undefined && <p role="status" className="rounded-xl bg-white p-4 text-sm text-slate-600">Loading records for {dayKey}…</p>}

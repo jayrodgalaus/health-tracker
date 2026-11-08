@@ -25,11 +25,9 @@ export function WeekDateNavigation({ selectedDay, today }: { selectedDay: string
   return <nav aria-label="Week navigation"
     className="-mx-3 rounded-[2rem] border border-evergreen-100 bg-white px-2 py-4 shadow-sm sm:mx-0 sm:px-4">
     <div className="mb-3 flex items-center justify-between gap-2 px-2">
-      {selectedDay === today
-        ? <span className="text-lg font-bold text-evergreen-700">Today</span>
-        : <Link to={'/calendar/' + today}
-            aria-label="Go to today"
-            className="inline-flex min-h-11 items-center text-lg font-bold text-evergreen-700 hover:underline">Today</Link>}
+      <Link to={'/calendar/' + today}
+        aria-label="Go to today"
+        className="inline-flex min-h-11 items-center text-lg font-bold text-evergreen-700 hover:underline">Today</Link>
       <div className="flex items-center gap-0.5">
         <button type="button" aria-label="Previous week" title="Previous week"
           className={arrowClass} disabled={!canGoPrevious}
@@ -59,7 +57,7 @@ export function WeekDateNavigation({ selectedDay, today }: { selectedDay: string
         const selected = day === selectedDay
         const unavailable = day > today || day < FIRST_DAY
         const label = day + ' (' + weekdayNames[index] + ')'
-        const style = 'flex h-[5.5rem] min-w-0 flex-col items-center gap-2 rounded-full border py-2 text-center transition-colors ' +
+        const style = 'flex h-[4.5rem] min-w-0 flex-col items-center justify-center gap-1 rounded-full border py-1 text-center transition-colors ' +
           (selected
             ? 'border-evergreen-600 bg-evergreen-600 font-semibold text-white shadow-md'
             : unavailable

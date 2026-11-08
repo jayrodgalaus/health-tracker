@@ -73,9 +73,11 @@ test('Today is exactly the current local Calendar day overview, never a selectab
   })
 
   await page.goto('/today')
-  await expect(page.getByRole('heading',{name:day,exact:true})).toBeVisible()
+  await expect(page.getByRole('heading',{name:day,exact:true})).toHaveCount(0)
   await expect(page.getByRole('heading',{name:'Daily goal alignment'})).toBeVisible()
   await expect(page.getByRole('region',{name:'Day completion status'})).toBeVisible()
+  await expect(page.getByRole('heading',{name:'Day details for '+day})).toHaveClass(/sr-only/)
+  await expect(page.getByRole('navigation',{name:'Week navigation'}).getByRole('link',{name:'Go to today'})).toBeVisible()
   const cards = page.getByRole('region',{name:'Day details by section'})
   await expect(cards.getByRole('link')).toHaveCount(5)
   await expect(page.getByRole('group',{name:'Week dates'}).locator('[data-week-day]')).toHaveCount(7)
@@ -86,19 +88,23 @@ test('Today is exactly the current local Calendar day overview, never a selectab
   await expect(page.getByRole('region',{name:'Quick logging actions'})).toHaveCount(0)
   const todayMarkup = await page.locator('#main-content').innerText()
 
+  // Today remains clickable even when today's date is already selected.
+  await page.getByRole('navigation',{name:'Week navigation'})
+    .getByRole('link',{name:'Go to today'}).click()
+  await expect(page).toHaveURL('/calendar/' + day)
   await page.goto('/calendar/' + day)
   await expect(page.getByRole('region',{name:'Day details by section'}).getByRole('link')).toHaveCount(5)
   expect(await page.locator('#main-content').innerText()).toBe(todayMarkup)
 
   await page.goto('/today?date=2026-01-15')
-  await expect(page.getByRole('heading',{name:day,exact:true})).toBeVisible()
+  await expect(page.getByRole('heading',{name:day,exact:true})).toHaveCount(0)
   await expect(page.getByRole('heading',{name:'2026-01-15',exact:true})).toHaveCount(0)
   await page.getByRole('navigation',{name:'Week navigation'})
     .getByRole('button',{name:'Previous week'}).click()
   await expect(page).toHaveURL(/\/calendar\/\d{4}-\d{2}-\d{2}$/)
   await page.getByRole('navigation',{name:'Primary navigation'}).getByRole('link',{name:'Today'}).click()
   await expect(page).toHaveURL('/today')
-  await expect(page.getByRole('heading',{name:day,exact:true})).toBeVisible()
+  await expect(page.getByRole('heading',{name:day,exact:true})).toHaveCount(0)
 })
 
 test('Calendar month heading opens hidden native month selection and displays flush completed-day circles', async ({page}) => {
@@ -326,7 +332,10 @@ test('fixed seven-day navigation uses circular dates and pill groups without hor
     const bounds = element.getBoundingClientRect()
     const circle = element.querySelector('span.rounded-full')!
     return {
-      x:bounds.x, y:bounds.y, width:bounds.width,
+      x:bounds.x, y:bounds.y, width:bounds.width, height:bounds.height,
+      paddingTop:getComputedStyle(element).paddingTop,
+      paddingBottom:getComputedStyle(element).paddingBottom,
+      gap:getComputedStyle(element).gap,
       outerRadius:getComputedStyle(element).borderTopLeftRadius,
       circleRadius:getComputedStyle(circle).borderTopLeftRadius,
       circleWidth:circle.getBoundingClientRect().width
@@ -336,6 +345,9 @@ test('fixed seven-day navigation uses circular dates and pill groups without hor
   expect(Math.max(...geometry.map(item => item.y)) - Math.min(...geometry.map(item => item.y))).toBeLessThan(2)
   expect(geometry.every(item => item.outerRadius === '9999px' && item.circleRadius === '9999px')).toBe(true)
   expect(geometry.every(item => item.circleWidth === 32)).toBe(true)
+  expect(geometry.every(item => item.height === 72)).toBe(true)
+  expect(geometry.every(item => item.paddingTop === '4px' && item.paddingBottom === '4px')).toBe(true)
+  expect(geometry.every(item => item.gap === '4px')).toBe(true)
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
   expect(overflow).toBeLessThanOrEqual(2)
   await navigation.getByRole('link',{name:'2026-01-16 (Fri)'}).click()
