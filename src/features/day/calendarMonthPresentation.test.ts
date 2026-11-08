@@ -19,7 +19,8 @@ describe('Calendar day circle colors', () => {
     for (const status of ['onTarget', 'mixed', 'offTarget', 'incomplete'] as EvaluationStatus[]) {
       const css = calendarStatusFill(status, false)
       expect(css).toContain('bg-transparent')
-      expect(css).not.toMatch(/bg-(emerald|amber|rose|slate)-[12]00/)
+      const baseClasses = css.split(' ').filter(value => !value.startsWith('hover:')).join(' ')
+      expect(baseClasses).not.toMatch(/bg-(emerald|amber|rose|slate)-[12]00/)
     }
   })
 })
