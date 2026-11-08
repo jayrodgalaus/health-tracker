@@ -83,8 +83,8 @@ test('Log reuses the fixed week picker and keeps all date changes inside Log', a
   await week.getByRole('button',{name:'Next week'}).click()
   await expect(page).toHaveURL('/log?date=2026-01-16')
   await week.getByRole('link',{name:'Go to today'}).click()
-  await expect(page).toHaveURL(/\\/log\\?date=\\d{4}-\\d{2}-\\d{2}$/)
   const selected = await week.locator('[aria-current="date"]').getAttribute('data-week-day')
+  await expect(page).toHaveURL('/log?date=' + selected)
   expect(selected).toBe(await page.evaluate(() => {
     const current = new Date()
     return current.getFullYear() + '-' + String(current.getMonth()+1).padStart(2,'0') + '-' + String(current.getDate()).padStart(2,'0')
@@ -1538,7 +1538,7 @@ test('blanched cabbage query explains the nearest USDA boiled reference is not t
 test('Today and Log show seven day pills while dedicated input pages keep date inputs', async ({page}) => {
   await onboard(page)
   await page.goto('/today')
-  await expect(page.getByRole('heading',{name:/^\\d{4}-\\d{2}-\\d{2}$/})).toHaveCount(0)
+  await expect(page.locator('h1')).toHaveClass(/sr-only/)
   await expect(page.getByRole('navigation',{name:'Week navigation'}).locator('[data-week-day]')).toHaveCount(7)
   await expect(page.getByLabel('Date',{exact:true})).toHaveCount(0)
 
