@@ -2,13 +2,14 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import { db } from '../db/database'
 import { PageInfoLink } from '../components/PageInfoLink'
+import { WeekDateNavigation } from '../components/WeekDateNavigation'
 import { LogActionPill } from '../components/LogActionPill'
 import { DayCompletionControl } from '../features/day/DayCompletionControl'
 import { selectedLogDay } from '../lib/logDate'
 import { toLocalDay } from '../lib/localDate'
 
 export function LogPage() {
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
   const location = useLocation()
   const dayKey = selectedLogDay(searchParams.get('date'))
   const today = toLocalDay(new Date())
@@ -25,21 +26,13 @@ export function LogPage() {
   }
   if (location.hash === '#weight') return <Navigate to={'/log/weight' + actionDate} replace />
 
-  function selectDay(value: string) {
-    const next = selectedLogDay(value)
-    if (next !== value) return
-    setSearchParams({ date: next })
-  }
-
   return <div className="space-y-6">
     <header>
       <PageInfoLink topic="log" />
       <h1 className="text-3xl font-bold tracking-tight">Log</h1>
-      <label className="mt-4 block max-w-xs text-sm font-semibold">Date
-        <input type="date" min="1900-01-01" max={today} value={dayKey}
-          className="mt-1 block min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base"
-          onChange={event => selectDay(event.target.value)} />
-      </label>
+      <div className="mt-4">
+        <WeekDateNavigation selectedDay={dayKey} today={today} destination="log" />
+      </div>
     </header>
 
     {review === undefined ? <p role="status" className="rounded-xl bg-white p-4 text-sm">Loading day status…</p> :

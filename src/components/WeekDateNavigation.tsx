@@ -7,9 +7,12 @@ const weekdayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const
 
 /**
  * Exactly seven Monday–Sunday dates, not a scrollable strip.
- * Today remains today's overview; choosing another date opens Calendar detail.
+ * On Log, day selection stays in Log and updates the date query parameter.
+ * On Today/Calendar, choosing another date opens Calendar detail.
  */
-export function WeekDateNavigation({ selectedDay, today }: { selectedDay: string; today: string }) {
+export function WeekDateNavigation({
+  selectedDay, today, destination = 'calendar'
+}: { selectedDay: string; today: string; destination?: 'calendar' | 'log' }) {
   const navigate = useNavigate()
   const days = weekDays(selectedDay)
   const selectedDate = parseLocalDay(selectedDay)!
@@ -19,19 +22,22 @@ export function WeekDateNavigation({ selectedDay, today }: { selectedDay: string
   const next = addLocalDays(selectedDay, 7)
   const canGoPrevious = previous >= FIRST_DAY
   const canGoNext = nextWeekBegins <= today && selectedDay < today
+  const pathForDay = (day: string) => destination === 'log'
+    ? '/log?date=' + encodeURIComponent(day)
+    : '/calendar/' + day
 
   const arrowClass = 'flex h-11 w-8 shrink-0 items-center justify-center rounded-full text-evergreen-700 hover:bg-evergreen-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-evergreen-700 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent'
 
   return <nav aria-label="Week navigation"
     className="-mx-3 rounded-[2rem] border border-evergreen-100 bg-white px-2 py-4 shadow-sm sm:mx-0 sm:px-4">
     <div className="mb-3 flex items-center justify-between gap-2 px-2">
-      <Link to={'/calendar/' + today}
+      <Link to={pathForDay(today)}
         aria-label="Go to today"
         className="inline-flex min-h-11 items-center text-lg font-bold text-evergreen-700 hover:underline">Today</Link>
       <div className="flex items-center gap-0.5">
         <button type="button" aria-label="Previous week" title="Previous week"
           className={arrowClass} disabled={!canGoPrevious}
-          onClick={() => navigate('/calendar/' + previous)}>
+          onClick={() => navigate(pathForDay(previous))}>
           <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24"
             fill="none" stroke="currentColor" strokeWidth="2.2"
             strokeLinecap="round" strokeLinejoin="round">
@@ -43,7 +49,7 @@ export function WeekDateNavigation({ selectedDay, today }: { selectedDay: string
         </span>
         <button type="button" aria-label="Next week" title="Next week"
           className={arrowClass} disabled={!canGoNext}
-          onClick={() => navigate('/calendar/' + (next > today ? today : next))}>
+          onClick={() => navigate(pathForDay(next > today ? today : next))}>
           <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24"
             fill="none" stroke="currentColor" strokeWidth="2.2"
             strokeLinecap="round" strokeLinejoin="round">
@@ -75,7 +81,7 @@ export function WeekDateNavigation({ selectedDay, today }: { selectedDay: string
           aria-label={label} aria-disabled="true" className={style}>{content}</span>
         if (selected) return <span key={day} data-week-day={day}
           aria-label={label} aria-current="date" className={style}>{content}</span>
-        return <Link key={day} data-week-day={day} to={'/calendar/' + day}
+        return <Link key={day} data-week-day={day} to={pathForDay(day)}
           aria-label={label} className={style + ' focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-evergreen-700'}>{content}</Link>
       })}
     </div>

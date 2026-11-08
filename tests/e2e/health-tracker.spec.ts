@@ -64,6 +64,35 @@ test('Log has four independent colored icon pills and a centered completion acti
   await expect(page).toHaveURL('/log/weight?date=2026-01-15')
 })
 
+test('Log reuses the fixed week picker and keeps all date changes inside Log', async ({page}) => {
+  await onboard(page)
+  await page.setViewportSize({width:320,height:720})
+  await page.goto('/log?date=2026-01-15')
+  const week = page.getByRole('navigation',{name:'Week navigation'})
+  const days = week.getByRole('group',{name:'Week dates'}).locator('[data-week-day]')
+  await expect(days).toHaveCount(7)
+  await expect(week.locator('[data-week-day="2026-01-15"]')).toHaveAttribute('aria-current','date')
+  await expect(page.getByLabel('Date',{exact:true})).toHaveCount(0)
+  await expect(week.getByRole('link',{name:'2026-01-16 (Fri)'})).toHaveAttribute('href','/log?date=2026-01-16')
+  await week.getByRole('link',{name:'2026-01-16 (Fri)'}).click()
+  await expect(page).toHaveURL('/log?date=2026-01-16')
+  await expect(page.getByRole('link',{name:'Food',exact:true})).toHaveAttribute('href','/log/food?date=2026-01-16')
+  await expect(page.getByRole('link',{name:'Weight',exact:true})).toHaveAttribute('href','/log/weight?date=2026-01-16')
+  await week.getByRole('button',{name:'Previous week'}).click()
+  await expect(page).toHaveURL('/log?date=2026-01-09')
+  await week.getByRole('button',{name:'Next week'}).click()
+  await expect(page).toHaveURL('/log?date=2026-01-16')
+  await week.getByRole('link',{name:'Go to today'}).click()
+  await expect(page).toHaveURL(/\\/log\\?date=\\d{4}-\\d{2}-\\d{2}$/)
+  const selected = await week.locator('[aria-current="date"]').getAttribute('data-week-day')
+  expect(selected).toBe(await page.evaluate(() => {
+    const current = new Date()
+    return current.getFullYear() + '-' + String(current.getMonth()+1).padStart(2,'0') + '-' + String(current.getDate()).padStart(2,'0')
+  }))
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+  expect(overflow).toBeLessThanOrEqual(2)
+})
+
 test('Today is exactly the current local Calendar day overview, never a selectable historical dashboard', async ({page}) => {
   await onboard(page)
   const day = await page.evaluate(() => {
@@ -228,7 +257,9 @@ test('completing a day requires confirmation, locks every form, and reopening re
 
 test('completed daily goal alignment stays frozen after same-day target settings change', async ({page}) => {
   await onboard(page)
-  const today = await page.goto('/log').then(async () => page.getByLabel('Date',{exact:true}).inputValue())
+  await page.goto('/log')
+  const today = (await page.getByRole('navigation',{name:'Week navigation'})
+    .locator('[aria-current="date"]').getAttribute('data-week-day'))!
   await page.goto('/settings/goals')
   await page.getByLabel('Optional calorie target (kcal/day)').fill('2000')
   await page.getByRole('button',{name:'Save goals'}).click()
@@ -270,7 +301,8 @@ test('completed daily goal alignment stays frozen after same-day target settings
 test('Calendar renders only a flush calories, fluid and sodium checklist with inline Reopen', async ({page}) => {
   await onboard(page)
   await page.goto('/log')
-  const day = await page.getByLabel('Date', {exact:true}).inputValue()
+  const day = (await page.getByRole('navigation',{name:'Week navigation'})
+    .locator('[aria-current="date"]').getAttribute('data-week-day'))!
   await page.goto('/settings/goals')
   await page.getByLabel('Optional calorie target (kcal/day)').fill('1600')
   await page.getByLabel('Fluid tracking target (ml/day)').fill('2300')
@@ -375,6 +407,11 @@ test('future days and weeks are unavailable in Today, Calendar, and direct route
   await expect(week.locator('[data-week-day="2026-11-06"]')).toHaveAttribute('aria-disabled','true')
   await expect(nav.getByRole('button',{name:'Next week'})).toBeDisabled()
   await expect(nav.getByRole('link',{name:'2026-11-06 (Fri)'})).toHaveCount(0)
+  await page.goto('/log?date=2026-11-04')
+  const logWeek = page.getByRole('navigation',{name:'Week navigation'})
+  await expect(logWeek.locator('[data-week-day="2026-11-06"]')).toHaveAttribute('aria-disabled','true')
+  await expect(logWeek.getByRole('link',{name:'2026-11-06 (Fri)'})).toHaveCount(0)
+  await expect(logWeek.getByRole('button',{name:'Next week'})).toBeDisabled()
   await page.goto('/calendar?month=2026-11')
   const month = page.getByRole('region',{name:'November 2026 monthly calendar'})
   await expect(month.getByLabel('2026-11-06: future date unavailable')).toBeVisible()
@@ -1498,18 +1535,23 @@ test('blanched cabbage query explains the nearest USDA boiled reference is not t
 })
 
 
-test('Today uses a date heading while Log and dedicated input pages keep date inputs', async ({page}) => {
+test('Today and Log show seven day pills while dedicated input pages keep date inputs', async ({page}) => {
   await onboard(page)
   await page.goto('/today')
-  await expect(page.getByRole('heading',{name:/^\d{4}-\d{2}-\d{2}$/})).toBeVisible()
+  await expect(page.getByRole('heading',{name:/^\\d{4}-\\d{2}-\\d{2}$/})).toHaveCount(0)
+  await expect(page.getByRole('navigation',{name:'Week navigation'}).locator('[data-week-day]')).toHaveCount(7)
   await expect(page.getByLabel('Date',{exact:true})).toHaveCount(0)
-  await page.goto('/log')
-  await expect(page.getByLabel('Date',{exact:true})).toHaveCount(1)
-  for(const [name,route] of [['+ Food','food'],['+ Drink','drink'],['+ Exercise','exercise']] as const){
+
+  await page.goto('/log?date=2026-01-15')
+  const week = page.getByRole('navigation',{name:'Week navigation'})
+  await expect(week.locator('[data-week-day]')).toHaveCount(7)
+  await expect(week.locator('[data-week-day="2026-01-15"]')).toHaveAttribute('aria-current','date')
+  await expect(page.getByLabel('Date',{exact:true})).toHaveCount(0)
+  for (const [name,route] of [['Food','food'],['Drink','drink'],['Exercise','exercise']] as const) {
     await page.getByRole('link',{name,exact:true}).click()
-    await expect(page).toHaveURL(new RegExp('/log/'+route))
+    await expect(page).toHaveURL('/log/'+route+'?date=2026-01-15')
     await expect(page.getByLabel('Date',{exact:true})).toHaveCount(1)
-    await expect(page.getByLabel('Date',{exact:true})).not.toHaveValue('')
+    await expect(page.getByLabel('Date',{exact:true})).toHaveValue('2026-01-15')
     await page.getByRole('link',{name:/Back to Log/}).click()
   }
 })
