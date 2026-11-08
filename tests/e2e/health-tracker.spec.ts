@@ -393,41 +393,75 @@ test('five illustrated Calendar cards route to their own detailed sections and k
   for (const card of [energyCard, nutritionCard, fluidsCard, activityCard, weightCard]) {
     await expect(card.getByText('View details', {exact:true})).toBeVisible()
   }
-  const styling = await nutritionCard.evaluate(element => {
-    const blob = element.querySelector('.absolute')!
-    const pill = element.querySelector('span.rounded-full.border')!
-    const circle = pill.querySelector('span.rounded-full')!
-    const bounds = element.getBoundingClientRect()
-    return {
-      centered: getComputedStyle(element).textAlign,
-      blobPosition: getComputedStyle(blob).position,
-      blobRight: bounds.right - blob.getBoundingClientRect().right,
-      blobTop: blob.getBoundingClientRect().top - bounds.top,
-      blobRadius: parseFloat(getComputedStyle(blob).borderTopLeftRadius),
-      pillRadius: parseFloat(getComputedStyle(pill).borderTopLeftRadius),
-      pillBorder: getComputedStyle(pill).borderTopWidth,
-      pillBorderColor: getComputedStyle(pill).borderTopColor,
-      pillBackground: getComputedStyle(pill).backgroundColor,
-      circleBackground: getComputedStyle(circle).backgroundColor,
-      circleWidth: circle.getBoundingClientRect().width,
-      circleHeight: circle.getBoundingClientRect().height
+  const layerStyles = await cards.getByRole('link').evaluateAll(links =>
+    links.map(element => {
+      const blob = element.querySelector('[data-card-layer="blob"]')!
+      const illustration = element.querySelector('[data-card-layer="illustration"]')!
+      const title = element.querySelector('h3')!
+      const value = element.querySelector('p')!
+      const pill = element.querySelector('span.rounded-full.border')!
+      const circle = pill.querySelector('span.rounded-full')!
+      const bounds = element.getBoundingClientRect()
+      const blobBounds = blob.getBoundingClientRect()
+      const iconBounds = illustration.getBoundingClientRect()
+      return {
+        centered: getComputedStyle(element).textAlign,
+        blobPosition: getComputedStyle(blob).position,
+        blobRight: bounds.right - blobBounds.right,
+        blobTop: blobBounds.top - bounds.top,
+        blobRadius: parseFloat(getComputedStyle(blob).borderTopLeftRadius),
+        blobZ: getComputedStyle(blob).zIndex,
+        iconPosition: getComputedStyle(illustration).position,
+        iconZ: getComputedStyle(illustration).zIndex,
+        titleZ: getComputedStyle(title).zIndex,
+        valueZ: getComputedStyle(value).zIndex,
+        pillZ: getComputedStyle(pill).zIndex,
+        iconCenterDx: (iconBounds.left + iconBounds.width / 2) - (blobBounds.left + blobBounds.width / 2),
+        iconCenterDy: (iconBounds.top + iconBounds.height / 2) - (blobBounds.top + blobBounds.height / 2),
+        pillRadius: parseFloat(getComputedStyle(pill).borderTopLeftRadius),
+        pillBorder: getComputedStyle(pill).borderTopWidth,
+        pillBorderColor: getComputedStyle(pill).borderTopColor,
+        pillBackground: getComputedStyle(pill).backgroundColor,
+        circleBackground: getComputedStyle(circle).backgroundColor,
+        circleWidth: circle.getBoundingClientRect().width,
+        circleHeight: circle.getBoundingClientRect().height
+      }
+    }))
+  expect(layerStyles).toHaveLength(5)
+  for (const styling of layerStyles) {
+    expect(styling.centered).toBe('center')
+    expect(styling.blobPosition).toBe('absolute')
+    // Blob is offset from the *card edge*, not its padded content box.
+    expect(styling.blobRight).toBeGreaterThanOrEqual(-7)
+    expect(styling.blobRight).toBeLessThanOrEqual(-3)
+    expect(styling.blobTop).toBeGreaterThanOrEqual(-7)
+    expect(styling.blobTop).toBeLessThanOrEqual(-3)
+    expect(styling.blobRadius).toBeGreaterThanOrEqual(55)
+    expect(styling.blobZ).toBe('0')
+    expect(styling.iconPosition).toBe('absolute')
+    for (const z of [styling.iconZ, styling.titleZ, styling.valueZ, styling.pillZ]) {
+      expect(z).toBe('10')
     }
-  })
-  expect(styling.centered).toBe('center')
-  expect(styling.blobPosition).toBe('absolute')
-  expect(styling.blobRight).toBeGreaterThan(0)
-  expect(styling.blobTop).toBeGreaterThan(0)
-  expect(styling.blobRadius).toBeGreaterThanOrEqual(48)
-  expect(styling.pillRadius).toBeGreaterThan(18)
-  expect(styling.pillBorder).toBe('1px')
-  expect(styling.pillBorderColor).toBe(styling.circleBackground)
-  expect(styling.pillBackground).not.toBe(styling.circleBackground)
-  expect(styling.circleWidth).toBe(styling.circleHeight)
+    expect(Math.abs(styling.iconCenterDx)).toBeLessThan(2)
+    expect(Math.abs(styling.iconCenterDy)).toBeLessThan(2)
+    expect(styling.pillRadius).toBeGreaterThan(18)
+    expect(styling.pillBorder).toBe('1px')
+    expect(styling.pillBorderColor).toBe(styling.circleBackground)
+    expect(styling.pillBackground).not.toBe(styling.circleBackground)
+    expect(styling.circleWidth).toBe(styling.circleHeight)
+  }
   const widths = await cards.getByRole('link').evaluateAll(links =>
     links.slice(0,4).map(link => link.getBoundingClientRect().width))
   expect(Math.max(...widths) - Math.min(...widths)).toBeLessThan(2)
   const bounds = await page.evaluate(() => ({document: document.documentElement.scrollWidth, viewport: window.innerWidth}))
   expect(bounds.document).toBeLessThanOrEqual(bounds.viewport + 2)
+  await page.setViewportSize({width:320,height:800})
+  const narrowBounds = await page.evaluate(() => ({
+    document: document.documentElement.scrollWidth, viewport: window.innerWidth
+  }))
+  expect(narrowBounds.document).toBeLessThanOrEqual(narrowBounds.viewport + 2)
+  await expect(cards.locator('[data-card-layer="blob"]')).toHaveCount(5)
+  await expect(cards.locator('[data-card-layer="illustration"] svg')).toHaveCount(5)
 
   await cards.getByRole('link',{name:/^Energy —/}).click()
   await expect(page).toHaveURL('/calendar/' + day + '/energy')

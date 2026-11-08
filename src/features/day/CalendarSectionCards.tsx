@@ -142,15 +142,18 @@ export function CalendarSectionCards({
           aria-label={item.title + ' — ' + value + ' — View details'}
           className={'group relative flex min-h-[245px] min-w-0 flex-col items-center overflow-hidden rounded-[2.25rem] border border-slate-200 bg-white px-3 pb-4 pt-3 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-evergreen-700 ' +
             (index === 4 ? 'col-span-2 sm:col-span-1' : '')}>
-          <span aria-hidden="true" className={'pointer-events-none absolute right-3 top-3 h-28 w-28 rounded-[3.25rem] ' + item.backdrop} />
-          <div className={'relative mb-3 flex h-[112px] w-full items-center justify-end pr-3 pt-3 ' + item.illustration}>
+          <span data-card-layer="blob" aria-hidden="true"
+            className={'pointer-events-none absolute -right-[5px] -top-[5px] z-0 h-28 w-28 rounded-full ' + item.backdrop} />
+          <span data-card-layer="illustration" aria-hidden="true"
+            className={'pointer-events-none absolute right-[19px] top-[19px] z-10 ' + item.illustration}>
             <DaySectionIcon section={section} />
-          </div>
-          <h3 className="relative text-lg font-extrabold tracking-tight text-slate-900">{item.title}</h3>
-          <p className="relative mt-1 flex min-h-10 max-w-full items-center justify-center break-words text-sm font-medium tabular-nums leading-5 text-slate-700">
+          </span>
+          <div aria-hidden="true" className="mb-3 h-[112px] w-full shrink-0" />
+          <h3 className="relative z-10 text-lg font-extrabold tracking-tight text-slate-900">{item.title}</h3>
+          <p className="relative z-10 mt-1 flex min-h-10 max-w-full items-center justify-center break-words text-sm font-medium tabular-nums leading-5 text-slate-700">
             {value}
           </p>
-          <span className={'relative mt-auto inline-flex max-w-full items-center gap-1 rounded-full border py-1 pl-3 pr-1 text-xs font-semibold ' + item.pill}>
+          <span className={'relative z-10 mt-auto inline-flex max-w-full items-center gap-1 rounded-full border py-1 pl-3 pr-1 text-xs font-semibold ' + item.pill}>
             <span className="whitespace-nowrap text-[11px] sm:text-xs">View details</span>
             <span aria-hidden="true" className={'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white transition-transform group-hover:translate-x-0.5 ' + item.circle}>
               <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor"
