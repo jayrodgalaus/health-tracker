@@ -80,7 +80,7 @@ test('Calendar month heading opens hidden native month selection and displays fl
   await expect(page.getByRole('button',{name:'Current month'})).toHaveCount(0)
   await expect(page.getByRole('heading',{name:'Status legend'})).toHaveCount(0)
   await expect(page.getByLabel('Month status counts')).toHaveCount(0)
-  const picker = page.getByRole('textbox',{name:'Choose month'})
+  const picker = page.getByLabel('Choose month')
   await expect(picker).toHaveAttribute('type','month')
   await expect(picker).toHaveCSS('opacity','0')
   const heading = page.getByRole('heading',{level:2})
