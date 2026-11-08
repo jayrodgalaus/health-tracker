@@ -37,3 +37,12 @@ export function addLocalDays(dayKey: LocalDay, distance: number): LocalDay {
   date.setDate(date.getDate() + distance)
   return toLocalDay(date)
 }
+
+/** Monday–Sunday dates surrounding a selected local date. Never uses UTC date slicing. */
+export function weekDays(dayKey: LocalDay): LocalDay[] {
+  const parsed = parseLocalDay(dayKey)
+  if (!parsed) throw new Error('Invalid calendar date.')
+  const mondayOffset = (parsed.getDay() + 6) % 7
+  const monday = addLocalDays(dayKey, -mondayOffset)
+  return Array.from({ length: 7 }, (_, index) => addLocalDays(monday, index))
+}

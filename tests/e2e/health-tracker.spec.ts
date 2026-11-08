@@ -78,7 +78,7 @@ test('Today is exactly the current local Calendar day overview, never a selectab
   await expect(page.getByRole('region',{name:'Day completion status'})).toBeVisible()
   const cards = page.getByRole('region',{name:'Day details by section'})
   await expect(cards.getByRole('link')).toHaveCount(5)
-  await expect(page.getByRole('navigation',{name:'Nearby dates'}).getByRole('link')).toHaveCount(3)
+  await expect(page.getByRole('group',{name:'Week dates'}).locator('[data-week-day]')).toHaveCount(7)
   await expect(page.getByRole('navigation',{name:'Primary navigation'})
     .getByRole('link',{name:'Today'})).toHaveAttribute('aria-current','page')
   await expect(page.getByRole('heading',{name:'Your day, your pace.'})).toHaveCount(0)
@@ -93,8 +93,8 @@ test('Today is exactly the current local Calendar day overview, never a selectab
   await page.goto('/today?date=2026-01-15')
   await expect(page.getByRole('heading',{name:day,exact:true})).toBeVisible()
   await expect(page.getByRole('heading',{name:'2026-01-15',exact:true})).toHaveCount(0)
-  await page.getByRole('navigation',{name:'Nearby dates'})
-    .getByRole('link',{name:'Previous day'}).click()
+  await page.getByRole('navigation',{name:'Week navigation'})
+    .getByRole('button',{name:'Previous week'}).click()
   await expect(page).toHaveURL(/\/calendar\/\d{4}-\d{2}-\d{2}$/)
   await page.getByRole('navigation',{name:'Primary navigation'}).getByRole('link',{name:'Today'}).click()
   await expect(page).toHaveURL('/today')
@@ -313,27 +313,64 @@ test('Calendar renders only a flush calories, fluid and sodium checklist with in
   await expect(assessment.getByRole('button', {name:'Reopen day'})).toHaveCount(0)
 })
 
-test('Calendar Previous, Today, Next navigation fills one horizontal row on a narrow screen', async ({page}) => {
+test('fixed seven-day navigation uses circular dates and pill groups without horizontal scrolling', async ({page}) => {
   await onboard(page)
   await page.setViewportSize({width:320, height:720})
   await page.goto('/calendar/2026-01-15')
-  const navigation = page.getByRole('navigation', {name:'Nearby dates'})
-  const buttons = [
-    navigation.getByRole('link', {name:'Previous day'}),
-    navigation.getByRole('link', {name:'Today'}),
-    navigation.getByRole('link', {name:'Next day'})
-  ]
-  for (const button of buttons) await expect(button).toBeVisible()
-  const boxes = await Promise.all(buttons.map(button => button.boundingBox()))
-  expect(boxes.every(Boolean)).toBe(true)
-  const measurements = boxes.map(box => box!)
-  expect(Math.max(...measurements.map(box => box.y)) - Math.min(...measurements.map(box => box.y))).toBeLessThan(2)
-  expect(Math.max(...measurements.map(box => box.width)) - Math.min(...measurements.map(box => box.width))).toBeLessThan(2)
-  expect(measurements[2]!.x + measurements[2]!.width).toBeLessThanOrEqual(320)
-  await buttons[2]!.click()
+  const navigation = page.getByRole('navigation', {name:'Week navigation'})
+  const days = navigation.getByRole('group',{name:'Week dates'}).locator('[data-week-day]')
+  await expect(days).toHaveCount(7)
+  await expect(days.nth(3)).toHaveAttribute('aria-current','date')
+  await expect(days.nth(3)).toHaveAttribute('data-week-day','2026-01-15')
+  const geometry = await days.evaluateAll(elements => elements.map(element => {
+    const bounds = element.getBoundingClientRect()
+    const circle = element.querySelector('span.rounded-full')!
+    return {
+      x:bounds.x, y:bounds.y, width:bounds.width,
+      outerRadius:getComputedStyle(element).borderTopLeftRadius,
+      circleRadius:getComputedStyle(circle).borderTopLeftRadius,
+      circleWidth:circle.getBoundingClientRect().width
+    }
+  }))
+  expect(geometry).toHaveLength(7)
+  expect(Math.max(...geometry.map(item => item.y)) - Math.min(...geometry.map(item => item.y))).toBeLessThan(2)
+  expect(geometry.every(item => item.outerRadius === '9999px' && item.circleRadius === '9999px')).toBe(true)
+  expect(geometry.every(item => item.circleWidth === 32)).toBe(true)
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+  expect(overflow).toBeLessThanOrEqual(2)
+  await navigation.getByRole('link',{name:'2026-01-16 (Fri)'}).click()
   await expect(page).toHaveURL('/calendar/2026-01-16')
-  await navigation.getByRole('link', {name:'Previous day'}).click()
-  await expect(page).toHaveURL('/calendar/2026-01-15')
+  await navigation.getByRole('button',{name:'Previous week'}).click()
+  await expect(page).toHaveURL('/calendar/2026-01-09')
+  await navigation.getByRole('button',{name:'Next week'}).click()
+  await expect(page).toHaveURL('/calendar/2026-01-16')
+  await navigation.getByRole('link',{name:'Go to today'}).click()
+  const current = await page.evaluate(() => {
+    const now = new Date()
+    return now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0')
+  })
+  await expect(page).toHaveURL('/calendar/' + current)
+})
+
+test('future days and weeks are unavailable in Today, Calendar, and direct routes',async ({page}) => {
+  await page.clock.install({time:new Date('2026-11-04T12:00:00Z')})
+  await onboard(page)
+  await page.goto('/today')
+  const nav = page.getByRole('navigation',{name:'Week navigation'})
+  const week = nav.getByRole('group',{name:'Week dates'})
+  await expect(week.locator('[data-week-day]')).toHaveCount(7)
+  await expect(week.locator('[data-week-day="2026-11-04"]')).toHaveAttribute('aria-current','date')
+  await expect(week.locator('[data-week-day="2026-11-06"]')).toHaveAttribute('aria-disabled','true')
+  await expect(nav.getByRole('button',{name:'Next week'})).toBeDisabled()
+  await expect(nav.getByRole('link',{name:'2026-11-06 (Fri)'})).toHaveCount(0)
+  await page.goto('/calendar?month=2026-11')
+  const month = page.getByRole('region',{name:'November 2026 monthly calendar'})
+  await expect(month.getByLabel('2026-11-06: future date unavailable')).toBeVisible()
+  await expect(month.getByRole('link',{name:/2026-11-06/})).toHaveCount(0)
+  await expect(page.getByRole('button',{name:'Next month'})).toBeDisabled()
+  await page.goto('/calendar/2026-11-06')
+  await expect(page.getByRole('alert')).toContainText('Future dates are not selectable')
+  await expect(page.getByRole('heading',{name:'2026-11-06',exact:true})).toHaveCount(0)
 })
 
 test('dedicated food, drink and exercise forms save and Calendar can edit/delete them',async({page})=>{

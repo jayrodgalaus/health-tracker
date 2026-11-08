@@ -20,7 +20,7 @@ function validMonth(candidate: string | null, fallback: string): string {
 export function CalendarPage({ profile }: { profile: Profile }) {
   const [params, setParams] = useSearchParams()
   const today = toLocalDay(new Date())
-  const month = validMonth(params.get('month'), today.slice(0, 7))
+  const month = [validMonth(params.get('month'), today.slice(0, 7)), today.slice(0, 7)].sort()[0]!
   const data = useLiveQuery(() => readMonthRecords(month), [month], undefined)
   const rows = useMemo(() => monthGrid(month), [month])
   const title = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' })
@@ -47,7 +47,7 @@ export function CalendarPage({ profile }: { profile: Profile }) {
 
   function navigateMonth(offset: number) {
     const next = shiftMonth(month, offset)
-    if (next >= '1900-01' && next <= '2100-12') setParams({ month: next })
+    if (next >= '1900-01' && next <= today.slice(0, 7)) setParams({ month: next })
   }
 
   return (
@@ -75,12 +75,12 @@ export function CalendarPage({ profile }: { profile: Profile }) {
             </label>
           </h2>
           <input id="calendar-month-picker" type="month" aria-label="Choose month" title="Choose month"
-            min="1900-01" max="2100-12" value={month}
-            onChange={event => setParams({ month: validMonth(event.target.value, month) })}
+            min="1900-01" max={today.slice(0, 7)} value={month}
+            onChange={event => setParams({ month: [validMonth(event.target.value, month), today.slice(0, 7)].sort()[0]! })}
             className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
         </div>
         <button type="button" aria-label="Next month" onClick={() => navigateMonth(1)}
-          disabled={month >= '2100-12'}
+          disabled={month >= today.slice(0, 7)}
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white text-xl font-semibold disabled:opacity-40">
           ›
         </button>
@@ -103,6 +103,13 @@ export function CalendarPage({ profile }: { profile: Profile }) {
                   const status = entry?.status ?? 'incomplete'
                   const ariaLabel = day + ': ' + (completed
                     ? 'completed, ' + DAY_STATUS[status].label : 'not completed')
+                  if (day > today) return <span key={day}
+                    aria-label={day + ': future date unavailable'} aria-disabled="true"
+                    className="flex min-h-14 min-w-0 items-center justify-center rounded-xl text-slate-400">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-50 text-sm font-semibold tabular-nums sm:h-11 sm:w-11 sm:text-base">
+                      {Number(day.slice(-2))}
+                    </span>
+                  </span>
                   return <Link key={day} to={'/calendar/' + day} aria-label={ariaLabel}
                     className="flex min-h-14 min-w-0 items-center justify-center rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-evergreen-600">
                     <span className={'flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold tabular-nums transition-colors sm:h-11 sm:w-11 sm:text-base ' +
