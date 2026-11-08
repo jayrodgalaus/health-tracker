@@ -64,15 +64,17 @@ export function CalendarPage({ profile }: { profile: Profile }) {
           ‹
         </button>
         <div className="relative flex min-w-0 flex-1 items-center justify-center rounded-xl focus-within:ring-2 focus-within:ring-evergreen-600">
-          <h2 className="pointer-events-none inline-flex min-h-11 items-center justify-center gap-1 text-center text-lg font-bold"
-            aria-live="polite">
-            {title}
-            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 text-slate-500"
-              fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m6 9 6 6 6-6" />
-            </svg>
+          <h2 className="text-center text-lg font-bold" aria-live="polite">
+            <label htmlFor="calendar-month-picker"
+              className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-1">
+              {title}
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 text-slate-500"
+                fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </label>
           </h2>
-          <input type="month" aria-label="Choose month" title="Choose month"
+          <input id="calendar-month-picker" type="month" aria-label="Choose month" title="Choose month"
             min="1900-01" max="2100-12" value={month}
             onChange={event => setParams({ month: validMonth(event.target.value, month) })}
             className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
