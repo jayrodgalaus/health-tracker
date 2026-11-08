@@ -40,7 +40,6 @@ export function TrendsPage({ profile }: { profile:Profile }) {
   return <div className="space-y-7">
     <header>
       <PageInfoLink topic="trends" />
-      <p className="text-sm font-semibold uppercase tracking-wide text-evergreen-700">Trends · Phase 3</p>
       <h1 className="mt-2 text-3xl font-bold tracking-tight">Recorded history</h1>
     </header>
     <section aria-label="Trend date filters" className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">

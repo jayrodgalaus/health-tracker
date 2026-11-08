@@ -31,7 +31,6 @@ export function DayDetailPage({
     <header className="space-y-3">
       <PageInfoLink topic="day-detail" />
       <Link className="text-sm font-semibold text-evergreen-700 underline" to={'/calendar?month=' + dayKey.slice(0, 7)}>Back to {dayKey.slice(0, 7)} calendar</Link>
-      <p className="text-sm font-semibold uppercase tracking-wide text-evergreen-700">Day detail · Phase 2</p>
       <h1 className="text-3xl font-bold tracking-tight">{dayKey}</h1>
       <nav aria-label="Nearby dates" className="flex w-full flex-nowrap gap-2">
         {dayKey > '1900-01-01'
