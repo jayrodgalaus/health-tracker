@@ -7,6 +7,7 @@ import { db } from './db/database'
 import { readProfile } from './data/profileRepository'
 import { TodayPage } from './pages/TodayPage'
 import { LogPage } from './pages/LogPage'
+import { WeightEntryPage } from './pages/WeightEntryPage'
 import { IntakeEntryPage } from './pages/IntakeEntryPage'
 import { ExerciseEntryPage } from './pages/ExerciseEntryPage'
 import { SavedFoodsPage } from './pages/SavedFoodsPage'
@@ -65,7 +66,8 @@ function TrackerApp() {
         <Route path="/" element={<Navigate to="/today" replace />} />
         <Route path="/onboarding" element={<Navigate to="/today" replace />} />
         <Route path="/today" element={<TodayPage profile={profile} />} />
-        <Route path="/log" element={<LogPage profile={profile} />} />
+        <Route path="/log" element={<LogPage />} />
+        <Route path="/log/weight" element={<WeightEntryPage profile={profile} />} />
         <Route path="/log/food" element={<IntakeEntryPage kind="food" />} />
         <Route path="/log/drink" element={<IntakeEntryPage kind="beverage" />} />
         <Route path="/log/exercise" element={<ExerciseEntryPage profile={profile} />} />

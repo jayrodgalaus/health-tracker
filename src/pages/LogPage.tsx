@@ -1,17 +1,15 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Link, Navigate, useSearchParams } from 'react-router-dom'
-import type { Profile } from '../domain/models'
+import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import { db } from '../db/database'
 import { PageInfoLink } from '../components/PageInfoLink'
-import { WeightQuickCard } from '../features/weight/WeightQuickCard'
+import { LogActionPill } from '../components/LogActionPill'
 import { DayCompletionControl } from '../features/day/DayCompletionControl'
 import { selectedLogDay } from '../lib/logDate'
 import { toLocalDay } from '../lib/localDate'
 
-const actionClass = 'flex min-h-14 items-center justify-center rounded-xl bg-evergreen-600 px-4 py-3 text-base font-semibold text-white hover:bg-evergreen-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-evergreen-700'
-
-export function LogPage({ profile }: { profile: Profile }) {
+export function LogPage() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const location = useLocation()
   const dayKey = selectedLogDay(searchParams.get('date'))
   const today = toLocalDay(new Date())
   const legacyAction = searchParams.get('add')
@@ -20,18 +18,18 @@ export function LogPage({ profile }: { profile: Profile }) {
   const locked = review?.isComplete === true
   const actionDate = '?date=' + encodeURIComponent(dayKey)
 
-  // Older Today / Calendar bookmarks used ?add=... in the combined Log page.
-  if (legacyAction && ['food', 'drink', 'exercise', 'water'].includes(legacyAction)) {
-    const route = legacyAction === 'exercise' ? 'exercise' : legacyAction === 'food' ? 'food' : 'drink'
+  // Older links used ?add=... or #weight on the combined Log screen.
+  if (legacyAction && ['food', 'drink', 'exercise', 'weight', 'water'].includes(legacyAction)) {
+    const route = legacyAction === 'water' ? 'drink' : legacyAction
     return <Navigate to={'/log/' + route + actionDate + (legacyAction === 'water' ? '&water=1' : '')} replace />
   }
+  if (location.hash === '#weight') return <Navigate to={'/log/weight' + actionDate} replace />
 
   function selectDay(value: string) {
     const next = selectedLogDay(value)
     if (next !== value) return
-    setSearchParams({date: next})
+    setSearchParams({ date: next })
   }
-
 
   return <div className="space-y-6">
     <header>
@@ -51,21 +49,19 @@ export function LogPage({ profile }: { profile: Profile }) {
         <Link className="inline-flex min-h-11 items-center font-semibold text-evergreen-700 underline" to={'/calendar/' + dayKey}>
           View locked day details
         </Link>
-        <DayCompletionControl dayKey={dayKey} isComplete />
+        <div className="flex justify-center">
+          <DayCompletionControl dayKey={dayKey} isComplete />
+        </div>
       </section> : <>
-        <section aria-label="Quick actions" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 text-lg font-bold">Quick actions</h2>
-          <nav aria-label="Quick actions" className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <Link className={actionClass} to={'/log/food' + actionDate}>+ Food</Link>
-            <Link className={actionClass} to={'/log/drink' + actionDate}>+ Drink</Link>
-            <Link className={actionClass} to={'/log/exercise' + actionDate}>+ Exercise</Link>
-          </nav>
-        </section>
-        <section id="weight" aria-label="Log weight" className="scroll-mt-6">
-          <WeightQuickCard key={dayKey} dayKey={dayKey} unit={profile.units.mass} />
-        </section>
-        <DayCompletionControl dayKey={dayKey} isComplete={false} />
+        <nav aria-label="Log entry types" className="flex flex-col gap-4">
+          <LogActionPill kind="food" to={'/log/food' + actionDate} />
+          <LogActionPill kind="drink" to={'/log/drink' + actionDate} />
+          <LogActionPill kind="exercise" to={'/log/exercise' + actionDate} />
+          <LogActionPill kind="weight" to={'/log/weight' + actionDate} />
+        </nav>
+        <div className="flex justify-center">
+          <DayCompletionControl dayKey={dayKey} isComplete={false} />
+        </div>
       </>}
-
   </div>
 }

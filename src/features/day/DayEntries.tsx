@@ -111,12 +111,12 @@ export function DayWeightEntries({
     <div className="flex flex-wrap items-center justify-between gap-2">
       <h3 className="text-lg font-semibold">Measured weight ({measurements.length})</h3>
       {!locked && <Link className="text-sm font-semibold text-evergreen-700 underline"
-        to={'/log' + query + '#weight'}>Add or edit weight</Link>}
+        to={'/log/weight' + query}>Add or edit weight</Link>}
     </div>
     {!measurements.length && <p className="text-sm text-slate-600">No weight measurement recorded for this date.</p>}
     {measurements.map(entry => <article key={entry.id} className={itemClass}>
       <p className="font-semibold">{amount(kilogramsTo(entry.weightKg, profile.units.mass), profile.units.mass)} measured</p>
-      {!locked && <Link to={'/log' + query + '#weight'}
+      {!locked && <Link to={'/log/weight' + query}
         className="mt-2 inline-block text-sm font-semibold text-evergreen-700 underline">Edit / delete</Link>}
     </article>)}
   </section>
