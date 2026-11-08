@@ -55,9 +55,9 @@ const cardInfo: Record<DaySection, {
 
 /** Original inline artwork. No CDN, image licensing, or online request. */
 export function DaySectionIcon({ section }: { section: DaySection }) {
-  return <svg viewBox="0 0 64 64" width="66" height="66" aria-hidden="true"
+  return <svg viewBox="0 0 64 64" width="56" height="56" aria-hidden="true"
     fill="none" stroke="currentColor" strokeWidth="2.7"
-    strokeLinecap="round" strokeLinejoin="round" className="h-16 w-16 drop-shadow-sm">
+    strokeLinecap="round" strokeLinejoin="round" className="h-14 w-14 drop-shadow-sm">
     {section === 'energy' && <>
       <path d="M34 5 16 35h16l-3 24 20-34H33l1-20Z" />
       <path d="M13 11 9 7M50 49l5 5" strokeWidth="2" />
@@ -140,17 +140,17 @@ export function CalendarSectionCards({
         const value = calendarSectionValue(section, summary, massUnit)
         return <Link key={section} to={'/calendar/' + dayKey + '/' + section}
           aria-label={item.title + ' — ' + value + ' — View details'}
-          className={'group relative flex min-h-[245px] min-w-0 flex-col items-center overflow-hidden rounded-[2.25rem] border border-slate-200 bg-white px-3 pb-4 pt-3 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-evergreen-700 ' +
+          className={'group relative flex min-h-[216px] min-w-0 flex-col items-center overflow-hidden rounded-[2.25rem] border border-slate-200 bg-white px-3 pb-3 pt-3 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-evergreen-700 ' +
             (index === 4 ? 'col-span-2 sm:col-span-1' : '')}>
           <span data-card-layer="blob" aria-hidden="true"
-            className={'pointer-events-none absolute -right-[5px] -top-[5px] z-0 h-28 w-28 rounded-full ' + item.backdrop} />
+            className={'pointer-events-none absolute -right-[5px] -top-[5px] z-0 h-24 w-24 rounded-full ' + item.backdrop} />
           <span data-card-layer="illustration" aria-hidden="true"
-            className={'pointer-events-none absolute right-[19px] top-[19px] z-10 ' + item.illustration}>
+            className={'pointer-events-none absolute right-[15px] top-[15px] z-10 ' + item.illustration}>
             <DaySectionIcon section={section} />
           </span>
-          <div aria-hidden="true" className="mb-3 h-[112px] w-full shrink-0" />
+          <div aria-hidden="true" className="mb-2 h-[84px] w-full shrink-0" />
           <h3 className="relative z-10 text-lg font-extrabold tracking-tight text-slate-900">{item.title}</h3>
-          <p className="relative z-10 mt-1 flex min-h-10 max-w-full items-center justify-center break-words text-sm font-medium tabular-nums leading-5 text-slate-700">
+          <p className="relative z-10 flex min-h-8 max-w-full items-center justify-center break-words text-sm font-medium tabular-nums leading-5 text-slate-700">
             {value}
           </p>
           <span className={'relative z-10 mt-auto inline-flex max-w-full items-center gap-1 rounded-full border py-1 pl-3 pr-1 text-xs font-semibold ' + item.pill}>

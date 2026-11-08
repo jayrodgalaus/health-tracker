@@ -453,6 +453,9 @@ test('five illustrated Calendar cards route to their own detailed sections and k
         blobRight: bounds.right - blobBounds.right,
         blobTop: blobBounds.top - bounds.top,
         blobRadius: parseFloat(getComputedStyle(blob).borderTopLeftRadius),
+        cardHeight: bounds.height,
+        iconWidth: iconBounds.width,
+        titleToValueGap: value.getBoundingClientRect().top - title.getBoundingClientRect().bottom,
         blobZ: getComputedStyle(blob).zIndex,
         iconPosition: getComputedStyle(illustration).position,
         iconZ: getComputedStyle(illustration).zIndex,
@@ -479,7 +482,12 @@ test('five illustrated Calendar cards route to their own detailed sections and k
     expect(styling.blobRight).toBeLessThanOrEqual(-3)
     expect(styling.blobTop).toBeGreaterThanOrEqual(-7)
     expect(styling.blobTop).toBeLessThanOrEqual(-3)
-    expect(styling.blobRadius).toBeGreaterThanOrEqual(55)
+    expect(styling.blobRadius).toBe(48)
+    expect(styling.cardHeight).toBeGreaterThanOrEqual(216)
+    expect(styling.cardHeight).toBeLessThanOrEqual(230)
+    expect(styling.iconWidth).toBe(56)
+    expect(styling.titleToValueGap).toBeGreaterThanOrEqual(0)
+    expect(styling.titleToValueGap).toBeLessThanOrEqual(4)
     expect(styling.blobZ).toBe('0')
     expect(styling.iconPosition).toBe('absolute')
     for (const z of [styling.iconZ, styling.titleZ, styling.valueZ, styling.pillZ]) {
