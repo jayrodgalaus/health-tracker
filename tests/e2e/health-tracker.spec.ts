@@ -115,7 +115,8 @@ test('Today is exactly the current local Calendar day overview, never a selectab
   await expect(page.getByRole('heading',{name:'Your day, your pace.'})).toHaveCount(0)
   await expect(page.getByRole('navigation',{name:'Day navigation'})).toHaveCount(0)
   await expect(page.getByRole('region',{name:'Quick logging actions'})).toHaveCount(0)
-  const todayMarkup = await page.locator('#main-content').innerText()
+  await expect(page.getByRole('button',{name:'Show daily goal details'})).toBeVisible()
+  await expect(page.getByRole('list',{name:'Daily goals'})).toBeHidden()
 
   // Today remains clickable even when today's date is already selected.
   await page.getByRole('navigation',{name:'Week navigation'})
@@ -123,7 +124,8 @@ test('Today is exactly the current local Calendar day overview, never a selectab
   await expect(page).toHaveURL('/calendar/' + day)
   await page.goto('/calendar/' + day)
   await expect(page.getByRole('region',{name:'Day details by section'}).getByRole('link')).toHaveCount(5)
-  expect(await page.locator('#main-content').innerText()).toBe(todayMarkup)
+  await expect(page.getByRole('list',{name:'Daily goals'})).toBeVisible()
+  await expect(page.getByRole('button',{name:'Show daily goal details'})).toHaveCount(0)
 
   await page.goto('/today?date=2026-01-15')
   await expect(page.getByRole('heading',{name:day,exact:true})).toHaveCount(0)
@@ -253,6 +255,68 @@ test('completing a day requires confirmation, locks every form, and reopening re
   await page.getByLabel('Weight (kg)').fill('72')
   await page.getByRole('button',{name:'Update weight'}).click()
   await expect(page.getByText('Weight saved.')).toBeVisible()
+})
+
+test('Today radar caps five goal scores, inverts calorie deviation and sodium excess, and toggles checklist', async ({page}) => {
+  await onboard(page)
+  await page.goto('/settings/goals')
+  await page.getByLabel('Optional calorie target (kcal/day)').fill('1600')
+  await page.getByLabel('Protein target (g/day)').fill('100')
+  await page.getByLabel('Fiber target (g/day)').fill('25')
+  await page.getByLabel('Fluid tracking target (ml/day)').fill('2000')
+  await page.getByLabel('Optional sodium upper tracking limit (mg/day)').fill('2000')
+  await page.getByRole('button',{name:'Save goals'}).click()
+  await page.goto('/log/food')
+  await page.getByRole('combobox',{name:'Name'}).fill('Synthetic daily radar meal')
+  await page.getByLabel('Calories (kcal)').fill('1760')
+  await page.getByLabel('Protein (g)').fill('100')
+  await page.getByLabel('Fiber (g)').fill('12.5')
+  await page.getByLabel('Sodium (mg)').fill('2020')
+  await page.getByRole('button',{name:'Add to log'}).click()
+  await page.goto('/log/drink')
+  await page.getByRole('link',{name:'Log plain water instead'}).click()
+  await page.getByLabel('Volume (ml)').fill('1000')
+  await page.getByRole('button',{name:'Save water'}).click()
+
+  await page.goto('/today')
+  const chart = page.getByRole('button',{name:'Show daily goal details'})
+  await expect(chart).toHaveAttribute('aria-expanded','false')
+  await expect(page.getByRole('list',{name:'Daily goals'})).toBeHidden()
+  for (const [code, expected] of [
+    ['energyKcal','90%'],['proteinG','100%'],['fiberG','50%'],['fluidMl','50%'],['sodiumMg','90%']
+  ]) {
+    await expect(chart.locator('[data-radar-label="'+code+'"]')).toContainText(expected)
+    await expect(chart.locator('[data-radar-point="'+code+'"]')).toHaveCount(1)
+  }
+  await expect(chart.locator('[data-radar-shape="complete"]')).toHaveCount(1)
+  await chart.click()
+  await expect(page.getByRole('button',{name:'Hide daily goal details'})).toHaveAttribute('aria-expanded','true')
+  await expect(page.getByRole('list',{name:'Daily goals'}).getByRole('listitem')).toHaveCount(5)
+  await page.getByRole('button',{name:'Hide daily goal details'}).click()
+  await expect(page.getByRole('list',{name:'Daily goals'})).toBeHidden()
+  const gradient = await page.getByRole('heading',{name:'Daily goal alignment'}).locator('..')
+    .evaluate(element => getComputedStyle(element).backgroundImage)
+  expect(gradient).toContain('linear-gradient')
+  await page.goto('/calendar/')
+  await expect(page.getByRole('button',{name:'Show daily goal details'})).toHaveCount(0)
+})
+
+test('Today radar leaves metrics with missing coverage unplotted rather than zero', async ({page}) => {
+  await onboard(page)
+  await page.goto('/settings/goals')
+  await page.getByLabel('Optional calorie target (kcal/day)').fill('1600')
+  await page.getByLabel('Protein target (g/day)').fill('100')
+  await page.getByRole('button',{name:'Save goals'}).click()
+  await page.goto('/log/food')
+  await page.getByRole('combobox',{name:'Name'}).fill('Synthetic incomplete radar entry')
+  await page.getByLabel('Calories (kcal)').fill('1600')
+  await page.getByRole('button',{name:'Add to log'}).click()
+  await page.goto('/today')
+  const radar = page.getByRole('button',{name:'Show daily goal details'})
+  await expect(radar.locator('[data-radar-label="energyKcal"]')).toContainText('100%')
+  await expect(radar.locator('[data-radar-label="proteinG"]')).toContainText('—')
+  await expect(radar.locator('[data-radar-point="proteinG"]')).toHaveCount(0)
+  await expect(radar.locator('[data-radar-shape="complete"]')).toHaveCount(0)
 })
 
 test('completed daily goal alignment stays frozen after same-day target settings change', async ({page}) => {
