@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from './components/AppShell'
+import { LoadingSplash } from './components/LoadingSplash'
 import { ToastProvider } from './components/ToastProvider'
 import { db } from './db/database'
 import { readProfile } from './data/profileRepository'
@@ -34,6 +35,7 @@ export default function App() {
 
 function TrackerApp() {
   const [storage, setStorage] = useState<StorageStatus>('opening')
+  const [splashSettled, setSplashSettled] = useState(false)
   const profile = useLiveQuery(() => readProfile(), [], undefined)
 
   useEffect(() => {
@@ -45,13 +47,13 @@ function TrackerApp() {
     return () => { active = false }
   }, [])
 
-  if (storage === 'opening' || (storage === 'ready' && profile === undefined)) {
-    return <AppShell hideNavigation><p role="status" className="rounded-2xl bg-white p-5 text-sm text-slate-600">Opening your local tracker…</p></AppShell>
-  }
   if (storage === 'unavailable') {
     return <AppShell hideNavigation><div role="alert" className="rounded-2xl border border-rose-300 bg-rose-50 p-5 text-sm text-rose-900">
       Local IndexedDB could not be opened. Check browser storage permissions or free device space, then reload. No changes can be saved until this is resolved.
     </div></AppShell>
+  }
+  if (!splashSettled || storage === 'opening' || profile === undefined) {
+    return <LoadingSplash onSettled={() => setSplashSettled(true)} />
   }
   if (!profile) {
     return <AppShell hideNavigation><Routes>
