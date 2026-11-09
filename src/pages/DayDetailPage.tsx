@@ -6,7 +6,6 @@ import type { Profile } from '../domain/models'
 import { calculateDay } from '../domain/evaluation'
 import { readDayRecords } from '../data/dayRepository'
 import { parseLocalDay, toLocalDay } from '../lib/localDate'
-import { CalendarGoalChecklist } from '../features/day/CalendarGoalChecklist'
 import { DailyGoalRadar } from '../features/day/DailyGoalRadar'
 import { CalendarSectionCards } from '../features/day/CalendarSectionCards'
 import { DayCompletionControl } from '../features/day/DayCompletionControl'
@@ -48,7 +47,7 @@ export function DayDetailPage({
       {dayKey <= last && <DayCompletionControl key={dayKey} dayKey={dayKey}
         isComplete={locked} compact />}
     </section>}
-    {selectedDayKey ? <DailyGoalRadar summary={summary} /> : <CalendarGoalChecklist summary={summary} />}
+    <DailyGoalRadar key={dayKey} summary={summary} />
     {records && <CalendarSectionCards dayKey={dayKey} summary={summary}
       massUnit={records.review?.isComplete && records.review.frozen
         ? records.review.frozen.profile.units.mass : profile.units.mass} />}

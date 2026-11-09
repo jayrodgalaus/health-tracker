@@ -115,8 +115,10 @@ test('Today is exactly the current local Calendar day overview, never a selectab
   await expect(page.getByRole('heading',{name:'Your day, your pace.'})).toHaveCount(0)
   await expect(page.getByRole('navigation',{name:'Day navigation'})).toHaveCount(0)
   await expect(page.getByRole('region',{name:'Quick logging actions'})).toHaveCount(0)
-  await expect(page.getByRole('button',{name:'Show daily goal details'})).toBeVisible()
+  const todayRadar = page.getByRole('button',{name:'Show daily goal details'})
+  await expect(todayRadar).toBeVisible()
   await expect(page.getByRole('list',{name:'Daily goals'})).toBeHidden()
+  const todaySvg = await todayRadar.locator('svg[viewBox="0 0 320 306"]').innerHTML()
 
   // Today remains clickable even when today's date is already selected.
   await page.getByRole('navigation',{name:'Week navigation'})
@@ -124,8 +126,14 @@ test('Today is exactly the current local Calendar day overview, never a selectab
   await expect(page).toHaveURL('/calendar/' + day)
   await page.goto('/calendar/' + day)
   await expect(page.getByRole('region',{name:'Day details by section'}).getByRole('link')).toHaveCount(5)
+  const calendarRadar = page.getByRole('button',{name:'Show daily goal details'})
+  await expect(calendarRadar).toBeVisible()
+  await expect(page.getByRole('list',{name:'Daily goals'})).toBeHidden()
+  expect(await calendarRadar.locator('svg[viewBox="0 0 320 306"]').innerHTML()).toBe(todaySvg)
+  await calendarRadar.click()
   await expect(page.getByRole('list',{name:'Daily goals'})).toBeVisible()
-  await expect(page.getByRole('button',{name:'Show daily goal details'})).toHaveCount(0)
+  await page.getByRole('button',{name:'Hide daily goal details'}).click()
+  await expect(page.getByRole('list',{name:'Daily goals'})).toBeHidden()
 
   await page.goto('/today?date=2026-01-15')
   await expect(page.getByRole('heading',{name:day,exact:true})).toHaveCount(0)
@@ -307,8 +315,20 @@ test('Today radar caps five goal scores, inverts calorie deviation and sodium ex
   const expandedList=page.getByRole('list',{name:'Daily goals'})
   await expect(expandedList).toHaveCSS('color','rgb(255, 255, 255)')
   await expect(expandedList.getByRole('img').first()).toHaveCSS('color','rgb(255, 255, 255)')
-  await page.goto('/calendar/')
-  await expect(page.getByRole('button',{name:'Show daily goal details'})).toHaveCount(0)
+  const todayKey = await page.getByRole('navigation',{name:'Week navigation'})
+    .locator('[aria-current="date"]').getAttribute('data-week-day')
+  await page.goto('/calendar/' + todayKey)
+  const calendarChart = page.getByRole('button',{name:'Show daily goal details'})
+  await expect(calendarChart).toHaveAttribute('aria-expanded','false')
+  await expect(page.getByRole('list',{name:'Daily goals'})).toBeHidden()
+  for (const [code, expected] of [
+    ['energyKcal','90%'],['proteinG','100%'],['fiberG','50%'],['fluidMl','50%'],['sodiumMg','90%']
+  ]) {
+    await expect(calendarChart.locator('[data-radar-label="'+code+'"]')).toContainText(expected)
+  }
+  await expect(calendarChart.locator('[data-radar-shape="complete"]')).toHaveCount(1)
+  await calendarChart.click()
+  await expect(page.getByRole('list',{name:'Daily goals'}).getByRole('listitem')).toHaveCount(5)
 })
 
 test('Today radar leaves metrics with missing coverage unplotted rather than zero', async ({page}) => {
@@ -327,6 +347,12 @@ test('Today radar leaves metrics with missing coverage unplotted rather than zer
   await expect(radar.locator('[data-radar-label="proteinG"]')).toContainText('—')
   await expect(radar.locator('[data-radar-point="proteinG"]')).toHaveCount(0)
   await expect(radar.locator('[data-radar-shape="complete"]')).toHaveCount(0)
+  const todayKey = await page.getByRole('navigation',{name:'Week navigation'})
+    .locator('[aria-current="date"]').getAttribute('data-week-day')
+  await page.goto('/calendar/' + todayKey)
+  const calendarRadar = page.getByRole('button',{name:'Show daily goal details'})
+  await expect(calendarRadar.locator('[data-radar-label="proteinG"]')).toContainText('—')
+  await expect(calendarRadar.locator('[data-radar-point="proteinG"]')).toHaveCount(0)
 })
 
 test('completed daily goal alignment stays frozen after same-day target settings change', async ({page}) => {
@@ -348,6 +374,7 @@ test('completed daily goal alignment stays frozen after same-day target settings
   await page.getByRole('dialog').getByRole('button',{name:'Confirm complete and lock'}).click()
   await expect(page.getByRole('heading',{name:'Day complete · Read only'})).toBeVisible()
   await page.goto('/calendar/' + today)
+  await page.getByRole('button',{name:'Show daily goal details'}).click()
   const assessment = page.getByRole('heading',{name:'Daily goal alignment'}).locator('..')
   const calories = page.getByRole('list',{name:'Daily goals'}).getByRole('listitem').filter({hasText:'Calories'})
   await expect(calories).toContainText('2,000 kcal / 2,000 kcal')
@@ -359,10 +386,12 @@ test('completed daily goal alignment stays frozen after same-day target settings
   await page.getByRole('button',{name:'Save goals'}).click()
   await expect(page.getByTestId('app-toast')).toContainText('Goals saved.')
   await page.goto('/calendar/' + today)
+  await page.getByRole('button',{name:'Show daily goal details'}).click()
   await expect(calories).toContainText('2,000 kcal / 2,000 kcal')
   await expect(calories.getByRole('img',{name:'Aligned'})).toBeVisible()
   await expect(calories).not.toContainText('1,000 kcal')
   await page.goto('/calendar/' + today)
+  await page.getByRole('button',{name:'Show daily goal details'}).click()
   await page.getByRole('button',{name:'Reopen day'}).click()
   await expect(calories).toContainText('2,000 kcal / 1,000 kcal')
   await expect(calories.getByRole('img',{name:'Not evaluated'})).toBeVisible()
@@ -372,7 +401,7 @@ test('completed daily goal alignment stays frozen after same-day target settings
   await expect(calories).toContainText('2,000 kcal / 1,000 kcal')
 })
 
-test('Calendar renders only a flush calories, fluid and sodium checklist with inline Reopen', async ({page}) => {
+test('Calendar day details show an expandable radar with calories, fluid and sodium goal breakdown', async ({page}) => {
   await onboard(page)
   await page.goto('/log')
   const day = (await page.getByRole('navigation',{name:'Week navigation'})
@@ -400,6 +429,11 @@ test('Calendar renders only a flush calories, fluid and sodium checklist with in
   await page.getByRole('dialog').getByRole('button', {name:'Confirm complete and lock'}).click()
   await expect(page.getByRole('button', {name:'Reopen day'})).toBeVisible()
   await page.goto('/calendar/' + day)
+  const calendarRadar = page.getByRole('button',{name:'Show daily goal details'})
+  await expect(calendarRadar).toBeVisible()
+  await expect(page.getByRole('list',{name:'Daily goals'})).toBeHidden()
+  await expect(calendarRadar.locator('[data-radar-label="energyKcal"]')).toContainText('93.7%')
+  await calendarRadar.click()
 
   const completion = page.getByRole('region', {name:'Day completion status'})
   const checklist = page.getByRole('list', {name:'Daily goals'})

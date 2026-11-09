@@ -2,7 +2,7 @@ import type { DailySummary } from '../../domain/evaluation'
 import { goalChecklist } from '../../domain/goalChecklist'
 import { GoalStatusIcon } from './GoalStatusIcon'
 
-/** Shared text breakdown; Today hides it until the radar chart is activated. */
+/** Shared rule breakdown, revealed from the same radar on Today and Calendar day details. */
 export function GoalChecklistRows({ summary, onDark = false }: { summary: DailySummary; onDark?: boolean }) {
   const items = goalChecklist(summary)
   return items.length === 0
@@ -16,14 +16,4 @@ export function GoalChecklistRows({ summary, onDark = false }: { summary: DailyS
           </p>
         </li>)}
       </ul>
-}
-
-/** Calendar retains its existing plain checklist, statuses and rule details. */
-export function CalendarGoalChecklist({ summary }: { summary?: DailySummary }) {
-  if (!summary) return <p role="status" className="rounded-2xl bg-white p-4 text-sm text-slate-600">Loading day evaluation…</p>
-  return <section aria-labelledby="day-assessment-heading"
-    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-    <h2 id="day-assessment-heading" className="text-lg font-bold">Daily goal alignment</h2>
-    <GoalChecklistRows summary={summary} />
-  </section>
 }
