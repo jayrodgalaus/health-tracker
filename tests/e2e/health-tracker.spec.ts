@@ -1755,6 +1755,7 @@ test('Food and Drink camera fills label fields locally and moves above navigatio
   const restore = await camera.locator('span.rounded-full').boundingBox()
   expect(restore?.width).toBe(72)
 
+  await page.getByLabel('Sugars (g)').fill('15')
   const picture = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jR9sAAAAASUVORK5CYII=','base64')
   await page.getByLabel('Nutrition label photo').setInputFiles({
     name:'food-label.png',mimeType:'image/png',buffer:picture

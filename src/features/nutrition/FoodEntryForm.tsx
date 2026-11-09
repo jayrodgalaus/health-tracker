@@ -97,8 +97,10 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
 
   function applyScannedLabel(label: ParsedNutritionLabel) {
     // OCR is only a draft of the printed facts; no automatic save or guessing.
-    setNutrition(previous => {
-      const next = { ...previous }
+    setNutrition(() => {
+      // A new label is a new reference: unrecognized nutrients become unknown,
+      // never silently inherited from a previously selected product.
+      const next = inputsFromNutrition()
       for (const [field, value] of Object.entries(label.nutrients)) {
         if (value !== undefined) {
           next[field as keyof typeof next] = String(value)
