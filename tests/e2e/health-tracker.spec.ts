@@ -1788,6 +1788,38 @@ test('Food and Drink camera fills label fields locally and moves above navigatio
   await expect(page.getByRole('button',{name:'Scan nutrition label'})).toHaveCount(0)
 })
 
+test('real same-origin OCR recognizes a synthetic printed label on device', async ({page}) => {
+  test.setTimeout(120000)
+  await onboard(page)
+  await page.goto('/log/food?date=2026-01-15')
+  // Generate a synthetic label: no real personal data or photographed records.
+  const pixels = await page.evaluate(() => {
+    const canvas = document.createElement('canvas')
+    canvas.width=1200
+    canvas.height=520
+    const context=canvas.getContext('2d')!
+    context.fillStyle='#ffffff'
+    context.fillRect(0,0,1200,520)
+    context.fillStyle='#111111'
+    context.font='bold 78px Arial'
+    context.fillText('Calories 240',70,135)
+    context.fillText('Protein 12g',70,265)
+    context.fillText('Sodium 250mg',70,395)
+    return canvas.toDataURL('image/png').split(',')[1]
+  })
+  const outsideRequests:string[]=[]
+  page.on('request',request => {
+    if (!request.url().startsWith('http://127.0.0.1:4173/')) outsideRequests.push(request.url())
+  })
+  await page.getByLabel('Nutrition label photo').setInputFiles({
+    name:'synthetic-nutrition.png',mimeType:'image/png',buffer:Buffer.from(pixels,'base64')
+  })
+  await expect(page.getByLabel('Calories (kcal)')).toHaveValue('240',{timeout:90000})
+  await expect(page.getByLabel('Protein (g)')).toHaveValue('12')
+  await expect(page.getByLabel('Sodium (mg)')).toHaveValue('250')
+  expect(outsideRequests).toEqual([])
+})
+
 test('PWA serves nutrition OCR assets from its own origin', async ({page})=>{
   await onboard(page)
   for (const path of [
