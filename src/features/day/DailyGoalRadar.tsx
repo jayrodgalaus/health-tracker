@@ -70,7 +70,7 @@ export function DailyGoalRadar({ summary }: { summary?: DailySummary }) {
                     stroke="#0f766e" strokeWidth="2.5" /> : null
             })}
             {plotted.map((point,index) => point
-              ? <circle key={goals[index].code} data-radar-point={goals[index].code}
+              ? <circle key={index} data-radar-point={goals[index]?.code}
                   cx={point.x} cy={point.y} r="4.5" fill="#0f766e" stroke="#fff" strokeWidth="1.5" />
               : null)}
             {goals.map((goal,index) => {
