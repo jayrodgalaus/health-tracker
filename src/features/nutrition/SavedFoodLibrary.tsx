@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { SavedFood, ServingUnit } from '../../domain/models'
 import { deleteSavedFood, listSavedFoods, saveSavedFood } from '../../data/intakeRepository'
@@ -6,6 +6,7 @@ import { NutritionFields, inputsFromNutrition, nutritionFromInputs, parseNumber 
 import { basisFor, inferBasisMode, SERVING_UNITS, type BasisMode } from './labelBasis'
 import { useToast } from '../../components/ToastProvider'
 import type { ParsedNutritionLabel } from '../../domain/nutritionLabelOcr'
+import { FloatingNutritionCamera } from '../../components/FloatingNutritionCamera'
 
 const fieldClass = 'mt-1 block min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base'
 
@@ -132,15 +133,31 @@ export function SavedFoodLibrary({ onUse }: { onUse: (food: SavedFood) => void }
   const [deleting, setDeleting] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [activeKind, setActiveKind] = useState<SavedKind>('food')
+  const [scanDraft, setScanDraft] = useState<ParsedNutritionLabel | null>(null)
+  const [scanRevision, setScanRevision] = useState(0)
+  const editorLocation = useRef<HTMLDivElement>(null)
   const tabsId = useId()
+  useEffect(() => {
+    if (scanRevision > 0) editorLocation.current?.scrollIntoView({block:'start',behavior:'smooth'})
+  }, [scanRevision])
   const foods = saved?.filter(item => (item.kind ?? 'food') === 'food')
   const drinks = saved?.filter(item => item.kind === 'beverage')
   const visible = activeKind === 'food' ? foods : drinks
 
   function chooseTab(kind: SavedKind) {
     setActiveKind(kind)
+    setScanDraft(null)
     setEditing(null)
     setAdding(false)
+    setDeleting(null)
+    setError('')
+  }
+
+  function handleLabelScan(draft: ParsedNutritionLabel) {
+    setScanDraft(draft)
+    setScanRevision(version => version + 1)
+    setEditing(null)
+    setAdding(true)
     setDeleting(null)
     setError('')
   }
@@ -187,20 +204,23 @@ export function SavedFoodLibrary({ onUse }: { onUse: (food: SavedFood) => void }
         className="space-y-4">
         <div className="flex justify-end">
           <button type="button"
-            onClick={() => { setEditing(null); setAdding(true); setDeleting(null); setError('') }}
+            onClick={() => { setScanDraft(null); setEditing(null); setAdding(true); setDeleting(null); setError('') }}
             className="min-h-11 rounded-xl border border-evergreen-600 bg-white px-4 text-sm font-semibold text-evergreen-700">
             + Save a {activeKind === 'food' ? 'food' : 'drink'}
           </button>
         </div>
-        {(editing || adding) && <SavedFoodEditor key={editing?.id ?? 'new-' + activeKind}
-          editing={editing ?? undefined} initialKind={activeKind}
-          onDone={kind => {
-            setEditing(null)
-            setAdding(false)
-            setActiveKind(kind)
-            toast.success('Label saved.')
-          }}
-          onCancel={() => { setEditing(null); setAdding(false) }} />}
+        {(editing || adding) && <div ref={editorLocation}>
+          <SavedFoodEditor key={editing?.id ?? (scanDraft ? 'scan-' + scanRevision : 'new-' + activeKind)}
+            editing={editing ?? undefined} initialKind={activeKind} scanned={scanDraft ?? undefined}
+            onDone={kind => {
+              setScanDraft(null)
+              setEditing(null)
+              setAdding(false)
+              setActiveKind(kind)
+              toast.success('Label saved.')
+            }}
+            onCancel={() => { setScanDraft(null); setEditing(null); setAdding(false) }} />
+        </div>}
         {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}
         {saved === undefined && <p role="status" className="text-sm text-slate-600">Loading saved labels…</p>}
         {saved !== undefined && visible?.length === 0 && (
@@ -219,7 +239,7 @@ export function SavedFoodLibrary({ onUse }: { onUse: (food: SavedFood) => void }
                 <button type="button" onClick={() => onUse(item)}
                   className="min-h-11 rounded-xl bg-evergreen-600 px-4 text-sm font-semibold text-white">Log this</button>
                 <button type="button"
-                  onClick={() => { setEditing(item); setAdding(false); setDeleting(null) }}
+                  onClick={() => { setScanDraft(null); setEditing(item); setAdding(false); setDeleting(null) }}
                   className="min-h-11 rounded-xl border border-slate-300 px-4 text-sm font-semibold">Edit label</button>
                 <button type="button" onClick={() => setDeleting(item.id)}
                   className="min-h-11 rounded-xl border border-rose-200 px-4 text-sm font-semibold text-rose-800">Remove</button>
@@ -237,6 +257,7 @@ export function SavedFoodLibrary({ onUse }: { onUse: (food: SavedFood) => void }
           ))}
         </div>
       </div>
+      <FloatingNutritionCamera onRecognized={handleLabelScan} />
     </section>
   )
 }
