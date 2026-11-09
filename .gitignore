@@ -7,3 +7,6 @@ coverage/
 !.env.example
 .DS_Store
 *.local
+
+# Generated locally from pinned OCR npm distribution archives.
+public/ocr/
