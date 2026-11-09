@@ -33,7 +33,7 @@ function localPath(path: string): string {
 function loadLocalOcr(): Promise<TesseractApi> {
   if (window.Tesseract) return Promise.resolve(window.Tesseract)
   if (loading) return loading
-  loading = new Promise((resolve, reject) => {
+  loading = new Promise<TesseractApi>((resolve, reject) => {
     const script = document.createElement('script')
     script.src = localPath('ocr/tesseract.min.js')
     script.async = true
@@ -46,7 +46,7 @@ function loadLocalOcr(): Promise<TesseractApi> {
     loading = null
     throw error
   })
-  return loading
+  return loading!
 }
 
 export async function readNutritionLabelPhoto(

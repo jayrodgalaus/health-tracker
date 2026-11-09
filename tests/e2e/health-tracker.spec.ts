@@ -1719,6 +1719,88 @@ test('blanched cabbage query explains the nearest USDA boiled reference is not t
 })
 
 
+test('Food and Drink camera fills label fields locally and moves above navigation as the user scrolls', async ({page}) => {
+  await page.addInitScript(() => {
+    (window as unknown as { Tesseract: unknown }).Tesseract = {
+      createWorker: async () => ({
+        recognize: async (file: File) => ({data:{text: file.name.includes('drink')
+          ? 'Nutrition Facts\\nServing Size 330 ml\\nCalories 145\\nTotal Sugars 35g\\nSodium 0.04g'
+          : 'Nutrition Facts\\nAmount per 100 g\\nCalories 210\\nProtein 12g\\nTotal Fat 6g\\nSodium 250mg'}}),
+        terminate: async () => {}
+      })
+    }
+  })
+  await onboard(page)
+  await page.setViewportSize({width:320,height:720})
+  await page.goto('/log/food?date=2026-01-15')
+  const camera = page.getByRole('button',{name:'Scan nutrition label'})
+  await expect(camera).toBeVisible()
+  await expect(camera).toHaveAttribute('data-compact','false')
+  await expect(camera.locator('svg[stroke="white"]')).toBeVisible()
+  const expanded = await camera.locator('span.rounded-full').boundingBox()
+  expect(expanded?.width).toBe(72)
+  await page.evaluate(() => window.scrollTo(0,document.body.scrollHeight))
+  await expect(camera).toHaveAttribute('data-compact','true')
+  const compact = await camera.locator('span.rounded-full').boundingBox()
+  expect(compact?.width).toBe(36)
+  const position = await page.evaluate(() => ({
+    camera:document.querySelector('[data-camera-fab]')!.getBoundingClientRect().toJSON(),
+    nav:document.querySelector('nav[aria-label="Primary navigation"]')!.getBoundingClientRect().toJSON(),
+    viewport:innerWidth
+  }))
+  expect(position.camera.bottom).toBeLessThan(position.nav.top)
+  expect(position.camera.right).toBeLessThanOrEqual(position.viewport-12)
+  await page.evaluate(()=>window.scrollBy(0,-300))
+  await expect(camera).toHaveAttribute('data-compact','false')
+  const restore = await camera.locator('span.rounded-full').boundingBox()
+  expect(restore?.width).toBe(72)
+
+  const picture = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jR9sAAAAASUVORK5CYII=','base64')
+  await page.getByLabel('Nutrition label photo').setInputFiles({
+    name:'food-label.png',mimeType:'image/png',buffer:picture
+  })
+  await expect(page.getByRole('status')).toContainText('Filled 4 recognized nutrition values.')
+  await expect(page.getByLabel('Calories (kcal)')).toHaveValue('210')
+  await expect(page.getByLabel('Protein (g)')).toHaveValue('12')
+  await expect(page.getByLabel('Fat (g)',{exact:true})).toHaveValue('6')
+  await expect(page.getByLabel('Sodium (mg)')).toHaveValue('250')
+  await expect(page.getByLabel('Sugars (g)')).toHaveValue('')
+  await expect(page.getByLabel('Nutrition is per')).toHaveValue('100g')
+  await expect(page.getByLabel('Amount consumed')).toHaveValue('100')
+  await page.getByRole('combobox',{name:'Name'}).fill('Synthetic scanned label')
+  await page.getByRole('button',{name:'Add to log'}).click()
+  await expect(page.getByTestId('app-toast')).toContainText('Intake entry saved.')
+
+  await page.goto('/log/drink?date=2026-01-15')
+  await expect(camera).toHaveAttribute('data-compact','false')
+  await page.getByLabel('Nutrition label photo').setInputFiles({
+    name:'drink-label.png',mimeType:'image/png',buffer:picture
+  })
+  await expect(page.getByLabel('Calories (kcal)')).toHaveValue('145')
+  await expect(page.getByLabel('Sugars (g)')).toHaveValue('35')
+  await expect(page.getByLabel('Sodium (mg)')).toHaveValue('40')
+  await expect(page.getByLabel('Nutrition is per')).toHaveValue('custom')
+  await expect(page.getByLabel('Label quantity')).toHaveValue('330')
+  await expect(page.getByLabel('Label unit')).toHaveValue('ml')
+  await expect(page.getByLabel('Amount consumed')).toHaveValue('330')
+  await expect(page.getByLabel('Consumed unit')).toHaveValue('ml')
+  await page.goto('/log/drink?date=2026-01-15&water=1')
+  await expect(page.getByRole('button',{name:'Scan nutrition label'})).toHaveCount(0)
+})
+
+test('PWA serves nutrition OCR assets from its own origin', async ({page})=>{
+  await onboard(page)
+  for (const path of [
+    '/ocr/tesseract.min.js','/ocr/worker.min.js',
+    '/ocr/core/tesseract-core-lstm.wasm.js',
+    '/ocr/core/tesseract-core-lstm.wasm',
+    '/ocr/lang/eng.traineddata.gz'
+  ]) {
+    const resource = await page.request.get(path)
+    expect(resource.ok(),path).toBe(true)
+  }
+})
+
 test('dedicated logging forms are unboxed with no repeated card headings', async ({page}) => {
   await onboard(page)
   const day='2026-01-15'

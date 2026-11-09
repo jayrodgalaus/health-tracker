@@ -55,10 +55,16 @@ function calories(line: string): number | null {
 function basisFromText(text: string, lines: string[]): {
   basis: LabelBasis | null; servingDescription: string | null
 } {
-  // Explicit per-100 columns have priority over serving-size descriptions.
-  if (/\bper\s*100\s*(?:g|grams?)\b/i.test(text))
+  // When a label exposes multiple quantity columns, do not silently choose
+  // a basis for the first OCR value: the user must select the correct one.
+  const hasPerServing = /\bper\s+serving\b/i.test(text)
+  const hasPer100g = /\bper\s*100\s*(?:g|grams?)\b/i.test(text)
+  const hasPer100ml = /\bper\s*100\s*(?:ml|millilit(?:er|re)s?)\b/i.test(text)
+  if (hasPerServing && (hasPer100g || hasPer100ml))
+    return {basis:null,servingDescription:null}
+  if (hasPer100g)
     return {basis:{quantity:100,unit:'g'},servingDescription:null}
-  if (/\bper\s*100\s*(?:ml|millilit(?:er|re)s?)\b/i.test(text))
+  if (hasPer100ml)
     return {basis:{quantity:100,unit:'ml'},servingDescription:null}
   const servingLine = lines.find(line => /^serving\s*size\b/i.test(line))
   const description = servingLine
