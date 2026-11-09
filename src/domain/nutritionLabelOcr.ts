@@ -68,7 +68,7 @@ function basisFromText(text: string, lines: string[]): {
     return {basis:{quantity:100,unit:'ml'},servingDescription:null}
   const servingLine = lines.find(line => /^serving\s*size\b/i.test(line))
   const description = servingLine
-    ? servingLine.replace(/^serving\s*size\s*[:\-]?\s*/i,'').trim().slice(0,150)
+    ? servingLine.replace(/^serving\s*size\s*[,;:.\-]*\s*/i,'').trim().slice(0,150)
     : null
   if (description) {
     const match = description.match(new RegExp(numberPattern+'\\s*(g|grams?|ml|millilit(?:er|re)s?)\\b','i'))
@@ -91,7 +91,11 @@ function basisFromText(text: string, lines: string[]): {
  * each nutrient line is read; a label with ambiguous columns needs human review.
  */
 export function parseNutritionLabelOcr(text: string): ParsedNutritionLabel {
-  const lines = text.split(/\r?\n/).map(line => line.replace(/[|]/g,' ').trim())
+  // OCR frequently collapses adjacent printed rows into one long line.
+  // Split only on known nutrient names, never on ingredient descriptions.
+  const nutritionText = text.split(/\bINGREDIENTS\s*:/i)[0]
+  const expanded = nutritionText.replace(/\s+(?=(?:Calories(?!\s+from\s+Fat)|Energy|Total\s+Fat|Saturated\s+Fat|Total\s+Carbohydrates?|Dietary\s+Fib(?:er|re)|Total\s+Sugars?|Sugars|Proteins?|Sodium|Potassium)\b)/gi,'\n')
+  const lines = expanded.split(/\r?\n/).map(line => line.replace(/[|]/g,' ').trim())
     .filter(Boolean).slice(0,160)
   const normalized = lines.join('\n')
   const nutrients: ParsedNutritionLabel['nutrients'] = {}

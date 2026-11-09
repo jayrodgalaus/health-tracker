@@ -45,4 +45,33 @@ Sodium 0.2 g`)
     expect(x.basis).toEqual({quantity:1,unit:'serving'})
     expect(x.servingDescription).toBe('2 pieces')
   })
+  it('recognizes a photographed nutrition-table transcription with comma serving size',()=>{
+    const result = parseNutritionLabelOcr(`NUTRITION INFORMATION
+Serving Size, 56g
+Servings per Container, about 3
+Amount per Serving % RENI/NRV
+Calories 85
+Calories from Fat 45
+Total Fat 5g
+Saturated Fat 1g
+Trans Fat 0g
+Omega3 591mg
+Cholesterol 9mg
+Sodium 273mg
+Total Carbohydrates 3g
+Dietary Fiber 0g
+Sugars 3g
+Protein 7g
+INGREDIENTS: Tuna flakes, water, vegetable oil`)
+    expect(result.basis).toEqual({quantity:56,unit:'g'})
+    expect(result.nutrients).toEqual({
+      energyKcal:85,fatG:5,saturatedFatG:1,sodiumMg:273,
+      carbohydratesG:3,fiberG:0,sugarsG:3,proteinG:7
+    })
+  })
+  it('splits several nutrient rows when OCR runs them together',()=>{
+    const result = parseNutritionLabelOcr('Nutrition Information Calories 85 Total Fat 5g Protein 7g Sodium 273mg')
+    expect(result.nutrients).toEqual({energyKcal:85,fatG:5,proteinG:7,sodiumMg:273})
+  })
+
 })
