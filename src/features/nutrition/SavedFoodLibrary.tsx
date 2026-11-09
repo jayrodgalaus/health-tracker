@@ -5,28 +5,37 @@ import { deleteSavedFood, listSavedFoods, saveSavedFood } from '../../data/intak
 import { NutritionFields, inputsFromNutrition, nutritionFromInputs, parseNumber } from './NutritionFields'
 import { basisFor, inferBasisMode, SERVING_UNITS, type BasisMode } from './labelBasis'
 import { useToast } from '../../components/ToastProvider'
+import type { ParsedNutritionLabel } from '../../domain/nutritionLabelOcr'
 
 const fieldClass = 'mt-1 block min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base'
 
 type SavedKind = 'food' | 'beverage'
 
-function SavedFoodEditor({ editing, initialKind, onDone, onCancel }: {
+function SavedFoodEditor({ editing, initialKind, scanned, onDone, onCancel }: {
   editing?: SavedFood
   initialKind: SavedKind
+  scanned?: ParsedNutritionLabel
   onDone: (kind: SavedKind) => void
   onCancel: () => void
 }) {
-  const basis = editing?.labelBasis ?? { quantity: 1, unit: 'serving' as const }
+  const basis = editing?.labelBasis ?? scanned?.basis ?? { quantity: 1, unit: 'serving' as const }
   const [name, setName] = useState(editing?.name ?? '')
   const [brand, setBrand] = useState(editing?.brand ?? '')
   const [kind, setKind] = useState<SavedKind>(editing?.kind ?? initialKind)
-  const [mode, setMode] = useState<BasisMode>(inferBasisMode(basis))
-  const [quantity, setQuantity] = useState(String(basis.quantity))
+  const [mode, setMode] = useState<BasisMode>(scanned && !scanned.basis ? 'custom' : inferBasisMode(basis))
+  const [quantity, setQuantity] = useState(scanned && !scanned.basis ? '' : String(basis.quantity))
   const [unit, setUnit] = useState<ServingUnit>(basis.unit)
-  const [servingDescription, setServingDescription] = useState(editing?.servingDescription ?? '')
+  const [servingDescription, setServingDescription] = useState(editing?.servingDescription ?? scanned?.servingDescription ?? '')
   const [fluid, setFluid] = useState(editing?.fluidMlPerBasis == null ? '' : String(editing.fluidMlPerBasis))
   const [isFavorite, setIsFavorite] = useState(editing?.isFavorite ?? false)
-  const [nutrition, setNutrition] = useState(inputsFromNutrition(editing?.nutrientsPerBasis))
+  const [nutrition, setNutrition] = useState(() => {
+    const values = inputsFromNutrition(editing?.nutrientsPerBasis)
+    if (scanned) for (const key of Object.keys(values) as Array<keyof typeof values>) {
+      const value = scanned.nutrients[key]
+      values[key] = value == null ? '' : String(value)
+    }
+    return values
+  })
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
