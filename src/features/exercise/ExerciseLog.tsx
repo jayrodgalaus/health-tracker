@@ -3,6 +3,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useSearchParams } from 'react-router-dom'
 import { estimateWorkout, isDistanceActivity } from '../../domain/activity'
 import { degreesToGradePercent, gradePercentToDegrees, MAX_INCLINE_DEGREES } from '../../domain/paceGrade'
+import { hasTwoPaceInputs, initialPaceInputs, updatePaceInputs } from '../../domain/paceInputs'
+import type { PaceField } from '../../domain/paceInputs'
 import { ageOnDay } from '../../domain/profile'
 import type { ExerciseEnergyMethod, ExerciseEntry, Profile } from '../../domain/models'
 import { listWeights } from '../../data/weightRepository'
@@ -49,9 +51,16 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
   const [custom, setCustom] = useState(editing && !match ? editing.activity : '')
   const [date, setDate] = useState(editing?.dayKey ?? selectedDay)
   const [time, setTime] = useState(editing?.timeOfDay ?? '')
-  const [duration, setDuration] = useState(editing?.durationMinutes == null ? '' : String(editing.durationMinutes))
-  const [distance, setDistance] = useState(editing?.distanceKm == null ? '' : String(editing.distanceKm))
-  const [speed, setSpeed] = useState(editing?.speedKmh == null ? '' : String(editing.speedKmh))
+  const [pace, setPace] = useState(() => initialPaceInputs({
+    duration: editing?.durationMinutes == null ? '' : String(editing.durationMinutes),
+    distance: editing?.distanceKm == null ? '' : String(editing.distanceKm),
+    speed: editing?.speedKmh == null ? '' : String(editing.speedKmh)
+  }))
+  const { duration, distance, speed } = pace.values
+  function changePace(field: PaceField, value: string) {
+    setPace(current => updatePaceInputs(current, field, value))
+    setError('')
+  }
   const [incline, setIncline] = useState(editing?.inclinePercent == null ? '' : String(Number(gradePercentToDegrees(editing.inclinePercent).toFixed(4))))
   const [strength, setStrength] = useState(editing?.isStrengthTraining ?? (editing?.activity === 'Strength training'))
   const [method, setMethod] = useState<'auto' | 'unknown' | 'metNet' | 'manualActive'>(
@@ -101,6 +110,9 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
     setSaving(true)
     try {
       const activity = type === 'Other' ? custom : type
+      if (walkRun && !hasTwoPaceInputs(pace)) {
+        throw new Error('Enter at least two valid values: duration, distance, or speed.')
+      }
       const inclineDegrees = walkRun ? parseNumber(incline, 'incline (°)', true) : null
       await saveExercise({
         dayKey: date,
@@ -142,16 +154,18 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
         <label className="block text-sm font-semibold">Local time (optional)
           <input className={inputClass} type="time" value={time} onChange={event => setTime(event.target.value)} />
         </label>
-        <label className="block text-sm font-semibold">Duration (minutes){walkRun ? ' (optional with distance)' : ''}
-          <input className={inputClass} type="number" inputMode="decimal" min="0.1" max="1440" step="any" value={duration} onChange={event => setDuration(event.target.value)} placeholder="e.g. 30" required={!walkRun} />
+        <label className="block text-sm font-semibold">Duration (minutes)
+          <input className={inputClass} type="number" inputMode="decimal" min="0.1" max="1440" step="any"
+            value={duration} onChange={event => changePace('duration', event.target.value)} placeholder="e.g. 30" required />
         </label>
-        {walkRun && <label className="block text-sm font-semibold">Distance (km, optional with duration)
-          <input className={inputClass} type="number" inputMode="decimal" min="0.01" max="300" step="any" value={distance} onChange={event => setDistance(event.target.value)} placeholder="e.g. 3.5" />
+        {walkRun && <label className="block text-sm font-semibold">Distance (km)
+          <input className={inputClass} type="number" inputMode="decimal" min="0.01" max="300" step="any"
+            value={distance} onChange={event => changePace('distance', event.target.value)} placeholder="e.g. 3.5" required />
         </label>}
-        {walkRun && <label className="block text-sm font-semibold">Speed (km/h, optional)
+        {walkRun && <label className="block text-sm font-semibold">Speed (km/h)
           <input className={inputClass} type="number" inputMode="decimal" min={type === 'Walking' ? '2' : '6'}
             max={type === 'Walking' ? '8' : '25'} step="any" value={speed}
-            onChange={event => setSpeed(event.target.value)} placeholder="Auto from distance and time" />
+            onChange={event => changePace('speed', event.target.value)} placeholder="e.g. 5" required />
         </label>}
         {walkRun && <label className="block text-sm font-semibold">Incline (°, uphill only)
           <input className={inputClass} type="number" inputMode="decimal" min="0" max={MAX_INCLINE_DEGREES}
