@@ -109,15 +109,14 @@ export function IntakeEntryPage({kind}: {kind:'food'|'beverage'}) {
       </Link>
     </nav>}
 
-    {waterMode?<section className="rounded-2xl border border-slate-200 bg-white p-5">
-      <h2 className="text-lg font-bold">{editId?'Edit water':'Plain water'}</h2>
-      {!editId&&<div className="mt-4 flex flex-wrap gap-2" aria-label="Quick water amounts">
+    {waterMode?<section aria-label="Water logging" className="space-y-4">
+      {!editId&&<div className="flex flex-wrap gap-2" aria-label="Quick water amounts">
         {waterPresets?.map(amount=><button key={amount} type="button" disabled={busy}
           onClick={()=>{void quickWater(amount)}} className="min-h-11 rounded-xl border border-evergreen-600 px-4 text-sm font-semibold text-evergreen-700 disabled:opacity-50">
           + {amount} ml
         </button>)}
       </div>}
-      <form key={relevantEntry?.id??'new-water'} onSubmit={event=>{void savePlainWater(event)}} className="mt-4 space-y-4">
+      <form key={relevantEntry?.id??'new-water'} onSubmit={event=>{void savePlainWater(event)}} className="space-y-4">
         <label className="block text-sm font-semibold">Date
           <input type="date" min="1900-01-01" max={toLocalDay(new Date())} required
             className={field} value={waterDay} onChange={event=>setWaterDay(event.target.value)} />

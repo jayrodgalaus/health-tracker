@@ -50,10 +50,9 @@ export function WeightQuickCard({ dayKey, unit }: {dayKey: string; unit: UnitPre
     } finally {setSaving(false)}
   }
 
-  return <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-    <h2 className="text-lg font-bold">Weight</h2>
+  return <section aria-label="Measured weight" className="space-y-4">
     {entry === undefined ? <p role="status" className="mt-3 text-sm text-slate-600">Loading weight…</p> : (
-      <form onSubmit={event=>{void save(event)}} className="mt-4 space-y-4">
+      <form onSubmit={event=>{void save(event)}} className="space-y-4">
         <label className="block max-w-xs text-sm font-semibold">Weight ({unit})
           <input type="number" min="0" step="any" inputMode="decimal" required className={inputClass}
             placeholder="Enter measured weight" value={amount}
@@ -80,5 +79,5 @@ export function WeightQuickCard({ dayKey, unit }: {dayKey: string; unit: UnitPre
       </div>
     </div>}
     {error && <p role="alert" className="mt-3 text-sm text-rose-800">{error}</p>}
-  </div>
+  </section>
 }

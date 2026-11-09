@@ -126,8 +126,7 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
   }
 
   return (
-    <form onSubmit={event => { void submit(event) }} noValidate className="space-y-4 rounded-2xl border border-evergreen-100 bg-white p-4 shadow-sm sm:p-6">
-      <h3 className="text-lg font-bold">{editing ? 'Edit workout' : 'Record exercise'}</h3>
+    <form onSubmit={event => { void submit(event) }} noValidate className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block text-sm font-semibold">Activity
           <select className={inputClass} value={type} onChange={event => changeActivity(event.target.value)}>

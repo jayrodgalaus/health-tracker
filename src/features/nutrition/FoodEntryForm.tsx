@@ -143,10 +143,7 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
   }
 
   return (
-    <form onSubmit={event => { void submit(event) }} noValidate className="space-y-4 rounded-2xl border border-evergreen-100 bg-white p-4 shadow-sm sm:p-6">
-      <div>
-        <h3 className="text-lg font-bold">{editing ? 'Edit recorded entry' : saved ? 'Log saved label' : recent ? 'Repeat a recent entry' : kind === 'food' ? 'Add food' : 'Add drink'}</h3>
-      </div>
+    <form onSubmit={event => { void submit(event) }} noValidate className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
         <FoodLookupCombobox
           name={name}

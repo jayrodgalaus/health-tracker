@@ -1537,6 +1537,40 @@ test('blanched cabbage query explains the nearest USDA boiled reference is not t
 })
 
 
+test('dedicated logging forms are unboxed with no repeated card headings', async ({page}) => {
+  await onboard(page)
+  const day='2026-01-15'
+  for (const [path, title, fieldLabel] of [
+    ['/log/food', 'Add food', 'Name'],
+    ['/log/drink', 'Add drink', 'Name'],
+    ['/log/exercise', 'Add exercise', 'Activity'],
+    ['/log/weight', 'Log weight', 'Weight (kg)']
+  ] as const) {
+    await page.goto(path+'?date='+day)
+    await expect(page.getByRole('heading',{name:title,exact:true})).toHaveCount(1)
+    const field=page.getByLabel(fieldLabel,{exact:true})
+    const form=page.locator('form').filter({has:field})
+    await expect(form).toHaveCount(1)
+    await expect(form).toHaveCSS('background-color','rgba(0, 0, 0, 0)')
+    await expect(form).toHaveCSS('border-top-width','0px')
+    await expect(form).toHaveCSS('padding-left','0px')
+    await expect(field).toBeVisible()
+  }
+  await expect(page.getByRole('heading',{name:'Weight',exact:true})).toHaveCount(0)
+  await expect(page.getByRole('region',{name:'Measured weight'})).toBeVisible()
+
+  await page.goto('/log/drink?date='+day+'&water=1')
+  await expect(page.getByRole('heading',{name:'Log water',exact:true})).toHaveCount(1)
+  const waterForm=page.locator('form').filter({has:page.getByLabel('Volume (ml)')})
+  await expect(waterForm).toHaveCount(1)
+  await expect(waterForm).toHaveCSS('background-color','rgba(0, 0, 0, 0)')
+  await expect(waterForm).toHaveCSS('border-top-width','0px')
+  await expect(page.getByRole('region',{name:'Water logging'})).toBeVisible()
+  await page.getByLabel('Volume (ml)').fill('350')
+  await page.getByRole('button',{name:'Save water',exact:true}).click()
+  await expect(page.getByTestId('app-toast')).toContainText('Logged 350 ml of water.')
+})
+
 test('Today and Log show seven day pills while dedicated input pages keep date inputs', async ({page}) => {
   await onboard(page)
   await page.goto('/today')
