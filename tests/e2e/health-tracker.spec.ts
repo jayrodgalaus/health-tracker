@@ -1741,8 +1741,7 @@ test('Food and Drink camera fills label fields locally and moves above navigatio
   expect(expanded?.width).toBe(72)
   await page.evaluate(() => window.scrollTo(0,document.body.scrollHeight))
   await expect(camera).toHaveAttribute('data-compact','true')
-  const compact = await camera.locator('span.rounded-full').boundingBox()
-  expect(compact?.width).toBe(36)
+  await expect.poll(async () => Math.round((await camera.locator('span.rounded-full').boundingBox())?.width ?? 0)).toBe(36)
   const position = await page.evaluate(() => ({
     camera:document.querySelector('[data-camera-fab]')!.getBoundingClientRect().toJSON(),
     nav:document.querySelector('nav[aria-label="Primary navigation"]')!.getBoundingClientRect().toJSON(),
@@ -1752,8 +1751,7 @@ test('Food and Drink camera fills label fields locally and moves above navigatio
   expect(position.camera.right).toBeLessThanOrEqual(position.viewport-12)
   await page.evaluate(()=>window.scrollBy(0,-300))
   await expect(camera).toHaveAttribute('data-compact','false')
-  const restore = await camera.locator('span.rounded-full').boundingBox()
-  expect(restore?.width).toBe(72)
+  await expect.poll(async () => Math.round((await camera.locator('span.rounded-full').boundingBox())?.width ?? 0)).toBe(72)
 
   await page.getByLabel('Sugars (g)').fill('15')
   const picture = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jR9sAAAAASUVORK5CYII=','base64')
@@ -1810,7 +1808,7 @@ test('real same-origin OCR recognizes a synthetic printed label on device', asyn
   })
   const outsideRequests:string[]=[]
   page.on('request',request => {
-    if (!request.url().startsWith('http://127.0.0.1:4173/')) outsideRequests.push(request.url())
+    if (/^https?:/.test(request.url()) && !request.url().startsWith('http://127.0.0.1:4173/')) outsideRequests.push(request.url())
   })
   await page.getByLabel('Nutrition label photo').setInputFiles({
     name:'synthetic-nutrition.png',mimeType:'image/png',buffer:Buffer.from(pixels,'base64')
@@ -1819,6 +1817,47 @@ test('real same-origin OCR recognizes a synthetic printed label on device', asyn
   await expect(page.getByLabel('Protein (g)')).toHaveValue('12')
   await expect(page.getByLabel('Sodium (mg)')).toHaveValue('250')
   expect(outsideRequests).toEqual([])
+})
+
+test('unrecognized nutrition photo offers cropped local retry without inventing nutrients', async ({page}) => {
+  await page.addInitScript(() => {
+    let calls = 0
+    ;(window as unknown as {Tesseract: unknown}).Tesseract = {
+      createWorker: async () => ({
+        setParameters: async () => {},
+        recognize: async () => {
+          calls += 1
+          return {data:{text:calls <= 2
+            ? 'Unclear blurry print with no numeric facts'
+            : 'NUTRITION INFORMATION\\nServing Size, 56g\\nCalories 85\\nTotal Fat 5g\\nSodium 273mg\\nProtein 7g'}}
+        },
+        terminate: async () => {}
+      })
+    }
+  })
+  await onboard(page)
+  await page.setViewportSize({width:360,height:780})
+  await page.goto('/log/food?date=2026-01-15')
+  const picture = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jR9sAAAAASUVORK5CYII=','base64')
+  await page.getByLabel('Nutrition label photo').setInputFiles({
+    name:'synthetic-crop-label.png',mimeType:'image/png',buffer:picture
+  })
+  const dialog = page.getByRole('dialog',{name:'Crop nutrition label'})
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByRole('alert')).toContainText('No supported values were recognized')
+  await expect(page.getByLabel('Calories (kcal)')).toHaveValue('')
+  await expect(dialog.getByTestId('nutrition-crop-preview')).toBeVisible()
+  await dialog.getByRole('button',{name:'Scan selected area'}).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(page.getByLabel('Calories (kcal)')).toHaveValue('85')
+  await expect(page.getByLabel('Fat (g)',{exact:true})).toHaveValue('5')
+  await expect(page.getByLabel('Sodium (mg)')).toHaveValue('273')
+  await expect(page.getByLabel('Protein (g)')).toHaveValue('7')
+  await expect(page.getByLabel('Nutrition is per')).toHaveValue('custom')
+  await expect(page.getByLabel('Label quantity')).toHaveValue('56')
+  await expect(page.getByLabel('Label unit')).toHaveValue('g')
+  await expect(page.getByRole('button',{name:'Add to log'})).toBeEnabled()
+  await expect(page.getByTestId('app-toast')).toHaveCount(0)
 })
 
 test('PWA serves nutrition OCR assets from its own origin', async ({page})=>{
