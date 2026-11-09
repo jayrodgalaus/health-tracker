@@ -149,22 +149,27 @@ export function SavedFoodLibrary({ onUse }: { onUse: (food: SavedFood) => void }
 
   return (
     <section aria-label="Saved labels" className="space-y-5">
-      <div role="tablist" aria-label="Saved item categories" className="grid grid-cols-2 gap-3">
+      <div role="tablist" aria-label="Saved item categories"
+        className="grid grid-cols-2 rounded-full border-2 border-evergreen-600 bg-evergreen-50 p-1">
         {([
-          { kind: 'food', label: 'Foods', count: foods?.length, theme: 'border-rose-500 bg-rose-50 text-rose-950' },
-          { kind: 'beverage', label: 'Drinks', count: drinks?.length, theme: 'border-sky-500 bg-sky-50 text-sky-950' }
+          { kind: 'food', label: 'Foods', count: foods?.length },
+          { kind: 'beverage', label: 'Drinks', count: drinks?.length }
         ] as const).map(tab => (
           <button type="button" role="tab" key={tab.kind}
             id={tabsId + '-' + tab.kind + '-tab'}
             aria-selected={activeKind === tab.kind}
             aria-controls={tabsId + '-panel'}
             onClick={() => chooseTab(tab.kind)}
-            className={'flex min-h-14 items-center justify-center gap-2 rounded-2xl border px-2 py-3 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-evergreen-700 ' +
-              (activeKind === tab.kind ? tab.theme + ' shadow-sm' :
-                'border-slate-200 bg-white text-slate-600 hover:bg-slate-50')}>
+            className={'flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-full px-2 py-2 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-evergreen-700 ' +
+              (activeKind === tab.kind
+                ? 'bg-evergreen-600 text-white shadow-sm'
+                : 'text-evergreen-700 hover:bg-evergreen-100')}>
             {tab.label}
             {tab.count !== undefined && <span aria-hidden="true"
-              className="rounded-full bg-white/80 px-2 py-0.5 text-xs tabular-nums">{tab.count}</span>}
+              className={'rounded-full px-2 py-0.5 text-xs tabular-nums ' +
+                (activeKind === tab.kind ? 'bg-white/20 text-white' : 'bg-white text-evergreen-700')}>
+              {tab.count}
+            </span>}
           </button>
         ))}
       </div>
