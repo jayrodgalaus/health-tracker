@@ -1615,7 +1615,7 @@ test('dedicated logging forms are unboxed with no repeated card headings', async
     await page.goto(path+'?date='+day)
     await expect(page.getByRole('heading',{name:title,exact:true})).toHaveCount(1)
     const field=page.getByLabel(fieldLabel,{exact:true})
-    const form=page.locator('form').filter({has:field})
+    const form=page.locator('#main-content form')
     await expect(form).toHaveCount(1)
     await expect(form).toHaveCSS('background-color','rgba(0, 0, 0, 0)')
     await expect(form).toHaveCSS('border-top-width','0px')
