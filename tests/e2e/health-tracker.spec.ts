@@ -935,7 +935,7 @@ test('walking and running derive any third pace value live and require two suppl
   const duration = page.getByLabel('Duration (minutes)')
   const distance = page.getByLabel('Distance (km)')
   const speed = page.getByLabel('Speed (km/h)')
-  const incline = page.getByLabel(/Incline \\(°/)
+  const incline = page.getByLabel('Incline (°, uphill only)')
   await expect(page.getByLabel(/Intensity/)).toHaveCount(0)
   await page.getByRole('button',{name:'Save exercise'}).click()
   await expect(page.getByRole('alert')).toContainText('at least two valid values')
