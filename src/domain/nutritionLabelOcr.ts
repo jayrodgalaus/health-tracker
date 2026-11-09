@@ -93,7 +93,7 @@ function basisFromText(text: string, lines: string[]): {
 export function parseNutritionLabelOcr(text: string): ParsedNutritionLabel {
   // OCR frequently collapses adjacent printed rows into one long line.
   // Split only on known nutrient names, never on ingredient descriptions.
-  const nutritionText = text.split(/\bINGREDIENTS\s*:/i)[0]
+  const nutritionText = text.split(/\bINGREDIENTS\s*:/i)[0] ?? ''
   const expanded = nutritionText.replace(/\s+(?=(?:Calories(?!\s+from\s+Fat)|Energy|Total\s+Fat|Saturated\s+Fat|Total\s+Carbohydrates?|Dietary\s+Fib(?:er|re)|Total\s+Sugars?|Sugars|Proteins?|Sodium|Potassium)\b)/gi,'\n')
   const lines = expanded.split(/\r?\n/).map(line => line.replace(/[|]/g,' ').trim())
     .filter(Boolean).slice(0,160)

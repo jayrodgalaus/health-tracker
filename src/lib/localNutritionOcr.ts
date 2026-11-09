@@ -76,7 +76,7 @@ async function preparePhoto(file: File, crop: NutritionCrop | undefined, enhance
       const pixels = image.data
       // Raise the contrast between printed dark ink and colored packaging.
       for (let i=0;i<pixels.length;i+=4) {
-        const light = pixels[i]*0.299 + pixels[i+1]*0.587 + pixels[i+2]*0.114
+        const light = (pixels[i]??0)*0.299 + (pixels[i+1]??0)*0.587 + (pixels[i+2]??0)*0.114
         const value = Math.max(0,Math.min(255,Math.round((light-140)*1.75+176)))
         pixels[i]=pixels[i+1]=pixels[i+2]=value
       }
