@@ -9,6 +9,7 @@ export function FloatingNutritionCamera({
   const input = useRef<HTMLInputElement>(null)
   const lastScroll = useRef(0)
   const mounted = useRef(true)
+  const statusTimer = useRef<number | null>(null)
   const [compact, setCompact] = useState(false)
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState('')
@@ -27,11 +28,16 @@ export function FloatingNutritionCamera({
       lastScroll.current = scrollY
     }
     window.addEventListener('scroll', observeScroll, { passive:true })
-    return () => { mounted.current = false; window.removeEventListener('scroll',observeScroll) }
+    return () => {
+      mounted.current = false
+      if (statusTimer.current !== null) window.clearTimeout(statusTimer.current)
+      window.removeEventListener('scroll',observeScroll)
+    }
   },[])
 
   async function scan(file?: File) {
     if (!file || busy) return
+    if (statusTimer.current !== null) window.clearTimeout(statusTimer.current)
     setBusy(true)
     setProgress('Preparing local scanner…')
     setError('')
@@ -46,6 +52,9 @@ export function FloatingNutritionCamera({
       if (count === 0) throw new Error('No supported nutrition values were recognized. Try a clearer, well-lit photo.')
       onRecognized(parsed)
       setMessage('Filled ' + count + ' recognized nutrition values. Review them before saving.')
+      statusTimer.current = window.setTimeout(() => {
+        if (mounted.current) setMessage('')
+      }, 6000)
     } catch (cause) {
       if (mounted.current) setError(cause instanceof Error ? cause.message : 'Could not read this label.')
     } finally {

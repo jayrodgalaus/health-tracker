@@ -119,7 +119,9 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
     setSelectedSavedFoodId(null)
     setLookupApplied(false)
     setLookupFluidPerBasis(null)
-    setFluidChanged(false)
+    // A new scanned label must never reuse a previous drink's measured volume.
+    setFluid('')
+    setFluidChanged(true)
     setError('')
   }
 
