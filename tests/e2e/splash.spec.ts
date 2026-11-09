@@ -9,8 +9,14 @@ test('initial startup animates the apple with falling trails and two bounces', a
   const apple = splash.locator('.loading-splash__apple')
   await expect(apple.locator('img')).toHaveAttribute('src', '/apple-splash.webp')
   await expect(apple).toHaveCSS('animation-name', 'apple-fall-bounce')
-  await expect(apple).toHaveCSS('animation-duration', '2.1s')
+  await expect(apple).toHaveCSS('animation-duration', '3.1s')
   await expect(apple).toHaveCSS('animation-play-state', 'running')
+  // The apple has landed after 2.1 seconds, but the last frame holds for 1 second.
+  await expect.poll(() => apple.evaluate((element) => {
+    const animation = element.getAnimations().find((item) => (item as CSSAnimation).animationName === 'apple-fall-bounce')
+    return Number(animation?.currentTime ?? 0)
+  }), { timeout: 6000 }).toBeGreaterThanOrEqual(2300)
+  await expect(splash).toBeVisible()
 
   await expect(splash).toHaveCount(0, { timeout: 10000 })
   await expect(page.getByRole('heading', { name: 'Track what matters to you.' })).toBeVisible()
