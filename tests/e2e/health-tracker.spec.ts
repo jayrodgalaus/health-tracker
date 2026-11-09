@@ -1394,7 +1394,8 @@ test('Saved food and drinks opens from Log with separate tabbed cards and keeps 
   await expect(panel.getByRole('heading',{name:'Synthetic apple'})).toBeVisible()
   await expect(panel.getByRole('heading',{name:'Synthetic juice'})).toHaveCount(0)
   await panel.getByRole('button',{name:'Log this'}).click()
-  await expect(page).toHaveURL(/\\/log\\/food\\?date=2026-01-15&saved=/)
+  await expect(page).toHaveURL(url => url.pathname === '/log/food' &&
+    url.searchParams.get('date') === day && Boolean(url.searchParams.get('saved')))
   await expect(page.getByRole('combobox',{name:'Name'})).toHaveValue('Synthetic apple')
   await expect(page.getByRole('link',{name:'Manage saved foods and drinks'})).toHaveCount(0)
   await page.goto('/log/drink?date='+day)
