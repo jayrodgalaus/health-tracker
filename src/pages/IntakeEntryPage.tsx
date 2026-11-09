@@ -139,10 +139,6 @@ export function IntakeEntryPage({kind}: {kind:'food'|'beverage'}) {
       />
     }
 
-    {!editId&&!waterMode&&<Link to={'/log/saved-foods?date='+encodeURIComponent(dayKey)}
-      className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-evergreen-700">
-      Manage saved foods and drinks
-    </Link>}
     {!editId&&!waterMode&&matchingRecent.length>0&&
       <section aria-labelledby="recent-foods-heading" className="rounded-2xl border border-slate-200 bg-white p-4">
         <h2 id="recent-foods-heading" className="text-lg font-bold">Repeat a recent entry</h2>

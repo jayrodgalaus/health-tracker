@@ -11,7 +11,7 @@ export function SavedFoodsPage() {
     <header>
       <PageInfoLink topic="food" />
       <Link className="inline-flex min-h-11 items-center text-sm font-semibold text-evergreen-700 underline"
-        to={'/log/food?date='+encodeURIComponent(dayKey)}>‹ Back to Food</Link>
+        to={'/log?date='+encodeURIComponent(dayKey)}>‹ Back to Log</Link>
       <h1 className="mt-3 text-3xl font-bold">Saved foods and drinks</h1>
     </header>
     <SavedFoodLibrary onUse={item=>

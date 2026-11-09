@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 
-type LogActionKind = 'food' | 'drink' | 'exercise' | 'weight'
+type LogActionKind = 'food' | 'drink' | 'exercise' | 'weight' | 'saved'
 
 const appearance: Record<LogActionKind, { label: string; pill: string; icon: string; text: string }> = {
   food: {
@@ -26,6 +26,12 @@ const appearance: Record<LogActionKind, { label: string; pill: string; icon: str
     pill: 'border-emerald-200 bg-emerald-50/80 hover:bg-emerald-100',
     icon: 'bg-emerald-600',
     text: 'text-emerald-950'
+  },
+  saved: {
+    label: 'Saved food and drinks',
+    pill: 'border-violet-200 bg-violet-50/80 hover:bg-violet-100',
+    icon: 'bg-violet-600',
+    text: 'text-violet-950'
   }
 }
 
@@ -48,6 +54,11 @@ function ActionIcon({ kind }: { kind: LogActionKind }) {
       <rect x="4" y="4" width="16" height="16" rx="3" />
       <path d="M9 8h6l2 5H7l2-5ZM12 9l-1 2M8 17h8" />
     </>}
+    {kind === 'saved' && <>
+      <rect x="4" y="6" width="13" height="15" rx="2" />
+      <path d="M7 3h11a3 3 0 0 1 3 3v12M7 10h7M7 14h6" />
+      <path d="m12 7 1.5 1 1.5-1" />
+    </>}
   </svg>
 }
 
@@ -58,7 +69,7 @@ export function LogActionPill({ kind, to }: { kind: LogActionKind; to: string })
     <span data-log-icon className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-full ${style.icon}`}>
       <ActionIcon kind={kind} />
     </span>
-    <span className={`text-lg font-bold ${style.text}`}>{style.label}</span>
+    <span className={`min-w-0 text-base font-bold leading-snug sm:text-lg ${style.text}`}>{style.label}</span>
     <svg aria-hidden="true" className={`ml-auto h-5 w-5 shrink-0 ${style.text}`} viewBox="0 0 24 24"
       fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="m9 5 7 7-7 7" />

@@ -51,10 +51,12 @@ export function LogPage() {
           <LogActionPill kind="drink" to={'/log/drink' + actionDate} />
           <LogActionPill kind="exercise" to={'/log/exercise' + actionDate} />
           <LogActionPill kind="weight" to={'/log/weight' + actionDate} />
+          <LogActionPill kind="saved" to={'/log/saved-foods' + actionDate} />
         </nav>
         <div className="flex justify-center">
           <DayCompletionControl dayKey={dayKey} isComplete={false} />
         </div>
       </>}
+    {locked && <LogActionPill kind="saved" to={'/log/saved-foods' + actionDate} />}
   </div>
 }

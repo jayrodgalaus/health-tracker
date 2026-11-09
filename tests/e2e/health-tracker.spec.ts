@@ -28,16 +28,16 @@ test('shared branding banner is absent on onboarding and every main page', async
 })
 
 
-test('Log has four independent colored icon pills and a centered completion action at phone width', async ({page}) => {
+test('Log has five independent colored icon pills and a centered completion action at phone width', async ({page}) => {
   await onboard(page)
   await page.setViewportSize({width:320,height:720})
   await page.goto('/log?date=2026-01-15')
   const actions = page.getByRole('navigation',{name:'Log entry types'})
   await expect(page.getByText('Quick actions',{exact:true})).toHaveCount(0)
-  await expect(actions.getByRole('link')).toHaveCount(4)
+  await expect(actions.getByRole('link')).toHaveCount(5)
   await expect(actions).toHaveCSS('background-color','rgba(0, 0, 0, 0)')
   for (const [name, route] of [
-    ['Food','food'], ['Drink','drink'], ['Exercise','exercise'], ['Weight','weight']
+    ['Food','food'], ['Drink','drink'], ['Exercise','exercise'], ['Weight','weight'], ['Saved food and drinks','saved-foods']
   ] as const) {
     const pill = actions.getByRole('link',{name,exact:true})
     await expect(pill).toHaveAttribute('href','/log/' + route + '?date=2026-01-15')
@@ -47,7 +47,7 @@ test('Log has four independent colored icon pills and a centered completion acti
   const circles = await actions.locator('[data-log-icon]').evaluateAll(
     elements => elements.map(element => getComputedStyle(element).backgroundColor)
   )
-  expect(new Set(circles).size).toBe(4)
+  expect(new Set(circles).size).toBe(5)
   const navBox = await actions.boundingBox()
   const completionBox = await page.getByRole('button',{name:'Mark day complete'}).boundingBox()
   expect(navBox).not.toBeNull()
@@ -196,7 +196,7 @@ test('completing a day requires confirmation, locks every form, and reopening re
   await onboard(page)
   await page.goto('/log?date=2026-01-15')
   const actions = page.getByRole('navigation',{name:'Log entry types'})
-  await expect(actions.getByRole('link')).toHaveCount(4)
+  await expect(actions.getByRole('link')).toHaveCount(5)
   await actions.getByRole('link',{name:'Weight',exact:true}).click()
   await expect(page).toHaveURL('/log/weight?date=2026-01-15')
   await page.getByLabel('Weight (kg)').fill('71.5')
@@ -210,7 +210,7 @@ test('completing a day requires confirmation, locks every form, and reopening re
   await expect(confirmation).toContainText('will be saved exactly as they are now')
   await confirmation.getByRole('button',{name:'Cancel'}).click()
   await expect(confirmation).toHaveCount(0)
-  await expect(page.getByRole('navigation',{name:'Log entry types'}).getByRole('link')).toHaveCount(4)
+  await expect(page.getByRole('navigation',{name:'Log entry types'}).getByRole('link')).toHaveCount(5)
 
   await page.getByRole('button',{name:'Mark day complete'}).click()
   await page.getByRole('button',{name:'Confirm complete and lock'}).click()
@@ -1355,6 +1355,58 @@ test('explicit food lookup autofills verified per-100g nutrients without auto-co
   expect(entry?.labelBasis).toEqual({quantity:100,unit:'g'})
 })
 
+test('Saved food and drinks opens from Log with separate tabbed cards and keeps the chosen date', async ({page}) => {
+  await onboard(page)
+  const day = '2026-01-15'
+  await page.setViewportSize({width:320,height:720})
+  await page.goto('/log?date=' + day)
+  await expect(page.getByRole('link',{name:'Saved food and drinks'})).toHaveAttribute(
+    'href','/log/saved-foods?date=' + day
+  )
+  await page.getByRole('link',{name:'Saved food and drinks'}).click()
+  await expect(page).toHaveURL('/log/saved-foods?date=' + day)
+  await expect(page.getByRole('heading',{name:'Saved foods and drinks'})).toBeVisible()
+  const foods = page.getByRole('tab',{name:'Foods'})
+  const drinks = page.getByRole('tab',{name:'Drinks'})
+  await expect(foods).toHaveAttribute('aria-selected','true')
+  await expect(drinks).toHaveAttribute('aria-selected','false')
+  const panel = page.getByRole('tabpanel')
+  await expect(panel).toHaveAttribute('aria-labelledby',await foods.getAttribute('id') ?? '')
+  await expect(panel).toContainText('No saved foods yet.')
+  await page.getByRole('button',{name:'+ Save a food'}).click()
+  await expect(page.getByRole('combobox',{name:'Product type'})).toHaveValue('food')
+  await page.getByLabel('Product name').fill('Synthetic apple')
+  await page.getByLabel('Calories (kcal)').fill('92')
+  await page.getByRole('button',{name:'Save label'}).click()
+  await expect(panel.getByRole('heading',{name:'Synthetic apple'})).toBeVisible()
+  await drinks.click()
+  await expect(drinks).toHaveAttribute('aria-selected','true')
+  await expect(panel).toContainText('No saved drinks yet.')
+  await expect(panel.getByRole('heading',{name:'Synthetic apple'})).toHaveCount(0)
+  await page.getByRole('button',{name:'+ Save a drink'}).click()
+  await expect(page.getByRole('combobox',{name:'Product type'})).toHaveValue('beverage')
+  await page.getByLabel('Product name').fill('Synthetic juice')
+  await page.getByLabel('Calories (kcal)').fill('45')
+  await page.getByLabel('Fluid volume per reference portion (ml)').fill('220')
+  await page.getByRole('button',{name:'Save label'}).click()
+  await expect(panel.getByRole('heading',{name:'Synthetic juice'})).toBeVisible()
+  await foods.click()
+  await expect(panel.getByRole('heading',{name:'Synthetic apple'})).toBeVisible()
+  await expect(panel.getByRole('heading',{name:'Synthetic juice'})).toHaveCount(0)
+  await panel.getByRole('button',{name:'Log this'}).click()
+  await expect(page).toHaveURL(/\\/log\\/food\\?date=2026-01-15&saved=/)
+  await expect(page.getByRole('combobox',{name:'Name'})).toHaveValue('Synthetic apple')
+  await expect(page.getByRole('link',{name:'Manage saved foods and drinks'})).toHaveCount(0)
+  await page.goto('/log/drink?date='+day)
+  await expect(page.getByRole('link',{name:'Manage saved foods and drinks'})).toHaveCount(0)
+  await page.goto('/log/saved-foods?date='+day)
+  await expect(page.getByRole('tab',{name:'Foods'})).toHaveAttribute('aria-selected','true')
+  await page.getByRole('link',{name:/Back to Log/}).click()
+  await expect(page).toHaveURL('/log?date='+day)
+  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth - innerWidth)
+  expect(overflow).toBeLessThanOrEqual(2)
+})
+
 test('saved foods remain selectable locally without online lookup', async ({page}) => {
   await onboard(page)
   let onlineSearches = 0
@@ -1363,7 +1415,8 @@ test('saved foods remain selectable locally without online lookup', async ({page
     await route.abort()
   })
   await page.goto('/log/saved-foods')
-  await page.getByRole('button', {name: '+ Save a label'}).click()
+  await page.getByRole('tab',{name:'Foods'}).click()
+  await page.getByRole('button', {name: '+ Save a food'}).click()
   await page.getByLabel('Product name').fill('Synthetic offline rice')
   await page.getByLabel('Brand (optional)').fill('Synthetic')
   await page.getByRole('combobox', {name: 'Label values per'}).selectOption('100g')
@@ -1371,7 +1424,8 @@ test('saved foods remain selectable locally without online lookup', async ({page
   await page.getByRole('button', {name: 'Save label'}).click()
   await expect(page.getByText('Label saved.')).toBeVisible()
 
-  await page.getByRole('link', {name: /Back to Food/}).click()
+  await page.getByRole('link', {name: /Back to Log/}).click()
+  await page.getByRole('link', {name:'Food',exact:true}).click()
   await page.getByRole('combobox', {name: 'Name'}).fill('offline rice')
   const item = page.getByRole('option', {name: /Synthetic offline rice.*Saved/})
   await expect(item).toBeVisible()
@@ -1384,9 +1438,10 @@ test('saved foods remain selectable locally without online lookup', async ({page
 test('saved beverage combobox scales both volume and calories once', async ({page}) => {
   await onboard(page)
   await page.goto('/log/saved-foods')
-  await page.getByRole('button', {name: '+ Save a label'}).click()
+  await page.getByRole('tab',{name:'Drinks'}).click()
+  await page.getByRole('button', {name: '+ Save a drink'}).click()
   await page.getByLabel('Product name').fill('Synthetic serving drink')
-  await page.getByRole('combobox', {name: 'Product type'}).selectOption('beverage')
+  await expect(page.getByRole('combobox',{name:'Product type'})).toHaveValue('beverage')
   await page.getByLabel('Calories (kcal)').fill('50')
   await page.getByLabel('Fluid volume per reference portion (ml)').fill('250')
   await page.getByRole('button', {name: 'Save label'}).click()

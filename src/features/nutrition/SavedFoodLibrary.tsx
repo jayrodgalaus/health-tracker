@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { SavedFood, ServingUnit } from '../../domain/models'
 import { deleteSavedFood, listSavedFoods, saveSavedFood } from '../../data/intakeRepository'
@@ -8,11 +8,18 @@ import { useToast } from '../../components/ToastProvider'
 
 const fieldClass = 'mt-1 block min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base'
 
-function SavedFoodEditor({ editing, onDone, onCancel }: { editing?: SavedFood; onDone: () => void; onCancel: () => void }) {
+type SavedKind = 'food' | 'beverage'
+
+function SavedFoodEditor({ editing, initialKind, onDone, onCancel }: {
+  editing?: SavedFood
+  initialKind: SavedKind
+  onDone: (kind: SavedKind) => void
+  onCancel: () => void
+}) {
   const basis = editing?.labelBasis ?? { quantity: 1, unit: 'serving' as const }
   const [name, setName] = useState(editing?.name ?? '')
   const [brand, setBrand] = useState(editing?.brand ?? '')
-  const [kind, setKind] = useState<'food' | 'beverage'>(editing?.kind ?? 'food')
+  const [kind, setKind] = useState<SavedKind>(editing?.kind ?? initialKind)
   const [mode, setMode] = useState<BasisMode>(inferBasisMode(basis))
   const [quantity, setQuantity] = useState(String(basis.quantity))
   const [unit, setUnit] = useState<ServingUnit>(basis.unit)
@@ -44,7 +51,7 @@ function SavedFoodEditor({ editing, onDone, onCancel }: { editing?: SavedFood; o
           : kind === 'beverage' ? reference.quantity * (reference.unit === 'fl-oz' ? 29.5735295625 : 1) : null,
         isFavorite
       }, editing?.id)
-      onDone()
+      onDone(kind)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not save reusable label.')
     } finally {
@@ -115,6 +122,19 @@ export function SavedFoodLibrary({ onUse }: { onUse: (food: SavedFood) => void }
   const [adding, setAdding] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [activeKind, setActiveKind] = useState<SavedKind>('food')
+  const tabsId = useId()
+  const foods = saved?.filter(item => (item.kind ?? 'food') === 'food')
+  const drinks = saved?.filter(item => item.kind === 'beverage')
+  const visible = activeKind === 'food' ? foods : drinks
+
+  function chooseTab(kind: SavedKind) {
+    setActiveKind(kind)
+    setEditing(null)
+    setAdding(false)
+    setDeleting(null)
+    setError('')
+  }
 
   async function remove(id: string) {
     setError('')
@@ -128,42 +148,80 @@ export function SavedFoodLibrary({ onUse }: { onUse: (food: SavedFood) => void }
   }
 
   return (
-    <section aria-labelledby="saved-foods-title" className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 id="saved-foods-title" className="text-lg font-bold">Saved food and drink labels</h2>
-        </div>
-        <button type="button" onClick={() => { setEditing(null); setAdding(true) }} className="min-h-11 rounded-xl border border-evergreen-600 px-4 text-sm font-semibold text-evergreen-700">+ Save a label</button>
-      </div>
-      {(editing || adding) && <SavedFoodEditor key={editing?.id ?? 'new'} editing={editing ?? undefined}
-        onDone={() => { setEditing(null); setAdding(false); toast.success('Label saved.') }}
-        onCancel={() => { setEditing(null); setAdding(false) }} />}
-      {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}
-      {saved === undefined && <p role="status" className="text-sm text-slate-600">Loading saved labels…</p>}
-      {saved?.length === 0 && <p className="rounded-xl bg-white p-4 text-sm text-slate-600">No products saved yet. Create one from a food label to log it again in a few taps.</p>}
-      <div className="space-y-2">
-        {saved?.map(item => (
-          <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h3 className="font-semibold">{item.isFavorite ? '★ ' : ''}{item.name}</h3>
-                <p className="text-xs text-slate-600">{item.brand ? `${item.brand} · ` : ''}{item.kind === 'beverage' ? 'Drink' : 'Food'} · per {item.labelBasis.quantity} {item.labelBasis.unit}</p>
-              </div>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button type="button" onClick={() => onUse(item)} className="min-h-11 rounded-xl bg-evergreen-600 px-4 text-sm font-semibold text-white">Log this</button>
-              <button type="button" onClick={() => { setEditing(item); setAdding(false) }} className="min-h-11 rounded-xl border border-slate-300 px-4 text-sm font-semibold">Edit label</button>
-              <button type="button" onClick={() => setDeleting(item.id)} className="min-h-11 rounded-xl border border-rose-200 px-4 text-sm font-semibold text-rose-800">Remove</button>
-            </div>
-            {deleting === item.id && <div className="mt-3 rounded-xl bg-rose-50 p-3 text-sm">
-              <p>Remove this reusable label? Already logged items retain their original snapshots.</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button type="button" className="min-h-11 rounded-lg bg-rose-700 px-4 font-semibold text-white" onClick={() => { void remove(item.id) }}>Confirm remove</button>
-                <button type="button" className="min-h-11 rounded-lg border border-slate-300 px-4" onClick={() => setDeleting(null)}>Cancel</button>
-              </div>
-            </div>}
-          </article>
+    <section aria-label="Saved labels" className="space-y-5">
+      <div role="tablist" aria-label="Saved item categories" className="grid grid-cols-2 gap-3">
+        {([
+          { kind: 'food', label: 'Foods', count: foods?.length, theme: 'border-rose-500 bg-rose-50 text-rose-950' },
+          { kind: 'beverage', label: 'Drinks', count: drinks?.length, theme: 'border-sky-500 bg-sky-50 text-sky-950' }
+        ] as const).map(tab => (
+          <button type="button" role="tab" key={tab.kind}
+            id={tabsId + '-' + tab.kind + '-tab'}
+            aria-selected={activeKind === tab.kind}
+            aria-controls={tabsId + '-panel'}
+            onClick={() => chooseTab(tab.kind)}
+            className={'flex min-h-14 items-center justify-center gap-2 rounded-2xl border px-2 py-3 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-evergreen-700 ' +
+              (activeKind === tab.kind ? tab.theme + ' shadow-sm' :
+                'border-slate-200 bg-white text-slate-600 hover:bg-slate-50')}>
+            {tab.label}
+            {tab.count !== undefined && <span aria-hidden="true"
+              className="rounded-full bg-white/80 px-2 py-0.5 text-xs tabular-nums">{tab.count}</span>}
+          </button>
         ))}
+      </div>
+      <div role="tabpanel" id={tabsId + '-panel'}
+        aria-labelledby={tabsId + '-' + activeKind + '-tab'}
+        className="space-y-4">
+        <div className="flex justify-end">
+          <button type="button"
+            onClick={() => { setEditing(null); setAdding(true); setDeleting(null); setError('') }}
+            className="min-h-11 rounded-xl border border-evergreen-600 bg-white px-4 text-sm font-semibold text-evergreen-700">
+            + Save a {activeKind === 'food' ? 'food' : 'drink'}
+          </button>
+        </div>
+        {(editing || adding) && <SavedFoodEditor key={editing?.id ?? 'new-' + activeKind}
+          editing={editing ?? undefined} initialKind={activeKind}
+          onDone={kind => {
+            setEditing(null)
+            setAdding(false)
+            setActiveKind(kind)
+            toast.success('Label saved.')
+          }}
+          onCancel={() => { setEditing(null); setAdding(false) }} />}
+        {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}
+        {saved === undefined && <p role="status" className="text-sm text-slate-600">Loading saved labels…</p>}
+        {saved !== undefined && visible?.length === 0 && (
+          <p className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">
+            {activeKind === 'food' ? 'No saved foods yet.' : 'No saved drinks yet.'}
+          </p>
+        )}
+        <div className="space-y-3">
+          {visible?.map(item => (
+            <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <h2 className="font-semibold">{item.isFavorite ? '★ ' : ''}{item.name}</h2>
+              <p className="mt-1 text-xs text-slate-600">
+                {item.brand ? item.brand + ' · ' : ''}per {item.labelBasis.quantity} {item.labelBasis.unit}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button type="button" onClick={() => onUse(item)}
+                  className="min-h-11 rounded-xl bg-evergreen-600 px-4 text-sm font-semibold text-white">Log this</button>
+                <button type="button"
+                  onClick={() => { setEditing(item); setAdding(false); setDeleting(null) }}
+                  className="min-h-11 rounded-xl border border-slate-300 px-4 text-sm font-semibold">Edit label</button>
+                <button type="button" onClick={() => setDeleting(item.id)}
+                  className="min-h-11 rounded-xl border border-rose-200 px-4 text-sm font-semibold text-rose-800">Remove</button>
+              </div>
+              {deleting === item.id && <div className="mt-3 rounded-xl bg-rose-50 p-3 text-sm">
+                <p>Remove this reusable label? Already logged items retain their original snapshots.</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button type="button" className="min-h-11 rounded-lg bg-rose-700 px-4 font-semibold text-white"
+                    onClick={() => { void remove(item.id) }}>Confirm remove</button>
+                  <button type="button" className="min-h-11 rounded-lg border border-slate-300 px-4"
+                    onClick={() => setDeleting(null)}>Cancel</button>
+                </div>
+              </div>}
+            </article>
+          ))}
+        </div>
       </div>
     </section>
   )
