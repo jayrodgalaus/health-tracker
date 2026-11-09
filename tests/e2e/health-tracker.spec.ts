@@ -1724,8 +1724,8 @@ test('Food and Drink camera fills label fields locally and moves above navigatio
     (window as unknown as { Tesseract: unknown }).Tesseract = {
       createWorker: async () => ({
         recognize: async (file: File) => ({data:{text: file.name.includes('drink')
-          ? 'Nutrition Facts\\nServing Size 330 ml\\nCalories 145\\nTotal Sugars 35g\\nSodium 0.04g'
-          : 'Nutrition Facts\\nAmount per 100 g\\nCalories 210\\nProtein 12g\\nTotal Fat 6g\\nSodium 250mg'}}),
+          ? 'Nutrition Facts\nServing Size 330 ml\nCalories 145\nTotal Sugars 35g\nSodium 0.04g'
+          : 'Nutrition Facts\nAmount per 100 g\nCalories 210\nProtein 12g\nTotal Fat 6g\nSodium 250mg'}}),
         terminate: async () => {}
       })
     }
