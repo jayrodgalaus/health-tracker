@@ -1534,6 +1534,64 @@ test('Saved food and drinks opens from Log with separate tabbed cards and keeps 
   expect(overflow).toBeLessThanOrEqual(2)
 })
 
+test('saved food and drink camera scans into new editable labels without automatically saving', async ({page}) => {
+  await page.addInitScript(() => {
+    (window as unknown as {Tesseract: unknown}).Tesseract = {
+      createWorker: async () => ({
+        recognize: async (file: File) => ({data:{text: file.name.includes('drink')
+          ? 'Nutrition Information\nServing Size 330 ml\nCalories 145\nSugars 35g\nSodium 40mg'
+          : 'Nutrition Information\nServing Size, 56g\nCalories 85\nTotal Fat 5g\nProtein 7g\nSodium 273mg'}}),
+        terminate: async () => {}
+      })
+    }
+  })
+  await onboard(page)
+  await page.setViewportSize({width:320,height:720})
+  await page.goto('/log/saved-foods?date=2026-01-15')
+  const camera = page.getByRole('button',{name:'Scan nutrition label'})
+  await expect(camera).toBeVisible()
+  await expect(camera).toHaveAttribute('data-compact','false')
+  const foodTab = page.getByRole('tab',{name:'Foods'})
+  const drinkTab = page.getByRole('tab',{name:'Drinks'})
+  await expect(foodTab).toHaveAttribute('aria-selected','true')
+  const photo = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jR9sAAAAASUVORK5CYII=','base64')
+  await page.getByLabel('Nutrition label photo').setInputFiles({
+    name:'food-label.png',mimeType:'image/png',buffer:photo
+  })
+  await expect(page.getByRole('heading',{name:'Create reusable label'})).toBeVisible()
+  await expect(page.getByRole('combobox',{name:'Product type'})).toHaveValue('food')
+  await expect(page.getByLabel('Calories (kcal)')).toHaveValue('85')
+  await expect(page.getByLabel('Fat (g)',{exact:true})).toHaveValue('5')
+  await expect(page.getByLabel('Protein (g)')).toHaveValue('7')
+  await expect(page.getByLabel('Sodium (mg)')).toHaveValue('273')
+  await expect(page.getByLabel('Label values per')).toHaveValue('custom')
+  await expect(page.getByLabel('Reference amount')).toHaveValue('56')
+  await expect(page.getByLabel('Reference unit')).toHaveValue('g')
+  await expect(page.getByText('No saved foods yet.')).toBeVisible()
+  await page.getByLabel('Product name').fill('Synthetic scanned food')
+  await page.getByRole('button',{name:'Save label'}).click()
+  await expect(page.getByRole('heading',{name:'Synthetic scanned food'})).toBeVisible()
+  await drinkTab.click()
+  await expect(page.getByRole('heading',{name:'Synthetic scanned food'})).toHaveCount(0)
+  await expect(camera).toBeVisible()
+  await page.getByLabel('Nutrition label photo').setInputFiles({
+    name:'drink-label.png',mimeType:'image/png',buffer:photo
+  })
+  await expect(page.getByRole('combobox',{name:'Product type'})).toHaveValue('beverage')
+  await expect(page.getByLabel('Calories (kcal)')).toHaveValue('145')
+  await expect(page.getByLabel('Sugars (g)')).toHaveValue('35')
+  await expect(page.getByLabel('Sodium (mg)')).toHaveValue('40')
+  await expect(page.getByLabel('Reference amount')).toHaveValue('330')
+  await expect(page.getByLabel('Reference unit')).toHaveValue('ml')
+  await page.getByLabel('Product name').fill('Synthetic scanned drink')
+  await page.getByRole('button',{name:'Save label'}).click()
+  await expect(page.getByRole('heading',{name:'Synthetic scanned drink'})).toBeVisible()
+  await foodTab.click()
+  await expect(page.getByRole('heading',{name:'Synthetic scanned food'})).toBeVisible()
+  await page.getByRole('button',{name:'Edit label'}).click()
+  await expect(page.getByLabel('Calories (kcal)')).toHaveValue('85')
+})
+
 test('saved foods remain selectable locally without online lookup', async ({page}) => {
   await onboard(page)
   let onlineSearches = 0
