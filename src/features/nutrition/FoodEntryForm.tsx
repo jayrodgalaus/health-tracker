@@ -8,6 +8,8 @@ import { externalFoodUrl } from '../../data/openFoodFacts'
 import { usdaFoodUrl } from '../../data/ingredientCatalog'
 import { basisFor, inferBasisMode, SERVING_UNITS, type BasisMode } from './labelBasis'
 import { NutritionFields, inputsFromNutrition, nutritionFromInputs, parseNumber } from './NutritionFields'
+import { FloatingNutritionCamera } from '../../components/FloatingNutritionCamera'
+import type { ParsedNutritionLabel } from '../../domain/nutritionLabelOcr'
 
 const input = 'mt-1 block min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base'
 interface Props {
@@ -89,6 +91,34 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
     setLookupApplied(true)
     setLookupFluidPerBasis(choice.type === 'saved' ? choice.product.fluidMlPerBasis ?? null : null)
     setFluid('')
+    setFluidChanged(false)
+    setError('')
+  }
+
+  function applyScannedLabel(label: ParsedNutritionLabel) {
+    // OCR is only a draft of the printed facts; no automatic save or guessing.
+    setNutrition(previous => {
+      const next = { ...previous }
+      for (const [field, value] of Object.entries(label.nutrients)) {
+        if (value !== undefined) {
+          next[field as keyof typeof next] = String(value)
+        }
+      }
+      return next
+    })
+    if (label.basis) {
+      const scanned = label.basis
+      setMode(inferBasisMode(scanned))
+      setBasisQuantity(String(scanned.quantity))
+      setBasisUnit(scanned.unit)
+      setQuantity(String(scanned.quantity))
+      setUnit(scanned.unit)
+    }
+    if (label.servingDescription) setServingDescription(label.servingDescription)
+    setNutritionSource(null)
+    setSelectedSavedFoodId(null)
+    setLookupApplied(false)
+    setLookupFluidPerBasis(null)
     setFluidChanged(false)
     setError('')
   }
@@ -216,6 +246,7 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
         )}
       </p>}
       <NutritionFields values={nutrition} onChange={(field, value) => setNutrition(previous => ({ ...previous, [field]: value }))} />
+      <FloatingNutritionCamera onRecognized={applyScannedLabel} />
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}
       <div className="flex flex-wrap gap-3">
         <button type="submit" disabled={saving} className="min-h-11 rounded-xl bg-evergreen-600 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50">{saving ? 'Saving…' : editing ? 'Save changes' : 'Add to log'}</button>
