@@ -150,7 +150,7 @@ export function SavedFoodLibrary({ onUse }: { onUse: (food: SavedFood) => void }
   return (
     <section aria-label="Saved labels" className="space-y-5">
       <div role="tablist" aria-label="Saved item categories"
-        className="grid grid-cols-2 rounded-full border-2 border-evergreen-600 bg-evergreen-50 p-1">
+        className="grid grid-cols-2 overflow-hidden rounded-full border-2 border-evergreen-600 bg-evergreen-50">
         {([
           { kind: 'food', label: 'Foods', count: foods?.length },
           { kind: 'beverage', label: 'Drinks', count: drinks?.length }

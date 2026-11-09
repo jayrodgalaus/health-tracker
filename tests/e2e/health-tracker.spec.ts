@@ -1374,6 +1374,7 @@ test('Saved food and drinks opens from Log with separate tabbed cards and keeps 
   await expect(tablist).toHaveCSS('border-top-left-radius','9999px')
   await expect(tablist).toHaveCSS('border-top-width','2px')
   await expect(tablist).toHaveCSS('column-gap','0px')
+  await expect(tablist).toHaveCSS('padding','0px')
   await expect(foods).toHaveCSS('border-top-left-radius','9999px')
   await expect(foods).toHaveCSS('background-color','rgb(15, 118, 110)')
   await expect(foods).toHaveCSS('color','rgb(255, 255, 255)')
