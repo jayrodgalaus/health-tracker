@@ -60,7 +60,7 @@ describe('Excel trends report uses the canonical day summaries', () => {
     expect(energy!.rows[0]?.[2]).toBe(400)
     expect(energy!.rows[0]?.[3]).toBe('Partial (1/2)')
     expect(energy!.rows[0]?.[7]).toBe(120)
-    expect(energy!.rows[0]?.[9]).toBeNull() // Unknown drink prevents a total difference.
+    expect(energy!.rows[0]?.[9]).toBeGreaterThan(0) // Total expenditure is assessable independently of intake.
     expect(energy!.rows[0]?.[10]).toBeNull()
     expect(energy!.rows[0]?.[11]).toBe(70)
     expect(energy!.rows[0]?.[12]).toBe('carriedForward')
