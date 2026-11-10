@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useSearchParams } from 'react-router-dom'
 import { estimateWorkout, isDistanceActivity } from '../../domain/activity'
+import { STRENGTH_MET_PRESETS, strengthMetPresetForValue } from '../../domain/strengthMetPresets'
 import { degreesToGradePercent, gradePercentToDegrees, MAX_INCLINE_DEGREES } from '../../domain/paceGrade'
 import { hasTwoPaceInputs, initialPaceInputs, updatePaceInputs } from '../../domain/paceInputs'
 import type { PaceField } from '../../domain/paceInputs'
@@ -69,12 +70,15 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
         ? editing.estimationMethod : editing ? 'unknown' : 'auto'
   )
   const [met, setMet] = useState(editing?.met == null ? '' : String(editing.met))
+  const [strengthMetChoice, setStrengthMetChoice] = useState(() => editing?.met == null
+    ? '' : strengthMetPresetForValue(editing.met)?.code ?? 'custom')
   const [manual, setManual] = useState(editing?.estimatedEnergyKcal == null ? '' : String(editing.estimatedEnergyKcal))
   const [notes, setNotes] = useState(editing?.notes ?? '')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const adult = isAdult(profile, date)
   const walkRun = isDistanceActivity(type)
+  const showStrengthMetPresets = !walkRun && (type === 'Strength training' || strength)
   const effectiveMethod: ExerciseEnergyMethod = !adult ? 'unknown'
     : method === 'auto' && walkRun
       ? 'paceGradeNet'
@@ -88,7 +92,8 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
     inclinePercent: walkRun ? enteredInclinePercent(incline) : null,
     intensity: editing?.intensity ?? null, estimationMethod: effectiveMethod,
     estimatedEnergyKcal: effectiveMethod === 'manualActive' ? previewNumber(manual) : null,
-    met: effectiveMethod === 'metNet' ? previewNumber(met) : null
+    met: effectiveMethod === 'metNet'
+      ? (showStrengthMetPresets && !strengthMetChoice ? null : previewNumber(met)) : null
   }
   const preview = weights === undefined ? null : estimateWorkout(previewEntry, weights, adult)
   const estimateText = preview?.kcal === null || preview?.kcal === undefined
@@ -98,10 +103,25 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
     const switchingToWalkRun = isDistanceActivity(value) && !isDistanceActivity(type)
     const switchingAway = !isDistanceActivity(value) && isDistanceActivity(type)
     setType(value)
-    if (switchingToWalkRun && method === 'unknown') setMethod('auto')
-    if (switchingAway && method === 'auto') setMethod('unknown')
+    if (type === 'Strength training' && value !== 'Strength training' && method === 'metNet') {
+      setMet('')
+      setStrengthMetChoice('')
+    }
+    if (value === 'Strength training' && (method === 'unknown' || method === 'auto')) {
+      setMethod('metNet')
+    } else if (type === 'Strength training' && method === 'metNet') {
+      // Do not silently carry a strength preset into a different activity.
+      setMethod(isDistanceActivity(value) ? 'auto' : 'unknown')
+    } else if (switchingToWalkRun && method === 'unknown') setMethod('auto')
+    else if (switchingAway && method === 'auto') setMethod('unknown')
     if (value === 'Strength training') setStrength(true)
     else if (type === 'Strength training') setStrength(false)
+  }
+
+  function selectStrengthMet(value: string) {
+    setStrengthMetChoice(value)
+    setMet(value === 'custom' || !value ? ''
+      : String(STRENGTH_MET_PRESETS.find(preset => preset.code === value)?.met ?? ''))
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -110,6 +130,9 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
     setSaving(true)
     try {
       const activity = type === 'Other' ? custom : type
+      if (effectiveMethod === 'metNet' && showStrengthMetPresets && !strengthMetChoice) {
+        throw new Error('Choose a strength-training MET preset or Other MET before saving.')
+      }
       if (walkRun && !hasTwoPaceInputs(pace)) {
         throw new Error('Enter at least two valid values: duration, distance, or speed.')
       }
@@ -190,12 +213,28 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
         </p> : <div className="space-y-2 text-sm">
           {walkRun && <label className="flex min-h-11 items-center gap-2"><input type="radio" name="exercise-method" checked={method === 'auto'} onChange={() => setMethod('auto')} /> Estimate automatically (speed, incline, distance or time)</label>}
           <label className="flex min-h-11 items-center gap-2"><input type="radio" name="exercise-method" checked={effectiveMethod === 'unknown'} onChange={() => setMethod('unknown')} /> No energy estimate</label>
-          <label className="flex min-h-11 items-center gap-2"><input type="radio" name="exercise-method" checked={effectiveMethod === 'metNet'} onChange={() => setMethod('metNet')} /> Calculate net incremental kcal from a MET I provide</label>
+          <label className="flex min-h-11 items-center gap-2"><input type="radio" name="exercise-method" checked={effectiveMethod === 'metNet'} onChange={() => setMethod('metNet')} /> Calculate net incremental kcal from a MET</label>
           <label className="flex min-h-11 items-center gap-2"><input type="radio" name="exercise-method" checked={effectiveMethod === 'manualActive'} onChange={() => setMethod('manualActive')} /> Enter active/incremental kcal manually</label>
         </div>}
-        {adult && effectiveMethod === 'metNet' && <label className="block text-sm font-semibold">Chosen activity MET (1–25)
-          <input className={inputClass} type="number" min="1" max="25" step="any" inputMode="decimal" value={met} onChange={event => setMet(event.target.value)} placeholder="Enter a MET value" required />
-        </label>}
+        {adult && effectiveMethod === 'metNet' && (showStrengthMetPresets
+          ? <div className="space-y-3">
+            <label className="block text-sm font-semibold">Strength-training MET preset
+              <select className={inputClass} value={strengthMetChoice} onChange={event => selectStrengthMet(event.target.value)} required>
+                <option value="">Choose strength exercise</option>
+                {STRENGTH_MET_PRESETS.map(preset =>
+                  <option key={preset.code} value={preset.code}>{preset.label} · {preset.met} MET</option>)}
+                <option value="custom">Other MET (enter manually)</option>
+              </select>
+            </label>
+            {strengthMetChoice === 'custom' && <label className="block text-sm font-semibold">Chosen activity MET (1–25)
+              <input className={inputClass} type="number" min="1" max="25" step="any" inputMode="decimal" value={met}
+                onChange={event => setMet(event.target.value)} placeholder="Enter a MET value" required />
+            </label>}
+          </div>
+          : <label className="block text-sm font-semibold">Chosen activity MET (1–25)
+            <input className={inputClass} type="number" min="1" max="25" step="any" inputMode="decimal" value={met}
+              onChange={event => setMet(event.target.value)} placeholder="Enter a MET value" required />
+          </label>)}
         {adult && effectiveMethod === 'manualActive' && <label className="block text-sm font-semibold">Active/incremental calories (kcal)
           <input className={inputClass} type="number" min="0" max="6000" step="any" inputMode="decimal" value={manual} onChange={event => setManual(event.target.value)} required placeholder="Active kcal only" />
         </label>}
