@@ -5,6 +5,9 @@ import type { Profile } from '../domain/models'
 import { addLocalDays } from '../domain/calendar'
 import { buildTrends, trendDays, type TrendMetric } from '../domain/trends'
 import { readTrendSources } from '../data/trendsRepository'
+import { readNutrientComparisonLimits } from '../data/settingsRepository'
+import { buildTrendExcelReport } from '../domain/trendExcelReport'
+import { createXlsxWorkbook, XLSX_MIME } from '../lib/xlsx'
 import { toLocalDay } from '../lib/localDate'
 import { TrendChart } from '../features/trends/TrendChart'
 import { WeekActivityChart } from '../features/trends/WeekActivityChart'
@@ -21,6 +24,8 @@ export function TrendsPage({ profile }: { profile:Profile }) {
   const [customStart,setCustomStart]=useState(addLocalDays(today,-29))
   const [customEnd,setCustomEnd]=useState(today)
   const [nutrients,setNutrients]=useState<TrendMetric[]>(['proteinG'])
+  const [exporting,setExporting]=useState(false)
+  const [exportError,setExportError]=useState('')
   const start=range==='custom'?customStart:addLocalDays(today,-(Number(range)-1))
   const end=range==='custom'?customEnd:today
   const error=useMemo(()=>{
@@ -34,6 +39,34 @@ export function TrendsPage({ profile }: { profile:Profile }) {
   const series=useMemo(()=>query?.data&&!error?
     buildTrends(start,end,today,profile,query.data,new Date().toISOString()):null,
   [start,end,today,profile,query,error])
+  async function exportExcel() {
+    if (error || exporting || !series || query?.error) return
+    setExporting(true)
+    setExportError('')
+    try {
+      // Re-read the current range at click time; never export stale or sample data.
+      const [sources, limits] = await Promise.all([
+        readTrendSources(start, end, undefined, today), readNutrientComparisonLimits()
+      ])
+      const sheets = buildTrendExcelReport(
+        start, end, today, profile, sources, limits, new Date().toISOString()
+      )
+      const bytes = createXlsxWorkbook(sheets)
+      const blob = new Blob([bytes.buffer as ArrayBuffer], { type: XLSX_MIME })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'health-tracker-trends-' + start + '-to-' + end + '.xlsx'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch (cause) {
+      setExportError(cause instanceof Error ? cause.message : 'Could not create the Excel report.')
+    } finally {
+      setExporting(false)
+    }
+  }
   function toggleNutrient(metric:TrendMetric,checked:boolean){
     setNutrients(current=>checked?[...new Set([...current,metric])]:current.filter(value=>value!==metric))
   }
@@ -67,6 +100,18 @@ export function TrendsPage({ profile }: { profile:Profile }) {
       </div>}
       <p className="text-xs text-slate-600">{start} – {end} (inclusive, up to 366 calendar days)</p>
       {error&&<p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}
+      <div className="flex justify-end">
+        <button type="button" aria-label="Export trends to Excel" disabled={!!error || !series || !!query?.error || exporting}
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-evergreen-600 px-4 py-2 text-sm font-semibold text-white hover:bg-evergreen-700 disabled:cursor-not-allowed disabled:opacity-50"
+          onClick={exportExcel}>
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 3v12m-4-4 4 4 4-4M4 17v3h16v-3" />
+          </svg>
+          {exporting ? 'Preparing Excel…' : 'Export Excel'}
+        </button>
+      </div>
+      {exportError&&<p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{exportError}</p>}
     </section>
     {!error&&query===undefined&&<p role="status" className="rounded-xl bg-white p-4 text-sm text-slate-600">Loading local trend history…</p>}
     {query?.error&&<p role="alert" className="rounded-xl bg-rose-50 p-4 text-sm text-rose-900">{query.error}</p>}
