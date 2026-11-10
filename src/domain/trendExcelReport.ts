@@ -1,4 +1,4 @@
-import type { ExerciseEntry, FoodEntry, Profile, WeightEntry } from './models'
+import type { ExerciseEntry, Profile, WeightEntry } from './models'
 import { calculateDay, goalOnDay } from './evaluation'
 import { estimateWorkout } from './activity'
 import { ageOnDay } from './profile'
