@@ -295,8 +295,13 @@ export function ProfileForm({ mode, section = 'profile', initialProfile, initial
         </fieldset>
       </div>}
 
-      {(onboarding || section === 'goals') && <fieldset className="rounded-2xl border border-slate-200 bg-white p-5">
-        <legend className="px-1 text-lg font-bold">Your goals</legend>
+      {(onboarding || section === 'goals') && <div className="space-y-5">
+        <fieldset className="rounded-3xl border border-slate-200 bg-white px-5 pb-5 pt-4 shadow-sm sm:p-6">
+          <legend className="px-2 text-lg font-bold tracking-tight text-slate-900">
+            <span aria-hidden="true" className="mr-2 rounded-lg bg-evergreen-50 px-2 py-1 text-xs font-extrabold text-evergreen-700">01</span>
+            Goal direction
+          </legend>
+          <div className="mt-3 space-y-4">
         <label className={labelClass}>Primary goal
           <select className={inputClass} value={goalType} onChange={e => setGoalType(e.target.value as HealthGoal | '')} required>
             <option value="">Choose a goal</option><option value="maintain">Maintain weight</option>
@@ -307,7 +312,14 @@ export function ProfileForm({ mode, section = 'profile', initialProfile, initial
         {!onboarding && <label className={`${labelClass} mt-4`}>Apply revised goals from
           <input className={inputClass} type="date" min={today()} value={goalStart} onChange={e => setGoalStart(e.target.value)} required />
         </label>}
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          </div>
+        </fieldset>
+        <fieldset className="rounded-3xl border border-slate-200 bg-white px-5 pb-5 pt-4 shadow-sm sm:p-6">
+          <legend className="px-2 text-lg font-bold tracking-tight text-slate-900">
+            <span aria-hidden="true" className="mr-2 rounded-lg bg-evergreen-50 px-2 py-1 text-xs font-extrabold text-evergreen-700">02</span>
+            Daily targets
+          </legend>
+          <div className="mt-3 grid gap-5 sm:grid-cols-2">
           <label className={labelClass}>Optional target weight ({units.mass})
             <input className={inputClass} type="number" step="any" inputMode="decimal" value={targetWeight} onChange={e => { setTargetWeight(e.target.value); setTargetWeightTouched(true) }} placeholder="Not set" />
           </label>
@@ -326,10 +338,14 @@ export function ProfileForm({ mode, section = 'profile', initialProfile, initial
           <label className={labelClass}>Fluid tracking target ({units.fluid}/day)
             <input className={inputClass} type="number" step="any" inputMode="decimal" value={fluidTarget} onChange={e => { setFluidTarget(e.target.value); setFluidTargetTouched(true) }} placeholder="Not set" />
           </label>
-        </div>
-        <fieldset className="mt-5 rounded-xl border border-slate-200 p-4">
-          <legend className="px-1 text-base font-semibold">Adjustable calendar alignment rules</legend>
-          <div className="mt-3 grid grid-cols-2 gap-3">
+          </div>
+        </fieldset>
+        <fieldset className="rounded-3xl border border-slate-200 bg-white px-5 pb-5 pt-4 shadow-sm sm:p-6">
+          <legend className="px-2 text-lg font-bold tracking-tight text-slate-900">
+            <span aria-hidden="true" className="mr-2 rounded-lg bg-evergreen-50 px-2 py-1 text-xs font-extrabold text-evergreen-700">03</span>
+            Calendar alignment rules
+          </legend>
+          <div className="mt-3 grid gap-5 sm:grid-cols-2">
             <label className={labelClass}>Calories aligned within ±%
               <input className={inputClass} type="number" min="5" max="30" step="any" inputMode="decimal" value={energyAligned} onChange={e => setEnergyAligned(e.target.value)} required />
             </label>
@@ -344,7 +360,8 @@ export function ProfileForm({ mode, section = 'profile', initialProfile, initial
             </label>
           </div>
         </fieldset>
-      </fieldset>}
+      </div>}
+
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}
       <button type="submit" disabled={saving} className="min-h-12 w-full rounded-2xl bg-evergreen-600 px-5 py-3.5 font-bold text-white shadow-sm transition-colors hover:bg-evergreen-700 disabled:cursor-not-allowed disabled:opacity-50">
         {saving ? 'Saving locally…' : onboarding ? 'Create local profile' : section === 'profile' ? 'Save profile' : 'Save goals'}
