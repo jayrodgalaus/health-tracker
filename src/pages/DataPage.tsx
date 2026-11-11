@@ -1,6 +1,6 @@
-import { PageInfoLink } from '../components/PageInfoLink'
+import { SettingsPageHeader } from '../components/SettingsPageHeader'
 import { useState, type ChangeEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { BACKUP_MAX_BYTES, BACKUP_TABLES, backupCounts, parseBackupJson, type HealthBackup } from '../domain/backup'
 import { countLocalRecords, deleteAllLocalRecords, readLocalBackup, replaceLocalData } from '../data/backupRepository'
@@ -13,7 +13,7 @@ const titles: Record<(typeof BACKUP_TABLES)[number], string> = {
   weightEntries:'Dated weight measurements', dayReviews:'Day completion reviews',
   appSettings:'Local preferences'
 }
-const action='min-h-11 rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-50'
+const action='inline-flex min-h-12 w-full items-center justify-center rounded-2xl px-5 py-3 text-sm font-bold shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto'
 const readable=(iso:string)=>new Date(iso).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'})
 
 export function DataPage() {
@@ -112,18 +112,16 @@ export function DataPage() {
 
   const localTotal=counts?Object.values(counts).reduce((sum,count)=>sum+count,0):0
   const importCounts=preview?backupCounts(preview):null
-  return <div className="space-y-8">
-    <header>
-      <PageInfoLink topic="data" />
-      <Link to="/settings" className="text-sm font-semibold text-evergreen-700 underline">Back to Settings</Link>
-      <p className="mt-5 text-sm font-semibold uppercase tracking-wide text-evergreen-700">Settings · Data and privacy</p>
-      <h1 className="mt-2 text-3xl font-bold">Your local records</h1>
-    </header>
+  return <div className="space-y-6">
+    <SettingsPageHeader title="Data and backups" topic="data" icon="data" />
 
     {error&&<p role="alert" className="rounded-xl bg-rose-50 p-4 text-sm text-rose-900">{error}</p>}
 
-    <section aria-labelledby="local-data-title" className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
-      <h2 id="local-data-title" className="text-xl font-bold">Local storage status</h2>
+    <section aria-labelledby="local-data-title" className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <h2 id="local-data-title" className="flex items-center gap-2 text-lg font-bold tracking-tight text-slate-900">
+        <span aria-hidden="true" className="rounded-lg bg-evergreen-50 px-2 py-1 text-xs font-extrabold text-evergreen-700">01</span>
+        Your local records
+      </h2>
       {counts===undefined?<p role="status" className="text-sm text-slate-600">Reading browser records…</p>:<>
         <p className="text-sm font-semibold">IndexedDB available · {localTotal} stored records</p>
         <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
@@ -132,18 +130,21 @@ export function DataPage() {
       </>}
     </section>
 
-    <section aria-labelledby="export-heading" className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
-      <h2 id="export-heading" className="text-xl font-bold">1. Export backup</h2>
+    <section aria-labelledby="export-heading" className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <h2 id="export-heading" className="flex items-center gap-2 text-lg font-bold tracking-tight text-slate-900">
+        <span aria-hidden="true" className="rounded-lg bg-evergreen-50 px-2 py-1 text-xs font-extrabold text-evergreen-700">02</span>
+        Export backup
+      </h2>
       <p className="text-sm leading-6 text-slate-600">
         Download all eight local tables as a self-contained JSON file.
         It includes dated food, drinks, exercise, weights, targets, saved labels,
         profile details, day reviews and preferences. The file contains sensitive lifestyle
         information: keep it private. No password or encryption is added automatically.
       </p>
-      <button type="button" disabled={busy} className={action+' bg-evergreen-600 text-white'} onClick={()=>{void prepareExport()}}>
+      <button type="button" disabled={busy} className={action+' bg-evergreen-600 text-white hover:bg-evergreen-700'} onClick={()=>{void prepareExport()}}>
         {exportPreview?'Refresh export preview':'Prepare export preview'}
       </button>
-      {exportPreview&&<div className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+      {exportPreview&&<div className="space-y-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
         <h3 className="font-semibold">Ready to export · {readable(exportPreview.exportedAt)}</h3>
         <p className="text-xs text-slate-700">This downloadable snapshot is fixed at the preparation time above. If you log more data, refresh the preview before exporting.</p>
         <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
@@ -152,21 +153,24 @@ export function DataPage() {
             <dd className="font-semibold">{backupCounts(exportPreview)[key]}</dd>
           </div>)}
         </dl>
-        <button type="button" disabled={busy} className={action+' bg-evergreen-600 text-white'} onClick={()=>{void exportFile()}}>
+        <button type="button" disabled={busy} className={action+' bg-evergreen-600 text-white hover:bg-evergreen-700'} onClick={()=>{void exportFile()}}>
           Download this validated JSON backup
         </button>
       </div>}
       <p className="text-xs text-slate-600">The browser will download a file containing the exact previewed records. Confirm its filename and storage location yourself.</p>
     </section>
 
-    <section aria-labelledby="restore-heading" className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
-      <h2 id="restore-heading" className="text-xl font-bold">2. Import backup — replace all records</h2>
+    <section aria-labelledby="restore-heading" className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <h2 id="restore-heading" className="flex items-start gap-2 text-lg font-bold leading-snug tracking-tight text-slate-900">
+        <span aria-hidden="true" className="shrink-0 rounded-lg bg-evergreen-50 px-2 py-1 text-xs font-extrabold text-evergreen-700">03</span>
+        Import backup — replace all records
+      </h2>
       <label className="block text-sm font-semibold">Choose JSON file
         <input type="file" accept=".json,application/json" disabled={busy}
-          className="mt-2 block min-h-11 w-full rounded-xl border border-slate-300 bg-white p-3 text-sm"
+          className="mt-2 block min-h-12 w-full min-w-0 rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-800 focus:border-evergreen-600 focus:outline-none focus:ring-2 focus:ring-evergreen-600/20"
           onChange={event=>{void selectedFile(event)}} />
       </label>
-      {preview&&importCounts&&<div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+      {preview&&importCounts&&<div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
         <h3 className="font-bold">Verified backup preview: {filename}</h3>
         <p className="text-sm">Exported: {readable(preview.exportedAt)} · Format v{preview.formatVersion} · App: {preview.app.name}</p>
         <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
@@ -174,34 +178,37 @@ export function DataPage() {
         </dl>
         <p className="text-sm font-semibold text-amber-950">Replace means all {localTotal} current local records will be overwritten by this backup. There is no merge and no undo. Export your existing dataset first and confirm its file is saved.</p>
         <label className="block text-sm font-semibold">Type REPLACE to confirm overwriting
-          <input className="mt-2 block min-h-11 w-full rounded-xl border border-amber-400 bg-white px-3 text-base"
+          <input className="mt-2 block min-h-12 w-full rounded-xl border border-amber-400 bg-white px-3.5 text-base focus:outline-none focus:ring-2 focus:ring-amber-500/20"
             value={confirmReplace} onChange={event=>setConfirmReplace(event.target.value)}
             autoComplete="off" placeholder="REPLACE" />
         </label>
         <div className="flex flex-wrap gap-2">
           <button type="button" disabled={busy||confirmReplace!=='REPLACE'}
-            className={action+' bg-rose-700 text-white'} onClick={()=>{void restore()}}>Replace all local data</button>
-          <button type="button" className={action+' border border-slate-300 bg-white'}
+            className={action+' bg-rose-700 text-white hover:bg-rose-800'} onClick={()=>{void restore()}}>Replace all local data</button>
+          <button type="button" className={action+' border border-slate-300 bg-white text-slate-800 hover:bg-slate-50'}
             onClick={()=>{setPreview(null);setConfirmReplace('')}}>Cancel</button>
         </div>
       </div>}
     </section>
 
-    <section aria-labelledby="reset-heading" className="space-y-3 border-t-2 border-rose-200 pt-8">
-      <h2 id="reset-heading" className="text-xl font-bold">Danger zone · Delete all local data</h2>
+    <section aria-labelledby="reset-heading" className="space-y-4 rounded-3xl border border-rose-200 bg-white p-5 shadow-sm sm:p-6">
+      <h2 id="reset-heading" className="flex items-start gap-2 text-lg font-bold leading-snug tracking-tight text-rose-900">
+        <span aria-hidden="true" className="shrink-0 rounded-lg bg-rose-50 px-2 py-1 text-xs font-extrabold text-rose-700">04</span>
+        Danger zone · Delete all local data
+      </h2>
       <p className="text-sm leading-6 text-slate-700">Deleting all records is irreversible without an exported backup. It removes your profile, goals, every food and exercise entry, weight measurements, saved products, reviews and local settings from this browser.</p>
-      {!resetExpanded?<button type="button" className={action+' border border-rose-300 bg-white text-rose-900'}
+      {!resetExpanded?<button type="button" className={action+' border border-rose-300 bg-white text-rose-900 hover:bg-rose-50'}
         onClick={()=>{setResetExpanded(true);setConfirmReset('')}}>Show deletion confirmation</button>:
-        <div className="space-y-3 rounded-xl border border-rose-300 bg-rose-50 p-4">
+        <div className="space-y-3 rounded-2xl border border-rose-300 bg-rose-50 p-4">
           <p className="font-semibold text-rose-950">Export and securely save a current backup first. This permanently clears the entire local dataset.</p>
           <label className="block text-sm font-semibold">Type DELETE to confirm
-            <input className="mt-2 block min-h-11 w-full rounded-xl border border-rose-300 bg-white px-3 text-base"
+            <input className="mt-2 block min-h-12 w-full rounded-xl border border-rose-300 bg-white px-3.5 text-base focus:outline-none focus:ring-2 focus:ring-rose-500/20"
               value={confirmReset} autoComplete="off" onChange={event=>setConfirmReset(event.target.value)} />
           </label>
           <div className="flex flex-wrap gap-2">
             <button type="button" disabled={busy||confirmReset!=='DELETE'}
-              className={action+' bg-rose-700 text-white'} onClick={()=>{void reset()}}>Permanently delete all local data</button>
-            <button type="button" className={action+' border border-slate-300 bg-white'}
+              className={action+' bg-rose-700 text-white hover:bg-rose-800'} onClick={()=>{void reset()}}>Permanently delete all local data</button>
+            <button type="button" className={action+' border border-slate-300 bg-white text-slate-800 hover:bg-slate-50'}
               onClick={()=>{setResetExpanded(false);setConfirmReset('')}}>Cancel deletion</button>
           </div>
         </div>}

@@ -160,7 +160,7 @@ export function DocsTopicPage() {
   const current = DOCS_TOPICS.find(item => item.id === topic)
   if (!current) {
     return <div className="space-y-4">
-      <h1 className="text-3xl font-bold">Document not found</h1>
+      <h1 className="text-2xl font-bold sm:text-3xl">Document not found</h1>
       <p className="text-sm text-slate-600">There isn't a Docs page for this topic.</p>
       <Link to="/settings/docs" className="inline-flex min-h-11 items-center font-semibold text-evergreen-700 underline">Back to Docs</Link>
     </div>
@@ -171,7 +171,7 @@ export function DocsTopicPage() {
   return <div className="space-y-6">
     <header>
       <Link to="/settings/docs" className="inline-flex min-h-11 items-center text-sm font-semibold text-evergreen-700 underline">Back to Docs</Link>
-      <h1 id="docs-topic-title" className="mt-3 text-3xl font-bold tracking-tight">{current.label}</h1>
+      <h1 id="docs-topic-title" className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">{current.label}</h1>
     </header>
     <article aria-labelledby="docs-topic-title" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="space-y-3 text-sm leading-7 text-slate-700">{DOCS_CONTENT[current.id]}</div>

@@ -13,7 +13,7 @@ const items = [
 export function SettingsPage({ storage }: { storage: StorageStatus }) {
   return <div className="space-y-6">
     <header>
-      <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+      <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Settings</h1>
     </header>
     <nav aria-label="Settings sections" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <ul className="divide-y divide-slate-200">

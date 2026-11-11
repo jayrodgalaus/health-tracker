@@ -12,7 +12,7 @@ export function DocsPage() {
   return <div className="space-y-6">
     <header>
       <Link to="/settings" className="inline-flex min-h-11 items-center text-sm font-semibold text-evergreen-700 underline">Back to Settings</Link>
-      <h1 className="mt-3 text-3xl font-bold tracking-tight">Docs</h1>
+      <h1 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">Docs</h1>
       <p className="mt-2 text-sm text-slate-600">Choose a topic for explanations of tracking, food data, calculations, and privacy.</p>
     </header>
     <nav aria-label="Documentation contents" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">

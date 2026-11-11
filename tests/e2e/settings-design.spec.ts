@@ -66,3 +66,38 @@ test('Preferences uses matching cards and keeps independent save flows', async (
   await expect(page.getByLabel('Carbs upper limit (g/day)')).toHaveValue('260')
   await expect(page.getByLabel('Sodium upper limit (mg/day)')).toHaveValue('2000')
 })
+
+test('Data and About use the matching compact design without changing safety controls', async ({ page }) => {
+  await onboard(page)
+  await page.setViewportSize({ width: 320, height: 740 })
+
+  await page.goto('/settings/data')
+  const dataHeading = page.getByRole('heading', { name: 'Data and backups', exact: true })
+  await expect(dataHeading).toBeVisible()
+  await expect(dataHeading).toHaveCSS('font-size', '24px')
+  await expect(page.getByRole('heading', { name: 'Your local records' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Export backup' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Import backup — replace all records' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Danger zone · Delete all local data' })).toBeVisible()
+  await expect(page.locator('section.rounded-3xl')).toHaveCount(4)
+  await expect(page.getByRole('button', { name: 'Prepare export preview' })).toBeEnabled()
+  await page.getByRole('button', { name: 'Show deletion confirmation' }).click()
+  await expect(page.getByLabel('Type DELETE to confirm')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Permanently delete all local data' })).toBeDisabled()
+  await page.getByRole('button', { name: 'Cancel deletion' }).click()
+  await expect(page.getByLabel('Type DELETE to confirm')).toHaveCount(0)
+
+  await page.goto('/settings/about')
+  const aboutHeading = page.getByRole('heading', { name: 'About and health notice', exact: true })
+  await expect(aboutHeading).toBeVisible()
+  await expect(aboutHeading).toHaveCSS('font-size', '24px')
+  await expect(page.locator('section.rounded-3xl')).toHaveCount(3)
+  for (const title of ['Health information notice', 'Adult-only evaluations', 'Privacy and local storage']) {
+    await expect(page.getByRole('heading', { name: title })).toBeVisible()
+  }
+  await expect(page.getByText(/pre-existing medical conditions/)).toBeVisible()
+  await expect(page.getByText(/No personal health history is uploaded or synced/)).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Back to Settings' })).toHaveAttribute('href', '/settings')
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+  expect(overflow).toBeLessThanOrEqual(2)
+})

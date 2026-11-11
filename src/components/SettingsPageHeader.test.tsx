@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { SettingsPageHeader } from './SettingsPageHeader'
 
-function render(title: string, topic: 'profile' | 'goals' | 'preferences') {
+function render(title: string, topic: 'profile' | 'goals' | 'preferences' | 'data' | 'about') {
   return renderToStaticMarkup(
     <MemoryRouter>
       <SettingsPageHeader title={title} topic={topic} icon={topic} />
@@ -15,7 +15,9 @@ describe('Settings detail page header', () => {
   it.each([
     ['Profile', 'profile'],
     ['Goals and targets', 'goals'],
-    ['Preferences', 'preferences']
+    ['Preferences', 'preferences'],
+    ['Data and backups', 'data'],
+    ['About and health notice', 'about']
   ] as const)('renders the shared visual header for %s', (title, topic) => {
     const html = render(title, topic)
     expect(html).toContain('rounded-3xl')
@@ -26,5 +28,8 @@ describe('Settings detail page header', () => {
     expect(html).toContain('href="/settings/docs/' + topic + '"')
     expect(html).toContain('>' + title + '</h1>')
     expect(html).toContain('aria-hidden="true"')
+    expect(html).toContain('text-2xl font-bold leading-tight')
+    expect(html).toContain('sm:text-3xl')
+    expect(html).not.toContain('sm:text-4xl')
   })
 })
