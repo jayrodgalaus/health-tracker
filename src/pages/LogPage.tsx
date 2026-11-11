@@ -46,7 +46,7 @@ export function LogPage() {
           <DayCompletionControl dayKey={dayKey} isComplete />
         </div>
       </section> : <>
-        <nav aria-label="Log entry types" className="flex flex-col gap-4">
+        <nav aria-label="Log entry types" className="flex flex-col gap-3">
           <LogActionPill kind="food" to={'/log/food' + actionDate} />
           <LogActionPill kind="drink" to={'/log/drink' + actionDate} />
           <LogActionPill kind="exercise" to={'/log/exercise' + actionDate} />

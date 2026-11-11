@@ -36,7 +36,7 @@ const appearance: Record<LogActionKind, { label: string; pill: string; icon: str
 }
 
 function ActionIcon({ kind }: { kind: LogActionKind }) {
-  return <svg aria-hidden="true" viewBox="0 0 24 24" width="34" height="34"
+  return <svg aria-hidden="true" viewBox="0 0 24 24" width="30" height="30"
     fill="none" stroke="white" strokeWidth="1.8"
     strokeLinecap="round" strokeLinejoin="round">
     {kind === 'food' && <>
@@ -65,8 +65,8 @@ function ActionIcon({ kind }: { kind: LogActionKind }) {
 export function LogActionPill({ kind, to }: { kind: LogActionKind; to: string }) {
   const style = appearance[kind]
   return <Link to={to}
-    className={`group flex min-h-[5.5rem] w-full items-center gap-4 rounded-full border py-2.5 pl-2.5 pr-6 shadow-sm transition-colors focus-visible:outline-offset-4 ${style.pill}`}>
-    <span data-log-icon className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-full ${style.icon}`}>
+    className={`group flex min-h-[4.75rem] w-full items-center gap-3 rounded-full border py-2 pl-2 pr-5 shadow-sm transition-colors focus-visible:outline-offset-4 ${style.pill}`}>
+    <span data-log-icon className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full ${style.icon}`}>
       <ActionIcon kind={kind} />
     </span>
     <span className={`min-w-0 text-base font-bold leading-snug sm:text-lg ${style.text}`}>{style.label}</span>

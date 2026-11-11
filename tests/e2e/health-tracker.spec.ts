@@ -43,6 +43,13 @@ test('Log has five independent colored icon pills and a centered completion acti
     await expect(pill).toHaveAttribute('href','/log/' + route + '?date=2026-01-15')
     await expect(pill.locator('[data-log-icon]')).toHaveCSS('border-radius','9999px')
     await expect(pill.locator('[data-log-icon] svg')).toHaveAttribute('stroke','white')
+    // Slightly more compact than the previous 88px pills, without losing touch area.
+    const pillBox = await pill.boundingBox()
+    const iconBox = await pill.locator('[data-log-icon]').boundingBox()
+    expect(pillBox?.height).toBeGreaterThanOrEqual(76)
+    expect(pillBox?.height).toBeLessThanOrEqual(82)
+    expect(iconBox?.width).toBe(56)
+    expect(iconBox?.height).toBe(56)
   }
   const circles = await actions.locator('[data-log-icon]').evaluateAll(
     elements => elements.map(element => getComputedStyle(element).backgroundColor)
