@@ -37,7 +37,7 @@ describe('week selector contextual help', () => {
 
   it('preserves floating info buttons for pages that do not use compact placement', () => {
     const html = render(<PageInfoLink topic="log" />)
-    expect(html).toContain('float-right ml-3 h-11 w-11')
+    expect(html).toContain('float-right ml-3 inline-flex h-11 w-11')
     expect(html).not.toContain('relative -top-1')
   })
 })
