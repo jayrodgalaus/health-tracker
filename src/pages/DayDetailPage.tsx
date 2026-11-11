@@ -1,4 +1,3 @@
-import { PageInfoLink } from '../components/PageInfoLink'
 import { WeekDateNavigation } from '../components/WeekDateNavigation'
 import { Link, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -15,6 +14,9 @@ export function DayDetailPage({
   profile, selectedDayKey
 }: { profile: Profile; selectedDayKey?: string }) {
   const { dayKey: routeDayKey } = useParams()
+  // /today is a standalone entry point; /calendar/:dayKey is a calendar day view.
+  // Use the route rather than browser history, so direct links and tab navigation agree.
+  const fromCalendarDateRoute = selectedDayKey === undefined
   const requested = selectedDayKey ?? routeDayKey
   const dayKey = requested && parseLocalDay(requested) &&
     requested >= '1900-01-01' && requested <= '2100-12-31' ? requested : null
@@ -33,10 +35,12 @@ export function DayDetailPage({
   const summary = records ? calculateDay({ dayKey, profile, ...records }, new Date().toISOString()) : undefined
   return <div className="space-y-7">
     <header className="space-y-3">
-      <PageInfoLink topic="day-detail" />
-      <Link className="text-sm font-semibold text-evergreen-700 underline" to={'/calendar?month=' + dayKey.slice(0, 7)}>Back to {dayKey.slice(0, 7)} calendar</Link>
+      {fromCalendarDateRoute && <Link className="text-sm font-semibold text-evergreen-700 underline"
+        to={'/calendar?month=' + dayKey.slice(0, 7)}>
+        Back to {dayKey.slice(0, 7)} calendar
+      </Link>}
       <h1 className="sr-only">Day details for {dayKey}</h1>
-      <WeekDateNavigation selectedDay={dayKey} today={last} />
+      <WeekDateNavigation selectedDay={dayKey} today={last} helpTopic="day-detail" />
     </header>
     {records === undefined && <p role="status" className="rounded-xl bg-white p-4 text-sm text-slate-600">Loading records for {dayKey}…</p>}
     {summary && <section aria-label="Day completion status"

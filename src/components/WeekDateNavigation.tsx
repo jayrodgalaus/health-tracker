@@ -1,6 +1,7 @@
 import { useNavigate, Link } from 'react-router-dom'
 import { addLocalDays, weekDays } from '../domain/calendar'
 import { parseLocalDay } from '../lib/localDate'
+import { PageInfoLink, type DocsTopic } from './PageInfoLink'
 
 const FIRST_DAY = '1900-01-01'
 const weekdayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const
@@ -11,8 +12,8 @@ const weekdayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const
  * On Today/Calendar, choosing another date opens Calendar detail.
  */
 export function WeekDateNavigation({
-  selectedDay, today, destination = 'calendar'
-}: { selectedDay: string; today: string; destination?: 'calendar' | 'log' }) {
+  selectedDay, today, destination = 'calendar', helpTopic
+}: { selectedDay: string; today: string; destination?: 'calendar' | 'log'; helpTopic?: DocsTopic }) {
   const navigate = useNavigate()
   const days = weekDays(selectedDay)
   const selectedDate = parseLocalDay(selectedDay)!
@@ -31,9 +32,12 @@ export function WeekDateNavigation({
   return <nav aria-label="Week navigation"
     className="-mx-3 rounded-[2rem] border border-evergreen-100 bg-white px-2 py-4 shadow-sm sm:mx-0 sm:px-4">
     <div className="mb-3 flex items-center justify-between gap-2 px-2">
-      <Link to={pathForDay(today)}
-        aria-label="Go to today"
-        className="inline-flex min-h-11 items-center text-lg font-bold text-evergreen-700 hover:underline">Today</Link>
+      <div className="flex shrink-0 items-center gap-1">
+        <Link to={pathForDay(today)}
+          aria-label="Go to today"
+          className="inline-flex min-h-11 items-center text-lg font-bold text-evergreen-700 hover:underline">Today</Link>
+        {helpTopic && <PageInfoLink topic={helpTopic} compact />}
+      </div>
       <div className="flex items-center gap-0.5">
         <button type="button" aria-label="Previous week" title="Previous week"
           className={arrowClass} disabled={!canGoPrevious}
