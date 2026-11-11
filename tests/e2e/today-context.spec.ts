@@ -37,7 +37,12 @@ test('Today route hides calendar back-link; calendar days retain it, including d
   expect(helpBounds!.x).toBeGreaterThanOrEqual(todayBounds!.x + todayBounds!.width)
   expect(helpBounds!.x - (todayBounds!.x + todayBounds!.width)).toBeLessThanOrEqual(12)
   expect(helpBounds!.y).toBeLessThan(todayBounds!.y + 12)
-  expect(helpBounds!.width).toBeLessThan(todayBounds!.height)
+  // A tiny 18px visible circled i with a taller 44px tap target.
+  expect(helpBounds!.width).toBe(24)
+  expect(helpBounds!.height).toBe(44)
+  const iconBounds = await help.locator('span[aria-hidden="true"]').boundingBox()
+  expect(iconBounds?.width).toBe(18)
+  expect(iconBounds?.height).toBe(18)
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
   expect(overflow).toBeLessThanOrEqual(2)
 

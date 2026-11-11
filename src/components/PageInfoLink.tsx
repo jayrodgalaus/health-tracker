@@ -10,9 +10,10 @@ export function PageInfoLink({ topic, compact = false }: { topic: DocsTopic; com
     to={'/settings/docs/' + topic}
     aria-label={'About this page: ' + topic.replace('-', ' ')}
     title="Documentation for this page"
-    className={'inline-flex items-center justify-center rounded-full border border-slate-300 bg-white font-bold text-evergreen-700 shadow-sm hover:bg-evergreen-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-evergreen-600 ' +
-      (compact
-        ? 'relative -top-1 h-9 w-9 shrink-0 text-base'
-        : 'float-right ml-3 h-11 w-11 text-lg')}
-  ><span aria-hidden="true">i</span></Link>
+    className={compact
+      ? 'relative -top-1 inline-flex h-11 w-6 shrink-0 items-center justify-center text-evergreen-700 focus-visible:rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-evergreen-600'
+      : 'float-right ml-3 inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-bold text-evergreen-700 shadow-sm hover:bg-evergreen-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-evergreen-600'}
+  ><span aria-hidden="true" className={compact
+    ? 'flex h-[18px] w-[18px] items-center justify-center rounded-full border border-evergreen-700 text-[11px] font-bold leading-none'
+    : undefined}>i</span></Link>
 }

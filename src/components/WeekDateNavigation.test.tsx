@@ -20,7 +20,9 @@ describe('week selector contextual help', () => {
     expect(help).toBeGreaterThan(today)
     expect(help).toBeLessThan(previous)
     expect(html).toContain('href="/settings/docs/day-detail"')
-    expect(html).toContain('relative -top-1 h-9 w-9')
+    expect(html).toContain('relative -top-1 inline-flex h-11 w-6')
+    expect(html).toContain('h-[18px] w-[18px]')
+    expect(html).not.toContain('relative -top-1 h-9 w-9')
     // No nested links: the Today anchor ends before the help anchor begins.
     expect(html.slice(today, help)).toContain('</a>')
     expect(html.slice(today, help)).not.toContain('<a href="/settings/docs/')
