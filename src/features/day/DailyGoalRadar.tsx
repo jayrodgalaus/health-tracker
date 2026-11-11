@@ -1,6 +1,7 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import type { DailySummary } from '../../domain/evaluation'
 import { alignmentRadar } from '../../domain/alignmentRadar'
+import { animatedRadarFraction, RADAR_ANIMATION_MS } from './radarMotion'
 import { GoalChecklistRows } from './CalendarGoalChecklist'
 
 const CENTER_X = 160
@@ -26,11 +27,43 @@ function scoreLabel(score: number | null): string {
 /** Tappable chart; the full original checklist remains available on demand. */
 export function DailyGoalRadar({ summary }: { summary?: DailySummary }) {
   const [expanded, setExpanded] = useState(false)
+  const [animation, setAnimation] = useState({ key: '', elapsedMs: 0 })
   const id = useId()
+  const goals = summary ? alignmentRadar(summary) : []
+  // A stable key restarts the intro only when the actual plotted data changes.
+  const motionKey = goals.map(goal => goal.code + ':' + (goal.score ?? 'unknown')).join('|')
+
+  useEffect(() => {
+    if (!goals.length) return
+
+    // Immediately show final geometry for users who prefer reduced motion.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setAnimation({ key: motionKey, elapsedMs: RADAR_ANIMATION_MS })
+      return
+    }
+
+    let frame = 0
+    let start: number | null = null
+    setAnimation({ key: motionKey, elapsedMs: 0 })
+    const advance = (timestamp: number) => {
+      if (start === null) start = timestamp
+      const elapsedMs = Math.min(RADAR_ANIMATION_MS, timestamp - start)
+      setAnimation({ key: motionKey, elapsedMs })
+      if (elapsedMs < RADAR_ANIMATION_MS) {
+        frame = window.requestAnimationFrame(advance)
+      }
+    }
+    frame = window.requestAnimationFrame(advance)
+    return () => window.cancelAnimationFrame(frame)
+  }, [motionKey])
+
   if (!summary) return <p role="status" className="rounded-2xl bg-white p-4 text-sm text-slate-600">Loading day evaluation…</p>
-  const goals = alignmentRadar(summary)
   const count = goals.length
-  const plotted = goals.map((item, index) => item.score === null ? null : radial(index, count, item.score / 100))
+  const elapsedMs = animation.key === motionKey ? animation.elapsedMs : 0
+  const plotted = goals.map((item, index) => {
+    const fraction = animatedRadarFraction(item.score, index, count, elapsedMs)
+    return fraction === null ? null : radial(index, count, fraction)
+  })
   const fullPlot = count >= 3 && goals.every(goal => goal.score !== null)
   const summaryText = goals.map(goal => goal.label + ': ' + (goal.score === null ? 'unavailable' : scoreLabel(goal.score))).join('; ')
 
@@ -46,6 +79,7 @@ export function DailyGoalRadar({ summary }: { summary?: DailySummary }) {
           onClick={() => setExpanded(value => !value)}
           className="mt-2 block w-full rounded-2xl px-1 py-2 text-center transition-colors text-white hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
           <svg aria-hidden="true" viewBox="0 0 320 306" xmlns="http://www.w3.org/2000/svg"
+            data-radar-animation={elapsedMs >= RADAR_ANIMATION_MS ? 'settled' : 'playing'}
             className="mx-auto w-full max-w-[390px]" fill="none" strokeLinejoin="round">
             {count >= 3
               ? [0.25, 0.5, 0.75, 1].map(fraction =>
@@ -62,12 +96,13 @@ export function DailyGoalRadar({ summary }: { summary?: DailySummary }) {
             })}
             {fullPlot && <polygon data-radar-shape="complete"
               points={plotted.map(p => p!.x.toFixed(2)+','+p!.y.toFixed(2)).join(' ')}
-              fill="rgba(255,255,255,0.18)" stroke="#ffffff" strokeWidth="2.5" />}
+              fill="rgba(255,255,255,0.18)" stroke="#ffffff"
+              strokeWidth="2.5" strokeLinecap="round" />}
             {!fullPlot && plotted.map((point,index) => {
               const next = plotted[(index+1)%count]
               return point && next && count >= 3
                 ? <line key={index} x1={point.x} y1={point.y} x2={next.x} y2={next.y}
-                    stroke="#ffffff" strokeWidth="2.5" /> : null
+                    stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" /> : null
             })}
             {plotted.map((point,index) => point
               ? <circle key={index} data-radar-point={goals[index]?.code}

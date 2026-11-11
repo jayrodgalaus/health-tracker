@@ -118,6 +118,8 @@ test('Today is exactly the current local Calendar day overview, never a selectab
   const todayRadar = page.getByRole('button',{name:'Show daily goal details'})
   await expect(todayRadar).toBeVisible()
   await expect(page.getByRole('list',{name:'Daily goals'})).toBeHidden()
+  await expect(todayRadar.locator('svg[viewBox="0 0 320 306"]'))
+    .toHaveAttribute('data-radar-animation', 'settled')
   const todaySvg = await todayRadar.locator('svg[viewBox="0 0 320 306"]').innerHTML()
 
   // Today remains clickable even when today's date is already selected.
@@ -129,6 +131,8 @@ test('Today is exactly the current local Calendar day overview, never a selectab
   const calendarRadar = page.getByRole('button',{name:'Show daily goal details'})
   await expect(calendarRadar).toBeVisible()
   await expect(page.getByRole('list',{name:'Daily goals'})).toBeHidden()
+  await expect(calendarRadar.locator('svg[viewBox="0 0 320 306"]'))
+    .toHaveAttribute('data-radar-animation', 'settled')
   expect(await calendarRadar.locator('svg[viewBox="0 0 320 306"]').innerHTML()).toBe(todaySvg)
   await calendarRadar.click()
   await expect(page.getByRole('list',{name:'Daily goals'})).toBeVisible()
