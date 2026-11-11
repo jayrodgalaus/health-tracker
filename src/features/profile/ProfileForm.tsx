@@ -8,8 +8,8 @@ import { saveGoalSettings, saveProfileAndGoals, saveProfileSettings } from '../.
 import { toLocalDay } from '../../lib/localDate'
 import { useToast } from '../../components/ToastProvider'
 
-const inputClass = 'mt-1 block min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 focus:border-evergreen-600'
-const labelClass = 'block text-sm font-medium text-slate-800'
+const inputClass = 'mt-1.5 block min-h-12 w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 transition-colors focus:border-evergreen-600 focus:outline-none focus:ring-2 focus:ring-evergreen-600/20'
+const labelClass = 'block min-w-0 text-sm font-semibold text-slate-700'
 const today = () => toLocalDay(new Date())
 
 function parseNumber(value: string, field: string, optional = false): number | null {
@@ -178,9 +178,13 @@ export function ProfileForm({ mode, section = 'profile', initialProfile, initial
 
   return (
     <form onSubmit={(event) => { void submit(event) }} className="space-y-6" noValidate>
-      {(onboarding || section === 'profile') && <fieldset className="rounded-2xl border border-slate-200 bg-white p-5">
-        <legend className="px-1 text-lg font-bold">Personal profile</legend>
-        <div className="mb-4 grid grid-cols-2 gap-3">
+      {(onboarding || section === 'profile') && <div className="space-y-5">
+        <fieldset className="rounded-3xl border border-slate-200 bg-white px-5 pb-5 pt-4 shadow-sm sm:p-6">
+          <legend className="px-2 text-lg font-bold tracking-tight text-slate-900">
+            <span aria-hidden="true" className="mr-2 rounded-lg bg-evergreen-50 px-2 py-1 text-xs font-extrabold text-evergreen-700">01</span>
+            Units &amp; display
+          </legend>
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <label className={labelClass}>Weight units
             <select className={inputClass} value={units.mass} onChange={(e) => updateMass(e.target.value as UnitPreferences['mass'])}>
               <option value="kg">Kilograms (kg)</option><option value="lb">Pounds (lb)</option>
@@ -196,13 +200,25 @@ export function ProfileForm({ mode, section = 'profile', initialProfile, initial
                 <option value="ml">Milliliters</option><option value="fl-oz">US fluid ounces</option>
               </select>
             </label>
-        </div>
-        <div className="mb-4">
-          <p className={labelClass}>How would you like to give your age?</p>
-          <div className="mt-2 flex flex-wrap gap-4 text-sm">
-            <label className="flex min-h-11 items-center gap-2"><input type="radio" name="age-mode" checked={dateMode === 'dob'} onChange={() => setDateMode('dob')} /> Date of birth</label>
-            <label className="flex min-h-11 items-center gap-2"><input type="radio" name="age-mode" checked={dateMode === 'age'} onChange={() => setDateMode('age')} /> Age as of a date</label>
           </div>
+        </fieldset>
+        <fieldset className="rounded-3xl border border-slate-200 bg-white px-5 pb-5 pt-4 shadow-sm sm:p-6">
+          <legend className="px-2 text-lg font-bold tracking-tight text-slate-900">
+            <span aria-hidden="true" className="mr-2 rounded-lg bg-evergreen-50 px-2 py-1 text-xs font-extrabold text-evergreen-700">02</span>
+            Personal details
+          </legend>
+          <div className="mb-5 mt-3">
+            <p className={labelClass}>How would you like to give your age?</p>
+            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <label className={`flex min-h-12 items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition-colors ${dateMode === 'dob' ? 'border-evergreen-600 bg-evergreen-50 font-semibold text-evergreen-900' : 'border-slate-200 bg-slate-50 text-slate-700'}`}>
+                <input className="h-4 w-4 accent-evergreen-700" type="radio" name="age-mode" checked={dateMode === 'dob'} onChange={() => setDateMode('dob')} />
+                Date of birth
+              </label>
+              <label className={`flex min-h-12 items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition-colors ${dateMode === 'age' ? 'border-evergreen-600 bg-evergreen-50 font-semibold text-evergreen-900' : 'border-slate-200 bg-slate-50 text-slate-700'}`}>
+                <input className="h-4 w-4 accent-evergreen-700" type="radio" name="age-mode" checked={dateMode === 'age'} onChange={() => setDateMode('age')} />
+                Age as of a date
+              </label>
+            </div>
         </div>
         {dateMode === 'dob' ? (
           <label className={labelClass}>Date of birth
@@ -237,8 +253,14 @@ export function ProfileForm({ mode, section = 'profile', initialProfile, initial
         {onboarding && <label className={`${labelClass} mt-4`}>Initial measured weight ({units.mass})
           <input className={inputClass} type="number" min="1" step="any" inputMode="decimal" value={firstWeight} onChange={e => setFirstWeight(e.target.value)} required />
         </label>}
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <label className={labelClass}>General activity note (optional; not used in calculations)
+        </fieldset>
+        <fieldset className="rounded-3xl border border-slate-200 bg-white px-5 pb-5 pt-4 shadow-sm sm:p-6">
+          <legend className="px-2 text-lg font-bold tracking-tight text-slate-900">
+            <span aria-hidden="true" className="mr-2 rounded-lg bg-evergreen-50 px-2 py-1 text-xs font-extrabold text-evergreen-700">03</span>
+            Activity &amp; energy
+          </legend>
+          <div className="mt-3 grid gap-5 sm:grid-cols-2">
+            <label className={labelClass}>General activity note (optional; not used in calculations)
             <select className={inputClass} value={activityLevel} onChange={e => setActivityLevel(e.target.value as ActivityLevel | '')}>
               <option value="">Not set</option>
               <option value="sedentary">Mostly seated</option><option value="light">Light</option>
@@ -270,7 +292,8 @@ export function ProfileForm({ mode, section = 'profile', initialProfile, initial
             )}
           </select>
         </label>
-      </fieldset>}
+        </fieldset>
+      </div>}
 
       {(onboarding || section === 'goals') && <fieldset className="rounded-2xl border border-slate-200 bg-white p-5">
         <legend className="px-1 text-lg font-bold">Your goals</legend>
@@ -323,7 +346,7 @@ export function ProfileForm({ mode, section = 'profile', initialProfile, initial
         </fieldset>
       </fieldset>}
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}
-      <button type="submit" disabled={saving} className="min-h-12 w-full rounded-xl bg-evergreen-600 px-5 py-3 font-semibold text-white disabled:opacity-50 hover:bg-evergreen-700">
+      <button type="submit" disabled={saving} className="min-h-12 w-full rounded-2xl bg-evergreen-600 px-5 py-3.5 font-bold text-white shadow-sm transition-colors hover:bg-evergreen-700 disabled:cursor-not-allowed disabled:opacity-50">
         {saving ? 'Saving locally…' : onboarding ? 'Create local profile' : section === 'profile' ? 'Save profile' : 'Save goals'}
       </button>
     </form>
