@@ -55,9 +55,8 @@ export function CalendarSectionPage({ profile }: { profile: Profile }) {
   const summary = records ? calculateDay({ dayKey, profile, ...records }, new Date().toISOString()) : undefined
   const fluid = summary?.intake.fluids
   const priorWeight = summary?.expenditure.weight
-  const energyGoal = locked
-    ? archivedProfile.goal ?? records?.goal?.goalType ?? null
-    : records?.goal?.goalType ?? profile.goal ?? null
+  // Historical effective-dated goals take precedence over later profile changes.
+  const energyGoal = records?.goal?.goalType ?? (locked ? archivedProfile.goal : profile.goal) ?? null
 
   return <div className="space-y-6">
     <header className="space-y-2">
