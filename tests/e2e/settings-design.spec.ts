@@ -101,3 +101,41 @@ test('Data and About use the matching compact design without changing safety con
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
   expect(overflow).toBeLessThanOrEqual(2)
 })
+
+test('Settings menu is edge-to-edge with page icons and Docs has a matching title card', async ({ page }) => {
+  await onboard(page)
+  for (const width of [320, 390, 430]) {
+    await page.setViewportSize({ width, height: 760 })
+    await page.goto('/settings')
+
+    const menu = page.getByRole('navigation', { name: 'Settings sections' })
+    await expect(menu).toBeVisible()
+    await expect(menu.getByRole('link')).toHaveCount(6)
+    const expected = [
+      ['profile', 'Profile'], ['goals', 'Goals and targets'],
+      ['preferences', 'Preferences'], ['data', 'Data and backups'],
+      ['docs', 'Docs'], ['about', 'About and health notice']
+    ] as const
+    for (const [icon, label] of expected) {
+      const item = menu.getByRole('link', { name: label, exact: true })
+      await expect(item).toBeVisible()
+      await expect(item.locator('[data-settings-icon="' + icon + '"] svg')).toBeVisible()
+    }
+    const rect = await menu.boundingBox()
+    expect(rect).not.toBeNull()
+    expect(Math.abs(rect!.x)).toBeLessThanOrEqual(1)
+    expect(Math.abs(rect!.x + rect!.width - width)).toBeLessThanOrEqual(1)
+    await expect(menu).not.toHaveClass(/rounded-2xl|shadow-sm/)
+    await expect(page.getByText('Local storage ready.')).toHaveCount(0)
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+    expect(overflow).toBeLessThanOrEqual(2)
+
+    await menu.getByRole('link', { name: 'Docs', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Docs', exact: true })).toBeVisible()
+    await expect(page.locator('header .bg-gradient-to-br')).toBeVisible()
+    await expect(page.getByRole('navigation', { name: 'Documentation contents' })).toBeVisible()
+    await expect(page.getByText('Choose a topic for explanations of tracking')).toHaveCount(0)
+    const docOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+    expect(docOverflow).toBeLessThanOrEqual(2)
+  }
+})

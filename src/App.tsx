@@ -79,7 +79,7 @@ function TrackerApp() {
         <Route path="/calendar/:dayKey/:section" element={<CalendarSectionPage profile={profile} />} />
         <Route path="/calendar/:dayKey" element={<DayDetailPage profile={profile} />} />
         <Route path="/trends" element={<TrendsPage profile={profile} />} />
-        <Route path="/settings" element={<SettingsPage storage={storage} />} />
+        <Route path="/settings" element={<SettingsPage />} />
         <Route path="/settings/profile" element={<ProfileSettingsPage profile={profile} />} />
         <Route path="/settings/goals" element={<GoalsSettingsPage profile={profile} />} />
         <Route path="/settings/preferences" element={<PreferencesPage />} />
