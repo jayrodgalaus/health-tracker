@@ -55,6 +55,9 @@ export function CalendarSectionPage({ profile }: { profile: Profile }) {
   const summary = records ? calculateDay({ dayKey, profile, ...records }, new Date().toISOString()) : undefined
   const fluid = summary?.intake.fluids
   const priorWeight = summary?.expenditure.weight
+  const energyGoal = locked
+    ? archivedProfile.goal ?? records?.goal?.goalType ?? null
+    : records?.goal?.goalType ?? profile.goal ?? null
 
   return <div className="space-y-6">
     <header className="space-y-2">
@@ -68,7 +71,7 @@ export function CalendarSectionPage({ profile }: { profile: Profile }) {
     {records == null ? <p role="status" className="rounded-xl bg-white p-4 text-sm text-slate-600">
       Loading recorded {headings[section].toLowerCase()}…
     </p> : <>
-      {section === 'energy' && <ExpenditurePanel summary={summary} />}
+      {section === 'energy' && <ExpenditurePanel summary={summary} goal={energyGoal} />}
 
       {section === 'nutrition' && <>
         <NutritionSummary entries={records.intake} loading={archivedLimits === undefined}
