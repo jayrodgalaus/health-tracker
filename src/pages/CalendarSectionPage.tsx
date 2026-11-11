@@ -94,7 +94,7 @@ export function CalendarSectionPage({ profile }: { profile: Profile }) {
           weights={records.weights}
           frozenDay={locked ? records.review?.frozen?.summary.activity : undefined}
           frozenWeek={locked ? records.review?.frozen?.week : undefined} />
-        <DayExerciseEntries dayKey={dayKey} records={records} locked={locked} />
+        <DayExerciseEntries dayKey={dayKey} records={records} profile={archivedProfile} locked={locked} />
       </>}
 
       {section === 'weight' && <>

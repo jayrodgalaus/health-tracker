@@ -1,4 +1,6 @@
 import { gradePercentToDegrees } from '../../domain/paceGrade'
+import { estimateWorkout } from '../../domain/activity'
+import { ageOnDay } from '../../domain/profile'
 import { Link } from 'react-router-dom'
 import type { DayRecords } from '../../data/dayRepository'
 import type { Profile } from '../../domain/models'
@@ -72,8 +74,14 @@ export function DayDrinkEntries({
   </section>
 }
 
-export function DayExerciseEntries({ dayKey, records, locked = false }: EntryProps) {
+export function DayExerciseEntries({
+  dayKey, records, profile, locked = false
+}: EntryProps & { profile: Profile }) {
   const query = '?date=' + encodeURIComponent(dayKey)
+  const age = ageOnDay({
+    birthDate: profile.birthDate, ageYears: profile.ageYears ?? null, ageAsOf: profile.ageAsOf ?? null
+  }, dayKey)
+  const adult = age !== null && age >= 18
   return <section className="space-y-3" aria-label="Exercise entries">
     <div className="flex flex-wrap items-center justify-between gap-2">
       <h3 className="text-lg font-semibold">Exercise ({records.activities.length})</h3>
@@ -81,7 +89,9 @@ export function DayExerciseEntries({ dayKey, records, locked = false }: EntryPro
         to={'/log/exercise' + query}>Add or edit exercise</Link>}
     </div>
     {!records.activities.length && <p className="text-sm text-slate-600">No workouts recorded.</p>}
-    {records.activities.map(entry => <article key={entry.id} className={itemClass}>
+    {records.activities.map(entry => {
+      const estimate = estimateWorkout(entry, records.weights, adult)
+      return <article key={entry.id} className={itemClass}>
       <h4 className="font-semibold">{entry.activity}</h4>
       <p className="mt-1 text-sm text-slate-600">{entry.durationMinutes === null
         ? 'Duration not recorded' : entry.durationMinutes + ' minutes'}
@@ -95,10 +105,16 @@ export function DayExerciseEntries({ dayKey, records, locked = false }: EntryPro
                 : entry.estimationMethod === 'activityTimeNet' ? 'Time-based estimate'
                   : 'Energy unknown'}
       </p>
+      <p className="mt-2 text-sm font-semibold text-slate-800">
+        Estimated additional burned kcal: {!adult ? 'Not evaluated'
+          : estimate.kcal === null ? 'Unknown'
+            : '≈ ' + Number(estimate.kcal.toFixed(1)).toLocaleString() + ' kcal'}
+      </p>
       {entry.notes && <p className="mt-1 text-sm text-slate-600">{entry.notes}</p>}
       {!locked && <Link to={'/log/exercise' + query + '&edit=' + encodeURIComponent(entry.id)}
         className="mt-2 inline-block text-sm font-semibold text-evergreen-700 underline">Edit / delete</Link>}
-    </article>)}
+    </article>
+    })}
   </section>
 }
 
@@ -128,7 +144,7 @@ export function DayEntries({ dayKey, records, profile, locked = false }: EntryPr
     <h2 id="day-entries-heading" className="text-xl font-bold">Detailed entries · {dayKey}</h2>
     <DayFoodEntries dayKey={dayKey} records={records} locked={locked} />
     <DayDrinkEntries dayKey={dayKey} records={records} locked={locked} />
-    <DayExerciseEntries dayKey={dayKey} records={records} locked={locked} />
+    <DayExerciseEntries dayKey={dayKey} records={records} profile={profile} locked={locked} />
     <DayWeightEntries dayKey={dayKey} records={records} profile={profile} locked={locked} />
   </section>
 }
