@@ -2,9 +2,9 @@ import type { ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
 
 const tabs = [
-  { to: '/today', label: 'Today', icon: 'home' },
   { to: '/log', label: 'Log', icon: 'plus' },
   { to: '/calendar', label: 'Calendar', icon: 'calendar' },
+  { to: '/today', label: 'Today', icon: 'home' },
   { to: '/trends', label: 'Trends', icon: 'chart' },
   { to: '/settings', label: 'Settings', icon: 'settings' }
 ] as const
