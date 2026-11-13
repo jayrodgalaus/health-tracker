@@ -12,6 +12,7 @@ import { WeightEntryPage } from './pages/WeightEntryPage'
 import { IntakeEntryPage } from './pages/IntakeEntryPage'
 import { ExerciseEntryPage } from './pages/ExerciseEntryPage'
 import { SavedFoodsPage } from './pages/SavedFoodsPage'
+import { SavedFoodCreatePage } from './pages/SavedFoodCreatePage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { TrendsPage } from './pages/TrendsPage'
 import { DataPage } from './pages/DataPage'
@@ -74,6 +75,8 @@ function TrackerApp() {
         <Route path="/log/drink" element={<IntakeEntryPage kind="beverage" />} />
         <Route path="/log/exercise" element={<ExerciseEntryPage profile={profile} />} />
         <Route path="/log/saved-foods" element={<SavedFoodsPage />} />
+        <Route path="/log/saved-foods/new/food" element={<SavedFoodCreatePage kind="food" />} />
+        <Route path="/log/saved-foods/new/drink" element={<SavedFoodCreatePage kind="beverage" />} />
         <Route path="/calendar" element={<CalendarPage profile={profile} />} />
         <Route path="/calendar/:dayKey/nutrients/:field" element={<NutrientDetailPage />} />
         <Route path="/calendar/:dayKey/:section" element={<CalendarSectionPage profile={profile} />} />

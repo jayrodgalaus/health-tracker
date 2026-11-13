@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { SavedFood, ServingUnit } from '../../domain/models'
 import { deleteSavedFood, listSavedFoods, saveSavedFood } from '../../data/intakeRepository'
@@ -7,15 +8,17 @@ import { basisFor, inferBasisMode, SERVING_UNITS, type BasisMode } from './label
 import { useToast } from '../../components/ToastProvider'
 import type { ParsedNutritionLabel } from '../../domain/nutritionLabelOcr'
 import { FloatingNutritionCamera } from '../../components/FloatingNutritionCamera'
+import { selectedLogDay } from '../../lib/logDate'
 
 const fieldClass = 'mt-1 block min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base'
 
 type SavedKind = 'food' | 'beverage'
 
-function SavedFoodEditor({ editing, initialKind, scanned, onDone, onCancel }: {
+export function SavedFoodEditor({ editing, initialKind, scanned, standalone = false, onDone, onCancel }: {
   editing?: SavedFood
   initialKind: SavedKind
   scanned?: ParsedNutritionLabel
+  standalone?: boolean
   onDone: (kind: SavedKind) => void
   onCancel: () => void
 }) {
@@ -70,8 +73,9 @@ function SavedFoodEditor({ editing, initialKind, scanned, onDone, onCancel }: {
   }
 
   return (
-    <form onSubmit={event => { void submit(event) }} noValidate className="space-y-4 rounded-2xl border border-evergreen-100 bg-white p-4">
-      <h3 className="text-lg font-bold">{editing ? 'Edit reusable label' : 'Create reusable label'}</h3>
+    <form onSubmit={event => { void submit(event) }} noValidate
+      className={standalone ? 'space-y-4' : 'space-y-4 rounded-2xl border border-evergreen-100 bg-white p-4'}>
+      {!standalone && <h3 className="text-lg font-bold">{editing ? 'Edit reusable label' : 'Create reusable label'}</h3>}
       <div className="grid grid-cols-2 gap-3">
         <label className="col-span-2 block text-sm font-medium">Product name
           <input className={fieldClass} maxLength={150} value={name} onChange={event => setName(event.target.value)} required />
@@ -127,12 +131,16 @@ function SavedFoodEditor({ editing, initialKind, scanned, onDone, onCancel }: {
 
 export function SavedFoodLibrary({ onUse }: { onUse: (food: SavedFood) => void }) {
   const toast = useToast()
+  const [params] = useSearchParams()
+  const dayKey = selectedLogDay(params.get('date'))
   const saved = useLiveQuery(() => listSavedFoods(), [], undefined)
   const [editing, setEditing] = useState<SavedFood | null>(null)
   const [adding, setAdding] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [error, setError] = useState('')
-  const [activeKind, setActiveKind] = useState<SavedKind>('food')
+  const [activeKind, setActiveKind] = useState<SavedKind>(
+    () => params.get('kind') === 'drink' ? 'beverage' : 'food'
+  )
   const [scanDraft, setScanDraft] = useState<ParsedNutritionLabel | null>(null)
   const [scanRevision, setScanRevision] = useState(0)
   const editorLocation = useRef<HTMLDivElement>(null)
@@ -203,11 +211,12 @@ export function SavedFoodLibrary({ onUse }: { onUse: (food: SavedFood) => void }
         aria-labelledby={tabsId + '-' + activeKind + '-tab'}
         className="space-y-4">
         <div className="flex justify-end">
-          <button type="button"
-            onClick={() => { setScanDraft(null); setEditing(null); setAdding(true); setDeleting(null); setError('') }}
-            className="min-h-11 rounded-xl border border-evergreen-600 bg-white px-4 text-sm font-semibold text-evergreen-700">
+          <Link
+            to={'/log/saved-foods/new/' + (activeKind === 'food' ? 'food' : 'drink') +
+              '?date=' + encodeURIComponent(dayKey)}
+            className="inline-flex min-h-11 items-center rounded-xl border border-evergreen-600 bg-white px-4 text-sm font-semibold text-evergreen-700">
             + Save a {activeKind === 'food' ? 'food' : 'drink'}
-          </button>
+          </Link>
         </div>
         {(editing || adding) && <div ref={editorLocation}>
           <SavedFoodEditor key={editing?.id ?? (scanDraft ? 'scan-' + scanRevision : 'new-' + activeKind)}
