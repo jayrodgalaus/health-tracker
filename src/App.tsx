@@ -15,6 +15,7 @@ import { SavedFoodsPage } from './pages/SavedFoodsPage'
 import { SavedFoodCreatePage } from './pages/SavedFoodCreatePage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { TrendsPage } from './pages/TrendsPage'
+import { KitchenPage } from './pages/KitchenPage'
 import { DataPage } from './pages/DataPage'
 import { CalendarPage } from './pages/CalendarPage'
 import { DayDetailPage } from './pages/DayDetailPage'
@@ -82,6 +83,7 @@ function TrackerApp() {
         <Route path="/calendar/:dayKey/:section" element={<CalendarSectionPage profile={profile} />} />
         <Route path="/calendar/:dayKey" element={<DayDetailPage profile={profile} />} />
         <Route path="/trends" element={<TrendsPage profile={profile} />} />
+        <Route path="/kitchen" element={<KitchenPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/settings/profile" element={<ProfileSettingsPage profile={profile} />} />
         <Route path="/settings/goals" element={<GoalsSettingsPage profile={profile} />} />

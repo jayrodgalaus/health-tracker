@@ -5,7 +5,7 @@ import { db } from '../db/database'
 import { deleteIntake, listRecentIntake, saveWater } from '../data/intakeRepository'
 import { readWaterPresets } from '../data/settingsRepository'
 import { readDayLocked } from '../data/dayRepository'
-import { PageInfoLink } from '../components/PageInfoLink'
+import { PageTitle } from '../components/PageTitle'
 import { useToast } from '../components/ToastProvider'
 import { FoodEntryForm } from '../features/nutrition/FoodEntryForm'
 import { selectedLogDay } from '../lib/logDate'
@@ -96,10 +96,10 @@ export function IntakeEntryPage({kind}: {kind:'food'|'beverage'}) {
   const infoTopic=kind==='food'?'food':'log'
   return <div className="space-y-6">
     <header>
-      <PageInfoLink topic={infoTopic} />
+      
       <Link className="inline-flex min-h-11 items-center text-sm font-semibold text-evergreen-700 underline"
         to={editId?'/calendar/'+dayKey:back}>‹ {editId?'Back to Calendar':'Back to Log'}</Link>
-      <h1 className="mt-3 text-3xl font-bold">{waterMode?'Log water':editId?'Edit '+(kind==='food'?'food':'drink'):kind==='food'?'Add food':'Add drink'}</h1>
+      <PageTitle topic={infoTopic} className="mt-3" titleClassName="text-3xl font-bold">{waterMode?'Log water':editId?'Edit '+(kind==='food'?'food':'drink'):kind==='food'?'Add food':'Add drink'}</PageTitle>
     </header>
 
     {kind==='beverage'&&!editId&&<nav aria-label="Drink type" className="flex flex-wrap gap-2">

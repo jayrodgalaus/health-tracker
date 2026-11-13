@@ -5,7 +5,7 @@ import { db } from '../db/database'
 import type { Profile } from '../domain/models'
 import { deleteExercise } from '../data/exerciseRepository'
 import { readDayLocked } from '../data/dayRepository'
-import { PageInfoLink } from '../components/PageInfoLink'
+import { PageTitle } from '../components/PageTitle'
 import { useToast } from '../components/ToastProvider'
 import { ExerciseForm } from '../features/exercise/ExerciseLog'
 import { selectedLogDay } from '../lib/logDate'
@@ -47,10 +47,10 @@ export function ExerciseEntryPage({profile}: {profile:Profile}) {
   </section>
   return <div className="space-y-6">
     <header>
-      <PageInfoLink topic="exercise" />
+      
       <Link className="inline-flex min-h-11 items-center text-sm font-semibold text-evergreen-700 underline"
         to={editId?'/calendar/'+dayKey:back}>‹ {editId?'Back to Calendar':'Back to Log'}</Link>
-      <h1 className="mt-3 text-3xl font-bold">{editId?'Edit exercise':'Add exercise'}</h1>
+      <PageTitle topic="exercise" className="mt-3" titleClassName="text-3xl font-bold">{editId?'Edit exercise':'Add exercise'}</PageTitle>
     </header>
     <ExerciseForm key={editId??'new'} profile={profile} selectedDay={entry?.dayKey??dayKey}
       editing={entry??undefined}

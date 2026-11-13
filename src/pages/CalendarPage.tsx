@@ -1,4 +1,4 @@
-import { PageInfoLink } from '../components/PageInfoLink'
+import { PageTitle } from '../components/PageTitle'
 import { useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -53,8 +53,8 @@ export function CalendarPage({ profile }: { profile: Profile }) {
   return (
     <div className="space-y-6">
       <header>
-        <PageInfoLink topic="calendar" />
-        <h1 className="text-3xl font-bold tracking-tight">Your recorded days</h1>
+        
+        <PageTitle topic="calendar">Your recorded days</PageTitle>
       </header>
 
       <section aria-label="Month navigation" className="flex w-full items-center gap-2">

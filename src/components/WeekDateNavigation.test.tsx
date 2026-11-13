@@ -35,9 +35,10 @@ describe('week selector contextual help', () => {
     expect(html).not.toContain('About this page: day detail')
   })
 
-  it('preserves floating info buttons for pages that do not use compact placement', () => {
+  it('uses the same tiny circled i on other pages, without floating', () => {
     const html = render(<PageInfoLink topic="log" />)
-    expect(html).toContain('float-right ml-3 inline-flex h-11 w-11')
-    expect(html).not.toContain('relative -top-1')
+    expect(html).toContain('relative -top-1 inline-flex h-11 w-6')
+    expect(html).toContain('h-[18px] w-[18px]')
+    expect(html).not.toContain('float-right')
   })
 })

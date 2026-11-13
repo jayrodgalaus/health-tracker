@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Link, useParams } from 'react-router-dom'
-import { PageInfoLink } from '../components/PageInfoLink'
+import { PageTitle } from '../components/PageTitle'
 import { readDayRecords } from '../data/dayRepository'
 import { listExerciseForWeek } from '../data/exerciseRepository'
 import { readNutrientComparisonLimits } from '../data/settingsRepository'
@@ -60,11 +60,11 @@ export function CalendarSectionPage({ profile }: { profile: Profile }) {
 
   return <div className="space-y-6">
     <header className="space-y-2">
-      <PageInfoLink topic="day-detail" />
+      
       <Link className="inline-flex min-h-11 items-center text-sm font-semibold text-evergreen-700 underline"
         to={'/calendar/' + dayKey}>‹ Back to day details</Link>
       <p className="text-sm font-semibold uppercase tracking-wide text-evergreen-700">{dayKey}</p>
-      <h1 className="text-3xl font-bold tracking-tight">{headings[section]}</h1>
+      <PageTitle topic="day-detail">{headings[section]}</PageTitle>
     </header>
 
     {records == null ? <p role="status" className="rounded-xl bg-white p-4 text-sm text-slate-600">

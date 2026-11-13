@@ -8,6 +8,7 @@ export const DOCS_TOPICS = [
   {id:'calendar', label:'Calendar colors and day completion'},
   {id:'day-detail', label:'Day details and explainable rules'},
   {id:'trends', label:'Trends and coverage'},
+  {id:'kitchen', label:'Kitchen'},
   {id:'profile', label:'Profile and daily background movement'},
   {id:'goals', label:'Goals, tracking targets and thresholds'},
   {id:'preferences', label:'Water and nutrient comparison preferences'},

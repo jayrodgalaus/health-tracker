@@ -36,7 +36,7 @@ export function WeekDateNavigation({
         <Link to={pathForDay(today)}
           aria-label="Go to today"
           className="inline-flex min-h-11 items-center text-lg font-bold text-evergreen-700 hover:underline">Today</Link>
-        {helpTopic && <PageInfoLink topic={helpTopic} compact />}
+        {helpTopic && <PageInfoLink topic={helpTopic} />}
       </div>
       <div className="flex items-center gap-0.5">
         <button type="button" aria-label="Previous week" title="Previous week"

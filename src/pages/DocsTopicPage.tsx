@@ -100,6 +100,9 @@ const DOCS_CONTENT: Record<DocsTopicId, ReactNode> = {
       <p><strong>Export Excel:</strong> In the Trends date-range card, choose 7, 30, 90 or a custom span and select Export Excel. The workbook contains a daily row for every selected date on Energy, Nutrition, Logged Fluids and Weight Records, plus food/drink, fluid, exercise and actual-weight entry details. Daily energy values use the same estimates and completed-day snapshots as Calendar. The files use the canonical kcal, g, mg, ml and kg units, regardless of display preferences. Blank cells mean missing or unassessable values; coverage columns mark lower-bound totals, not zeros. The file is generated locally, works offline after the app loads, and contains private personal records in an unencrypted Excel workbook. Store or share it securely. This is a report, not a restorable JSON backup.</p>
     </>
   ),
+  'kitchen': (
+    <p>Kitchen is an empty page reserved for future functionality. No kitchen entries or records are created.</p>
+  ),
   'profile': (
     <>
 

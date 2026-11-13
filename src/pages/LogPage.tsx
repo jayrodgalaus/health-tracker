@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import { db } from '../db/database'
-import { PageInfoLink } from '../components/PageInfoLink'
+import { PageTitle } from '../components/PageTitle'
 import { WeekDateNavigation } from '../components/WeekDateNavigation'
 import { LogActionPill } from '../components/LogActionPill'
 import { DayCompletionControl } from '../features/day/DayCompletionControl'
@@ -28,8 +28,8 @@ export function LogPage() {
 
   return <div className="space-y-6">
     <header>
-      <PageInfoLink topic="log" />
-      <h1 className="text-3xl font-bold tracking-tight">Log</h1>
+      
+      <PageTitle topic="log">Log</PageTitle>
       <div className="mt-4">
         <WeekDateNavigation selectedDay={dayKey} today={today} destination="log" />
       </div>

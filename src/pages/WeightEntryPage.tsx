@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Link, useSearchParams } from 'react-router-dom'
-import { PageInfoLink } from '../components/PageInfoLink'
+import { PageTitle } from '../components/PageTitle'
 import { readDayLocked } from '../data/dayRepository'
 import type { Profile } from '../domain/models'
 import { WeightQuickCard } from '../features/weight/WeightQuickCard'
@@ -22,10 +22,10 @@ export function WeightEntryPage({ profile }: { profile: Profile }) {
 
   return <div className="space-y-6">
     <header>
-      <PageInfoLink topic="weight" />
+      
       <Link className="inline-flex min-h-11 items-center text-sm font-semibold text-evergreen-700 underline"
         to={back}>‹ Back to Log</Link>
-      <h1 className="mt-3 text-3xl font-bold">Log weight</h1>
+      <PageTitle topic="weight" className="mt-3" titleClassName="text-3xl font-bold">Log weight</PageTitle>
     </header>
     <WeightQuickCard key={dayKey} dayKey={dayKey} unit={profile.units.mass} />
   </div>

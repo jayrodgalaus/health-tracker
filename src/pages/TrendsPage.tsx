@@ -1,4 +1,4 @@
-import { PageInfoLink } from '../components/PageInfoLink'
+import { PageTitle } from '../components/PageTitle'
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { Profile } from '../domain/models'
@@ -72,8 +72,8 @@ export function TrendsPage({ profile }: { profile:Profile }) {
   }
   return <div className="space-y-7">
     <header>
-      <PageInfoLink topic="trends" />
-      <h1 className="mt-2 text-3xl font-bold tracking-tight">Recorded history</h1>
+      
+      <PageTitle topic="trends" className="mt-2">Recorded history</PageTitle>
     </header>
     <section aria-label="Trend date filters" className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
       <h2 className="font-semibold">Choose date range</h2>

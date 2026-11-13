@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Link, useParams } from 'react-router-dom'
-import { PageInfoLink } from '../components/PageInfoLink'
+import { PageTitle } from '../components/PageTitle'
 import { listIntakeForDay } from '../data/intakeRepository'
 import { readDayLocked } from '../data/dayRepository'
 import type { FoodEntry } from '../domain/models'
@@ -76,13 +76,13 @@ export function NutrientDetailPage() {
 
   return <div className="space-y-6">
     <header className="space-y-2">
-      <PageInfoLink topic="nutrition" />
+      
       <Link to={'/calendar/' + dayKey + '/nutrition'}
         className="inline-flex min-h-11 items-center text-sm font-semibold text-evergreen-700 underline">
         ‹ Back to nutrition
       </Link>
       <p className="text-sm font-semibold uppercase tracking-wide text-evergreen-700">{dayKey}</p>
-      <h1 className="text-3xl font-bold tracking-tight">{nutrient}</h1>
+      <PageTitle topic="nutrition">{nutrient}</PageTitle>
     </header>
     {entries === undefined ? <p role="status" className="rounded-2xl bg-white p-4 text-sm text-slate-600">
       Loading recorded entries…
