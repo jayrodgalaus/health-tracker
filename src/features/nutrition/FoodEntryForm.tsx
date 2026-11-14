@@ -258,7 +258,8 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
       </p>}
       <NutritionFields values={nutrition} onChange={(field, value) => {
         setNutrition(previous => ({ ...previous, [field]: value }))
-        // An explicit edit does not automatically establish the previously missing contributions.
+        // An explicit user-supplied value replaces the provisional subtotal.
+        setIncompleteNutrients(previous => previous.filter(item => item !== field))
       }} />
       <FloatingNutritionCamera onRecognized={applyScannedLabel} />
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}

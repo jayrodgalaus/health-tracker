@@ -57,7 +57,7 @@ describe('Calendar daily-goal checklist', () => {
       1905.3, 2000, 'mg', 'Sodium'), summary(true, [], true))
     expect(partial).toMatchObject({
       status: 'notEvaluated', statusLabel: 'Not evaluated',
-      comparison: '≥1,905.3 mg / 2,000 mg'
+      comparison: '+≈ 1,905.3 mg / 2,000 mg'
     })
     const missing = checklistItem(result('sodiumMg.notEvaluated', 'notEvaluated',
       null, 2000, 'mg', 'Sodium'), summary(true, []))

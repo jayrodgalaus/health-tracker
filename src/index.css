@@ -46,3 +46,21 @@ body {
     animation-duration: .01ms !important;
   }
 }
+
+@keyframes kitchen-cauldron-shake {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  15%, 45%, 75% { transform: translateX(-5px) rotate(-3deg); }
+  30%, 60%, 90% { transform: translateX(5px) rotate(3deg); }
+}
+
+@keyframes kitchen-done-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(16 185 129 / .45); }
+  55% { box-shadow: 0 0 0 14px rgb(16 185 129 / 0); }
+}
+
+.kitchen-cauldron-shake { animation: kitchen-cauldron-shake 1s ease-in-out both; }
+.kitchen-done-cta { animation: kitchen-done-pulse 1.35s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kitchen-cauldron-shake, .kitchen-done-cta { animation: none; }
+}

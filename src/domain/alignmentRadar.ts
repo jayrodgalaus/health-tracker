@@ -4,6 +4,8 @@ export type RadarGoal = {
   code: string
   label: string
   score: number | null
+  /** A numeric lower-bound plot, never a completed day evaluation. */
+  provisional: boolean
   /** Input to the goal, not a percentage of data assumed to be missing. */
   actual: number | null
   target: number | null
@@ -23,8 +25,9 @@ const clamp = (value: number) => Math.min(100, Math.max(0, value))
 export function radarScore(rule: RuleResult): number | null {
   const metric = rule.code.split('.')[0] ?? ''
   const { actual, target } = rule
-  // No estimate for unknown/partially covered metrics: unknown is NOT zero.
-  if (rule.state === 'notEvaluated' || actual === null || target === null ||
+  // Partially known values can be displayed provisionally, but the day remains
+  // unassessed. Completely missing metrics have no plotted vertex.
+  if (actual === null || target === null ||
       !Number.isFinite(actual) || !Number.isFinite(target) ||
       actual < 0 || target < 0) return null
   if (metric === 'energyKcal') {
@@ -51,6 +54,7 @@ export function alignmentRadar(summary: DailySummary): RadarGoal[] {
       code,
       label: labels[code] ?? rule.label,
       score: radarScore(rule),
+      provisional: rule.state === 'notEvaluated' && rule.actual !== null,
       actual: rule.actual,
       target: rule.target
     }

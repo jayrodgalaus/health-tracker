@@ -9,7 +9,7 @@ import { DISPLAY_NUTRIENT_FIELDS, nutrientUnit, type DisplayNutrientField } from
 function metricLabel(metric: MetricCoverage, unit: string): string {
   if (metric.knownAmount === null) return '-'
   const amount = Number(metric.knownAmount.toFixed(1)).toLocaleString()
-  return `${metric.complete ? '' : 'At least '}${amount} ${unit}`
+  return `${metric.complete ? '' : '+≈ '}${amount} ${unit}`
 }
 
 /** Distinct, gentle colors identify nutrients; no color implies a health judgment.

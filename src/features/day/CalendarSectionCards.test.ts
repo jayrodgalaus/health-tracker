@@ -73,7 +73,7 @@ describe('Calendar section navigation and value-only card subtitles', () => {
       workout: 210.125, workoutComplete: false
     })
     expect(calendarSectionValue('nutrition', summary, 'kg')).toBe('0 kcal')
-    expect(calendarSectionValue('fluids', summary, 'kg')).toBe('≥1,200.6 mL')
+    expect(calendarSectionValue('fluids', summary, 'kg')).toBe('+≈ 1,200.6 mL')
     expect(calendarSectionValue('activity', summary, 'kg')).toBe('≥210.1 kcal')
   })
 })

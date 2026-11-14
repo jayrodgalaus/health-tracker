@@ -31,7 +31,7 @@ export function DailyGoalRadar({ summary }: { summary?: DailySummary }) {
   const id = useId()
   const goals = summary ? alignmentRadar(summary) : []
   // A stable key restarts the intro only when the actual plotted data changes.
-  const motionKey = goals.map(goal => goal.code + ':' + (goal.score ?? 'unknown')).join('|')
+  const motionKey = goals.map(goal => goal.code + ':' + (goal.score ?? 'unknown') + ':' + goal.provisional).join('|')
 
   useEffect(() => {
     if (!goals.length) return
@@ -65,7 +65,8 @@ export function DailyGoalRadar({ summary }: { summary?: DailySummary }) {
     return fraction === null ? null : radial(index, count, fraction)
   })
   const fullPlot = count >= 3 && goals.every(goal => goal.score !== null)
-  const summaryText = goals.map(goal => goal.label + ': ' + (goal.score === null ? 'unavailable' : scoreLabel(goal.score))).join('; ')
+  const summaryText = goals.map(goal => goal.label + ': ' +
+    (goal.score === null ? 'unavailable' : (goal.provisional ? '+≈ ' : '') + scoreLabel(goal.score))).join('; ')
 
   return <section aria-labelledby="today-assessment-heading"
     className="overflow-hidden rounded-[1.75rem] border border-evergreen-700 bg-gradient-to-br from-evergreen-900 via-evergreen-700 to-evergreen-600 text-white p-4 shadow-sm sm:p-6">
@@ -97,16 +98,20 @@ export function DailyGoalRadar({ summary }: { summary?: DailySummary }) {
             {fullPlot && <polygon data-radar-shape="complete"
               points={plotted.map(p => p!.x.toFixed(2)+','+p!.y.toFixed(2)).join(' ')}
               fill="rgba(255,255,255,0.18)" stroke="#ffffff"
-              strokeWidth="2.5" strokeLinecap="round" />}
+              strokeWidth="2.5" strokeLinecap="round"
+              strokeDasharray={goals.some(goal => goal.provisional) ? '6 4' : undefined} />}
             {!fullPlot && plotted.map((point,index) => {
               const next = plotted[(index+1)%count]
               return point && next && count >= 3
                 ? <line key={index} x1={point.x} y1={point.y} x2={next.x} y2={next.y}
-                    stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" /> : null
+                    stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round"
+                    strokeDasharray={goals[index]?.provisional || goals[(index+1)%count]?.provisional ? '6 4' : undefined} /> : null
             })}
             {plotted.map((point,index) => point
               ? <circle key={index} data-radar-point={goals[index]?.code}
-                  cx={point.x} cy={point.y} r="4.5" fill="#ffffff" stroke="#ffffff" strokeWidth="1.5" />
+                  cx={point.x} cy={point.y} r="4.5"
+                  fill={goals[index]?.provisional ? '#155E4C' : '#ffffff'} stroke="#ffffff"
+                  strokeWidth="1.5" strokeDasharray={goals[index]?.provisional ? '2 2' : undefined} />
               : null)}
             {goals.map((goal,index) => {
               const label = radial(index,count,1.41)
@@ -114,7 +119,7 @@ export function DailyGoalRadar({ summary }: { summary?: DailySummary }) {
                 textAnchor="middle" fontFamily="inherit">
                 <text x={label.x} y={label.y-2} fontSize="12" fontWeight="650">{goal.label}</text>
                 <text x={label.x} y={label.y+13} fontSize="11" fontWeight="500" opacity="0.85">
-                  {scoreLabel(goal.score)}
+                  {goal.provisional && goal.score !== null ? '+≈ ' : ''}{scoreLabel(goal.score)}
                 </text>
               </g>
             })}
@@ -131,7 +136,7 @@ export function DailyGoalRadar({ summary }: { summary?: DailySummary }) {
         <p id={id + '-chart-description'} className="sr-only">
           {summary.evaluation.isComplete ? 'Completed day.' : 'Provisional chart for an incomplete day.'}
           {' '}Goal chart values: {summaryText}.
-          Unavailable means the metric cannot be assessed from the current logs.
+          +≈ marks a provisional known subtotal with missing contributions; it is not a confirmed goal result. Unavailable means no numeric value can be shown.
         </p>
         <div id={id + '-breakdown'} hidden={!expanded}
           className="mt-3 rounded-2xl border border-white/25 bg-white/10 px-4 py-2 text-white">

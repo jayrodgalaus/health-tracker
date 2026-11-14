@@ -45,11 +45,23 @@ describe('Daily goal radar animation rendering', () => {
     expect(html).toContain('Goal chart values: Calories: 100%')
   })
 
-  it('does not create a vertex or filled polygon for unknown goals', () => {
+  it('does not create a vertex or filled polygon for fully unknown goals', () => {
     const html = renderToStaticMarkup(<DailyGoalRadar summary={day(true)} />)
     expect(html).not.toContain('data-radar-shape="complete"')
     expect(html).not.toContain('data-radar-point="proteinG"')
     expect(html).toContain('data-radar-point="energyKcal"')
     expect(html).toContain('Protein: unavailable')
+  })
+
+  it('keeps a filled connected polygon for a numeric-but-incomplete goal and marks it provisional', () => {
+    const incomplete = day()
+    incomplete.evaluation.results[1] = rule('proteinG', 80)
+    incomplete.evaluation.results[1]!.state = 'notEvaluated'
+    incomplete.evaluation.results[1]!.code = 'proteinG.notEvaluated'
+    const html = renderToStaticMarkup(<DailyGoalRadar summary={incomplete} />)
+    expect(html).toContain('data-radar-shape="complete"')
+    expect(html).toContain('stroke-dasharray="6 4"')
+    expect(html).toContain('Protein: +≈ 80%')
+    expect(html).toContain('data-radar-point="proteinG"')
   })
 })

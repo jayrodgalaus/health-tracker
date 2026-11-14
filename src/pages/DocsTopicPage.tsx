@@ -101,7 +101,13 @@ const DOCS_CONTENT: Record<DocsTopicId, ReactNode> = {
     </>
   ),
   'kitchen': (
-    <p>Kitchen is an empty page reserved for future functionality. No kitchen entries or records are created.</p>
+    <>
+      <p>Kitchen lets you combine saved foods, saved drinks, plain water, and USDA ingredients into a reusable food or drink. Ingredient lookup uses the bundled USDA catalog offline, or labels already stored in your browser.</p>
+      <p>Select an ingredient and amount, then Add ingredient to create a temporary, scaled snapshot. Ingredients can be removed before cooking; none of these actions logs today's intake.</p>
+      <p>Start cooking animates the cauldron for one second (or skips animation when reduced motion is enabled). Choose Done, then name the dish, select Food or Drink, review all recorded nutrients, and save it to the usual Saved Foods and Drinks library.</p>
+      <p>Finished batch weight in grams or volume in milliliters and servings are optional. If supplied, the quantity per serving and number of servings calculate from one another. If no measured batch amount is supplied, the recipe is stored as a batch or an explicitly chosen number of servings; no cooked yield is invented. A saved dish is logged using its normal saved-label basis, like any other food or drink.</p>
+      <p>Unknown nutrients stay unknown. When at least one ingredient supplies a nutrient but others are missing it, Kitchen shows its known subtotal with <strong>+≈</strong>; this is not a confirmed total. The same marker appears on provisional radar points and incomplete nutrition summaries; daily evaluation and completed-day snapshots continue to require assessable data.</p>
+    </>
   ),
   'profile': (
     <>

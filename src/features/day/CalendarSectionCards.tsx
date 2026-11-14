@@ -113,7 +113,7 @@ export function calendarSectionValue(
       ? summary.intake.nutrients.energyKcal : summary.intake.fluids
     const formatted = amount(coverage.knownAmount)
     if (formatted === null) return '—'
-    return (coverage.complete ? '' : '≥') + formatted + (section === 'nutrition' ? ' kcal' : ' mL')
+    return (coverage.complete ? '' : '+≈ ') + formatted + (section === 'nutrition' ? ' kcal' : ' mL')
   }
   if (section === 'activity') {
     const activity = summary.activity

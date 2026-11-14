@@ -37,9 +37,10 @@ describe('Today radar point scoring', () => {
     expect(radarScore(rule('fluidMl',1000,0))).toBe(100)
   })
 
-  it('does not plot missing, partial, invalid or unconfigured metrics as zero', () => {
+  it('plots partial known subtotals provisionally and leaves truly missing metrics unplotted', () => {
     expect(radarScore(rule('proteinG',null,100))).toBeNull()
-    expect(radarScore(rule('sodiumMg',2000,2000,'notEvaluated'))).toBeNull()
+    expect(radarScore(rule('sodiumMg',2000,2000,'notEvaluated'))).toBe(100)
+    expect(radarScore(rule('proteinG',45,100,'notEvaluated'))).toBe(45)
     expect(radarScore(rule('energyKcal',1500,null))).toBeNull()
     expect(radarScore(rule('energyKcal',Number.NaN,1600))).toBeNull()
     expect(radarScore(rule('energyKcal',-1,1600))).toBeNull()
@@ -48,8 +49,8 @@ describe('Today radar point scoring', () => {
       results:[rule('energyKcal',1600,1600),rule('sodiumMg',null,2000,'notEvaluated')]
     }} as DailySummary
     expect(alignmentRadar(summary)).toMatchObject([
-      { code:'energyKcal',label:'Calories',score:100 },
-      { code:'sodiumMg',label:'Sodium',score:null }
+      { code:'energyKcal',label:'Calories',score:100,provisional:false },
+      { code:'sodiumMg',label:'Sodium',score:null,provisional:false }
     ])
   })
 })

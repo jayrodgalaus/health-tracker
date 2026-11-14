@@ -27,7 +27,7 @@ const numberFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }
 
 function amount(value: number | null, unit: string, partial = false): string {
   if (value === null) return '—'
-  return (partial ? '≥' : '') + numberFormat.format(value) + ' ' + unit
+  return (partial ? '+≈ ' : '') + numberFormat.format(value) + ' ' + unit
 }
 
 /** Text-only presentation of the same versioned rule results used by Calendar. */

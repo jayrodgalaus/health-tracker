@@ -41,7 +41,7 @@ function IntakeGroup({
               </div>
               <span className="shrink-0 text-right text-base font-bold tabular-nums text-slate-900"
                 aria-label={amount === null || amount === undefined ? 'Unknown nutrient amount' : undefined}>
-                {formatEntryNutrient(amount, field)}
+                {amount != null && entry.incompleteNutrientFields?.includes(field) ? '+≈ ' : ''}{formatEntryNutrient(amount, field)}
               </span>
             </div>
           </li>
@@ -70,7 +70,7 @@ export function NutrientDetailPage() {
   const nutrient = NUTRIENT_LABELS[field]
   const summary = entries ? aggregateIntake(entries).nutrients[field] : undefined
   const total = summary && summary.knownAmount !== null
-    ? `${summary.complete ? '' : 'At least '}${formatEntryNutrient(summary.knownAmount, field)}` : '-'
+    ? `${summary.complete ? '' : '+≈ '}${formatEntryNutrient(summary.knownAmount, field)}` : '-'
   const foods = entries?.filter(entry => entry.kind === 'food') ?? []
   const drinks = entries?.filter(entry => entry.kind === 'beverage' && !isPlainWaterEntry(entry)) ?? []
 
