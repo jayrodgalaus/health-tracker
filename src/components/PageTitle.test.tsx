@@ -4,7 +4,6 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { PageTitle } from './PageTitle'
 import { PageInfoLink } from './PageInfoLink'
-import { KitchenPage } from '../pages/KitchenPage'
 
 function render(content: ReactNode) {
   return renderToStaticMarkup(<MemoryRouter>{content}</MemoryRouter>)
@@ -26,12 +25,9 @@ describe('small page title info controls', () => {
     expect(html).toContain('border-current text-[11px]')
     expect(html).toContain('href="/settings/docs/profile"')
   })
-  it('Kitchen has only its heading and help icon', () => {
-    const html = render(<KitchenPage />)
+  it('Kitchen uses the shared heading and adjacent help link', () => {
+    const html = render(<PageTitle topic="kitchen">Kitchen</PageTitle>)
     expect(html).toContain('<h1 class="min-w-0 text-3xl font-bold tracking-tight">Kitchen</h1>')
     expect(html).toContain('href="/settings/docs/kitchen"')
-    expect(html).not.toContain('<section')
-    expect(html).not.toContain('<form')
-    expect(html).not.toContain('Coming soon')
   })
 })

@@ -11,7 +11,7 @@ async function onboard(page: Page) {
   await expect(page.getByRole('heading', { name: 'Daily goal alignment' })).toBeVisible()
 }
 
-test('Kitchen is the new sixth-navigation layout destination, and its page is empty', async ({ page }) => {
+test('Kitchen is the new sixth-navigation destination and has its recipe workspace', async ({ page }) => {
   await onboard(page)
   for (const width of [320, 390, 430]) {
     await page.setViewportSize({ width, height: 740 })
@@ -27,8 +27,10 @@ test('Kitchen is the new sixth-navigation layout destination, and its page is em
     await expect(main.getByRole('heading', { name: 'Kitchen', exact: true })).toBeVisible()
     await expect(main.getByRole('link', { name: 'About this page: kitchen' }))
       .toHaveAttribute('href', '/settings/docs/kitchen')
-    await expect(main.locator('section, article, form')).toHaveCount(0)
-    await expect(main.getByText('Coming soon')).toHaveCount(0)
+    await expect(main.getByRole('img', { name: 'Open green cauldron' })).toBeVisible()
+    await expect(main.getByRole('combobox', { name: 'Ingredient' })).toBeVisible()
+    await expect(main.getByRole('button', { name: 'Add ingredient' })).toBeVisible()
+    await expect(main.getByRole('button', { name: 'Start cooking' })).toBeDisabled()
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
     expect(overflow).toBeLessThanOrEqual(2)
   }
