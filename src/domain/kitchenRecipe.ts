@@ -12,7 +12,7 @@ export function validateIncompleteNutrients(
       new Set(fields).size !== fields.length) {
     throw new Error('Invalid incomplete nutrient fields.')
   }
-  for (const field of fields) {
+  for (const field of fields as readonly NutrientFieldName[]) {
     if (nutrients[field] == null) {
       throw new Error('An incomplete subtotal must have a numeric known amount; unknown nutrients remain null.')
     }
