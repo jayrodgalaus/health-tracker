@@ -58,9 +58,7 @@ body {
   55% { box-shadow: 0 0 0 14px rgb(16 185 129 / 0); }
 }
 
-.kitchen-cauldron-shake { animation: kitchen-cauldron-shake 1s ease-in-out both; }
-.kitchen-done-cta { animation: kitchen-done-pulse 1.35s ease-in-out infinite; }
-
-@media (prefers-reduced-motion: reduce) {
-  .kitchen-cauldron-shake, .kitchen-done-cta { animation: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .kitchen-cauldron-shake { animation: kitchen-cauldron-shake 1s ease-in-out both; }
+  .kitchen-done-cta { animation: kitchen-done-pulse 1.35s ease-in-out infinite; }
 }
