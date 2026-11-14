@@ -342,7 +342,10 @@ describe('complete local JSON backup and restore',()=>{
     const weightCorrupt=structuredClone(original)
     weightCorrupt.tables.weightEntries[0]!.weightKg=-5
     await expect(replaceLocalData(weightCorrupt,database)).rejects.toThrow()
-    const proto=JSON.parse(JSON.stringify(original).replace('"formatVersion":1','"__proto__":{"admin":true},"formatVersion":1'))
+    const proto=JSON.parse(JSON.stringify(original).replace(
+      '"formatVersion":'+original.formatVersion,
+      '"__proto__":{"admin":true},"formatVersion":'+original.formatVersion
+    ))
     await expect(replaceLocalData(proto,database)).rejects.toThrow(/unexpected field/)
     const duplicate=structuredClone(original)
     duplicate.tables.weightEntries.push({...duplicate.tables.weightEntries[0]!,id:'another'})
