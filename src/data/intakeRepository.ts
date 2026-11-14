@@ -1,6 +1,7 @@
 import { db, type HealthTrackerDatabase } from '../db/database'
 import { assertDayEditable } from './dayRepository'
-import type { FoodEntry, LabelBasis, LocalDay, MealCategory, NutrientSnapshot, NutritionSource, SavedFood, ServingUnit } from '../domain/models'
+import type { FoodEntry, KitchenRecipe, LabelBasis, LocalDay, MealCategory, NutrientFieldName, NutrientSnapshot, NutritionSource, SavedFood, ServingUnit } from '../domain/models'
+import { validateIncompleteNutrients, validateKitchenRecipe } from '../domain/kitchenRecipe'
 import {
   emptyNutrition, fluidMlFromPortion, portionRatio, scaleNutrition,
   validateNutrition, validatePortion, waterNutrition
@@ -17,6 +18,8 @@ export interface FoodDefinition {
   referenceNutrients: NutrientSnapshot
   fluidMlPerBasis?: number | null
   isFavorite?: boolean
+  recipe?: KitchenRecipe
+  incompleteNutrientFields?: NutrientFieldName[]
 }
 
 export interface IntakeDraft {
@@ -32,6 +35,7 @@ export interface IntakeDraft {
   referenceNutrients: NutrientSnapshot
   nutritionSource?: NutritionSource | null
   servingDescription?: string | null
+  incompleteNutrientFields?: NutrientFieldName[]
   /** Required only when volume cannot be derived from consumed amount units. */
   fluidMl?: number | null
 }
@@ -62,6 +66,8 @@ function validateDefinition(definition: FoodDefinition): void {
   validOptionalText(definition.servingDescription)
   validatePortion(definition.labelBasis.quantity, definition.labelBasis.unit)
   validateNutrition(definition.referenceNutrients)
+  validateIncompleteNutrients(definition.incompleteNutrientFields, definition.referenceNutrients)
+  if (definition.recipe) validateKitchenRecipe(definition.recipe, definition.labelBasis)
   validateFluid(definition.fluidMlPerBasis)
   if (definition.kind === 'food' && definition.fluidMlPerBasis != null) {
     throw new Error('Fluid tracking applies to beverages, not food.')
@@ -89,6 +95,7 @@ function prepareEntry(draft: IntakeDraft, previous: FoodEntry | undefined, today
   }
   const scaled = scaleNutrition(draft.referenceNutrients, draft.labelBasis, draft.quantity, draft.unit)
   validateNutrition(scaled)
+  validateIncompleteNutrients(draft.incompleteNutrientFields, scaled)
   validateFluid(draft.fluidMl)
   const autoVolume = draft.kind === 'beverage' ? fluidMlFromPortion(draft.quantity, draft.unit) : null
   const fluidMl = draft.kind === 'beverage' ? autoVolume ?? draft.fluidMl ?? null : null
@@ -110,6 +117,8 @@ function prepareEntry(draft: IntakeDraft, previous: FoodEntry | undefined, today
     referenceNutrientsSnapshot: { ...emptyNutrition(), ...draft.referenceNutrients },
     nutritionSource: draft.nutritionSource ?? null,
     nutrientsSnapshot: scaled,
+    ...(draft.incompleteNutrientFields?.length
+      ? { incompleteNutrientFields: [...draft.incompleteNutrientFields] } : {}),
     fluidMl,
     createdAt: previous?.createdAt ?? now,
     updatedAt: now
@@ -131,6 +140,18 @@ export async function saveSavedFood(
     const existing = id ? await database.savedFoods.get(id) : undefined
     if (id && !existing) throw new Error('The saved item no longer exists.')
     const now = new Date().toISOString()
+    const sameBasis = existing?.labelBasis.quantity === definition.labelBasis.quantity &&
+      existing.labelBasis.unit === definition.labelBasis.unit
+    const sameNutrients = existing && Object.keys(emptyNutrition()).every(field =>
+      (existing.nutrientsPerBasis[field as NutrientFieldName] ?? null) ===
+      (definition.referenceNutrients[field as NutrientFieldName] ?? null))
+    // Editing an unrelated label must not leave stale ingredient provenance.
+    const recipe = definition.recipe ?? (sameBasis && sameNutrients ? existing?.recipe : undefined)
+    // Keep still-applicable incomplete markers when manually editing a single field.
+    const incomplete = definition.incompleteNutrientFields ?? existing?.incompleteNutrientFields?.filter(field =>
+      (existing.nutrientsPerBasis[field] ?? null) === (definition.referenceNutrients[field] ?? null))
+    if (recipe) validateKitchenRecipe(recipe, definition.labelBasis)
+    validateIncompleteNutrients(incomplete, definition.referenceNutrients)
     const saved: SavedFood = {
       id: existing?.id ?? crypto.randomUUID(),
       name: validName(definition.name),
@@ -139,6 +160,8 @@ export async function saveSavedFood(
       servingDescription: validOptionalText(definition.servingDescription),
       labelBasis: { ...definition.labelBasis },
       nutrientsPerBasis: { ...emptyNutrition(), ...definition.referenceNutrients },
+      ...(incomplete?.length ? { incompleteNutrientFields: [...incomplete] } : {}),
+      ...(recipe ? { recipe: structuredClone(recipe) } : {}),
       fluidMlPerBasis: definition.kind === 'beverage' ? definition.fluidMlPerBasis ?? null : null,
       isFavorite: definition.isFavorite ?? false,
       createdAt: existing?.createdAt ?? now,
@@ -211,6 +234,7 @@ export async function logSavedFood(
     labelBasis: { ...saved.labelBasis },
     servingDescription: saved.servingDescription,
     referenceNutrients: { ...saved.nutrientsPerBasis },
+    incompleteNutrientFields: saved.incompleteNutrientFields,
     fluidMl: volume
   }, undefined, database, today)
 }

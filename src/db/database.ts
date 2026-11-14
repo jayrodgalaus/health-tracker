@@ -60,6 +60,10 @@ export class HealthTrackerDatabase extends Dexie {
       }, new Date().toISOString())
       await tx.table<DayReview, string>('dayReviews').bulkPut(archived)
     })
+    // V4 permits optional Kitchen recipe, serving and nutrient-coverage metadata
+    // within existing savedFoods/foodEntries records. No store or index changes:
+    // Dexie preserves every v3 record byte-for-byte without a destructive rewrite.
+    this.version(4).stores({})
   }
 }
 

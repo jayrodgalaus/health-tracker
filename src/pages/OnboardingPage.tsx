@@ -1,4 +1,5 @@
 import { ProfileForm } from '../features/profile/ProfileForm'
+import { OnboardingBackupRestore } from '../components/OnboardingBackupRestore'
 
 export function OnboardingPage() {
   return (
@@ -19,6 +20,7 @@ export function OnboardingPage() {
         or replace advice from a qualified healthcare professional.
         <p className="mt-2">Adult-oriented estimates and weight-goal evaluations will not be shown for people under 18. Basic logging remains available.</p>
       </div>
+      <OnboardingBackupRestore />
       <ProfileForm mode="onboarding" />
     </div>
   )

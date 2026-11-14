@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import type { FoodEntry, MealCategory, NutrientSnapshot, NutritionSource, SavedFood, ServingUnit } from '../../domain/models'
+import type { FoodEntry, MealCategory, NutrientFieldName, NutrientSnapshot, NutritionSource, SavedFood, ServingUnit } from '../../domain/models'
 import { portionRatio, referenceNutritionForEntry } from '../../domain/nutrition'
 import { saveIntake } from '../../data/intakeRepository'
 import { toLocalDay } from '../../lib/localDate'
@@ -43,6 +43,9 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
   const [unit, setUnit] = useState<ServingUnit>(source?.unit ?? initialBasis.unit)
   const [servingDescription, setServingDescription] = useState(source?.servingDescription ?? saved?.servingDescription ?? '')
   const [nutrition, setNutrition] = useState(inputsFromNutrition(reference))
+  const [incompleteNutrients, setIncompleteNutrients] = useState<NutrientFieldName[]>(
+    source?.incompleteNutrientFields ?? saved?.incompleteNutrientFields ?? []
+  )
   const [fluid, setFluid] = useState(source?.fluidMl == null ? '' : String(source.fluidMl))
   const [fluidChanged, setFluidChanged] = useState(false)
   const [lookupApplied, setLookupApplied] = useState(false)
@@ -86,6 +89,7 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
     setUnit(selected.basis.unit)
     setServingDescription(item.servingDescription ?? '')
     setNutrition(inputsFromNutrition(selected.nutrients))
+    setIncompleteNutrients(choice.type === 'saved' ? choice.product.incompleteNutrientFields ?? [] : [])
     setSelectedSavedFoodId(selected.savedId)
     setNutritionSource(selected.nutritionSource)
     setLookupApplied(true)
@@ -119,6 +123,7 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
     if (label.servingDescription) setServingDescription(label.servingDescription)
     setNutritionSource(null)
     setSelectedSavedFoodId(null)
+    setIncompleteNutrients([])
     setLookupApplied(false)
     setLookupFluidPerBasis(null)
     // A new scanned label must never reuse a previous drink's measured volume.
@@ -166,7 +171,9 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
         nutritionSource,
         quantity: amount, unit: effectiveUnit, labelBasis: resolvedBasis,
         servingDescription,
-        referenceNutrients, fluidMl
+        referenceNutrients,
+        incompleteNutrientFields: incompleteNutrients.filter(field => referenceNutrients[field] != null),
+        fluidMl
       }, editing?.id)
       onDone(date)
     } catch (cause) {
@@ -249,7 +256,10 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
           </>
         )}
       </p>}
-      <NutritionFields values={nutrition} onChange={(field, value) => setNutrition(previous => ({ ...previous, [field]: value }))} />
+      <NutritionFields values={nutrition} onChange={(field, value) => {
+        setNutrition(previous => ({ ...previous, [field]: value }))
+        // An explicit edit does not automatically establish the previously missing contributions.
+      }} />
       <FloatingNutritionCamera onRecognized={applyScannedLabel} />
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}
       <div className="flex flex-wrap gap-3">

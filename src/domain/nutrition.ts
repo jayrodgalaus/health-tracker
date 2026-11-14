@@ -97,14 +97,17 @@ export interface IntakeSummary {
   fluids: MetricCoverage
 }
 
-function coverage(values: (number | null | undefined)[]): MetricCoverage {
-  const known = values.filter((value): value is number => value !== null && value !== undefined)
+function coverage(values: readonly { amount: number | null | undefined; incomplete?: boolean }[]): MetricCoverage {
+  const known = values.filter(value => value.amount !== null && value.amount !== undefined)
+    .map(value => value.amount as number)
+  const completeEntries = values.filter(value =>
+    value.amount !== null && value.amount !== undefined && !value.incomplete).length
   return {
     knownAmount: known.length ? known.reduce((sum, value) => sum + value, 0) : null,
-    knownEntryCount: known.length,
-    unknownEntryCount: values.length - known.length,
+    knownEntryCount: completeEntries,
+    unknownEntryCount: values.length - completeEntries,
     totalEntryCount: values.length,
-    complete: values.length > 0 && values.length === known.length
+    complete: values.length > 0 && values.length === completeEntries
   }
 }
 
@@ -122,14 +125,19 @@ export function isPlainWaterEntry(entry: FoodEntry): boolean {
 export function aggregateIntake(entries: readonly FoodEntry[]): IntakeSummary {
   const nutritionalEntries = entries.filter(entry => !isPlainWaterEntry(entry))
   const nutrients = Object.fromEntries(NUTRIENT_FIELDS.map(field => [
-    field, coverage(nutritionalEntries.map(entry => entry.nutrientsSnapshot[field]))
+    field, coverage(nutritionalEntries.map(entry => ({
+      amount: entry.nutrientsSnapshot[field],
+      incomplete: entry.incompleteNutrientFields?.includes(field)
+    })))
   ])) as Record<NutrientField, MetricCoverage>
   return {
     entries: entries.length,
     foods: entries.filter(entry => entry.kind === 'food').length,
     beverages: entries.filter(entry => entry.kind === 'beverage').length,
     nutrients,
-    fluids: coverage(entries.filter(entry => entry.kind === 'beverage').map(entry => entry.fluidMl))
+    fluids: coverage(entries.filter(entry => entry.kind === 'beverage').map(entry => ({
+      amount: entry.fluidMl
+    })))
   }
 }
 

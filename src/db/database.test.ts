@@ -73,6 +73,49 @@ describe('IndexedDB foundation', () => {
     expect((await reopened.dayReviews.get('2026-10-05'))?.frozen?.summary.evaluation.status).toBe('onTarget')
   })
 
+  it('upgrades a v3 database to v4 without changing any record or index', async () => {
+    const name = 'health-tracker-v3-to-v4'
+    const legacy = new Dexie(name)
+    legacy.version(3).stores({
+      profiles: '&id', goalPeriods: '&id, effectiveFrom',
+      savedFoods: '&id, name, updatedAt',
+      foodEntries: '&id, dayKey, recordedAt, savedFoodId',
+      exerciseEntries: '&id, dayKey, startedAt',
+      weightEntries: '&id, dayKey, recordedAt',
+      dayReviews: '&dayKey', appSettings: '&id'
+    })
+    await legacy.open()
+    const when = '2026-11-07T08:00:00.000Z'
+    const saved = {
+      id: 'old-saved', name: 'Synthetic old cereal', brand: null,
+      kind: 'food', labelBasis: { quantity: 100, unit: 'g' },
+      nutrientsPerBasis: { energyKcal: 300, proteinG: null }, createdAt: when, updatedAt: when
+    }
+    const meal = {
+      id: 'old-meal', dayKey: '2026-11-06', recordedAt: when,
+      kind: 'food', name: saved.name, savedFoodId: saved.id,
+      quantity: 50, unit: 'g', labelBasis: saved.labelBasis,
+      nutrientsSnapshot: { energyKcal: 150, proteinG: null }, fluidMl: null,
+      createdAt: when, updatedAt: when
+    }
+    await legacy.table('savedFoods').put(saved)
+    await legacy.table('foodEntries').put(meal)
+    legacy.close()
+    const upgraded = new HealthTrackerDatabase(name)
+    created.push(upgraded)
+    await upgraded.open()
+    expect(upgraded.verno).toBe(4)
+    expect(await upgraded.savedFoods.get(saved.id)).toEqual(saved)
+    expect(await upgraded.foodEntries.get(meal.id)).toEqual(meal)
+    const tableNames = upgraded.tables.map(table => table.name).sort()
+    expect(tableNames).toEqual([
+      'appSettings', 'dayReviews', 'exerciseEntries', 'foodEntries',
+      'goalPeriods', 'profiles', 'savedFoods', 'weightEntries'
+    ])
+    expect(upgraded.savedFoods.schema.indexes.map(index => index.name))
+      .toEqual(['name', 'updatedAt'])
+  })
+
   it('persists a weight across close/reopen and retains the local day', async () => {
     const name = 'health-tracker-persistence-test'
     const first = new HealthTrackerDatabase(name)

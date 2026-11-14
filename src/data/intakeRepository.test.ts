@@ -38,6 +38,48 @@ describe('offline food/drink persistence', () => {
     expect(original?.referenceNutrientsSnapshot?.proteinG).toBe(14)
   })
 
+  it('persists a Kitchen recipe and copies incomplete numeric coverage into immutable intake', async () => {
+    const database = create('nutrition-kitchen-coverage')
+    const recipe = {
+      ingredients: [
+        { name: 'Synthetic flour', source: 'usda' as const,
+          nutritionSource: { provider: 'usda-sr-legacy' as const, fdcId: 169704, release: '2018-04' as const },
+          quantity: 100, unit: 'g' as const,
+          labelBasis: { quantity: 100, unit: 'g' as const },
+          nutrientsSnapshot: { ...emptyNutrition(), energyKcal: 150, proteinG: 9 } },
+        { name: 'Synthetic sauce', source: 'savedFood' as const,
+          quantity: 100, unit: 'g' as const,
+          labelBasis: { quantity: 100, unit: 'g' as const },
+          nutrientsSnapshot: { ...emptyNutrition(), energyKcal: 50 } }
+      ],
+      finishedAmount: { quantity: 600, unit: 'g' as const },
+      servingCount: 3
+    }
+    const saved = await saveSavedFood({
+      name: 'Kitchen batch', kind: 'food',
+      labelBasis: { quantity: 600, unit: 'g' },
+      referenceNutrients: { ...emptyNutrition(), energyKcal: 200, proteinG: 9 },
+      incompleteNutrientFields: ['proteinG'], recipe
+    }, undefined, database)
+    const logged = await logSavedFood(saved.id, '2026-11-06', 300, 'g', null, database, '2026-11-06')
+    expect(logged.nutrientsSnapshot.energyKcal).toBe(100)
+    expect(logged.nutrientsSnapshot.proteinG).toBe(4.5)
+    expect(logged.incompleteNutrientFields).toEqual(['proteinG'])
+    expect(aggregateIntake([logged]).nutrients.proteinG).toMatchObject({
+      knownAmount: 4.5, complete: false, unknownEntryCount: 1
+    })
+    expect(aggregateIntake([logged]).nutrients.energyKcal.complete).toBe(true)
+    // An edit to the saved label doesn't rewrite the already recorded meal.
+    await saveSavedFood({
+      name: 'Modified batch', kind: 'food',
+      labelBasis: { quantity: 600, unit: 'g' },
+      referenceNutrients: { ...emptyNutrition(), energyKcal: 250, proteinG: 9 }
+    }, saved.id, database)
+    expect((await database.savedFoods.get(saved.id))?.recipe).toBeUndefined()
+    expect((await database.foodEntries.get(logged.id))?.incompleteNutrientFields).toEqual(['proteinG'])
+    database.close()
+  })
+
   it('counts one caloric drink plus water and an unknown-calorie drink accurately', async () => {
     const database = create('nutrition-beverage-coverage')
     await saveIntake({

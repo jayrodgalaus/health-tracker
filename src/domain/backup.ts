@@ -4,8 +4,9 @@ import type {
 import { assertLocalDay } from './profile'
 import { MAX_INCLINE_PERCENT } from './paceGrade'
 import { portionRatio, scaleNutrition, validatePortion } from './nutrition'
+import { validateKitchenRecipe, validateIncompleteNutrients } from './kitchenRecipe'
 
-export const BACKUP_FORMAT_VERSION = 1
+export const BACKUP_FORMAT_VERSION = 2
 export const BACKUP_MAX_BYTES = 25 * 1024 * 1024
 export const BACKUP_MAX_ROWS = 100000
 export const BACKUP_TABLES = [
@@ -19,9 +20,9 @@ export interface BackupTables {
   weightEntries: WeightEntry[]; dayReviews: DayReview[]; appSettings: AppSettings[]
 }
 export interface HealthBackup {
-  formatVersion: 1
+  formatVersion: 1 | 2
   exportedAt: string
-  app: { name: 'health-tracker'; version: string; schemaVersion: 2 | 3 }
+  app: { name: 'health-tracker'; version: string; schemaVersion: 2 | 3 | 4 }
   tables: BackupTables
 }
 export type BackupCounts = Record<BackupTableName, number>
@@ -173,6 +174,70 @@ function validateArchivedSnapshot(raw: unknown, field: string, reviewDay: string
   safeValue(s.week,field+'.week')
 }
 
+/** Backup format v2 adds only optional fields to existing records; no new table. */
+function incompleteFields(raw: unknown, field: string, nutrientValues: unknown) {
+  if (raw === undefined) return
+  if (!Array.isArray(raw) || raw.length > nutrients.length ||
+      raw.some(x => typeof x !== 'string' || !nutrients.includes(x)) ||
+      new Set(raw).size !== raw.length) invalid(field,'invalid incomplete nutrient fields')
+  validateIncompleteNutrients(raw as Array<keyof FoodEntry['nutrientsSnapshot']>,
+    nutrientValues as FoodEntry['nutrientsSnapshot'])
+}
+
+function sourceProvenance(raw: unknown, field: string) {
+  if (raw === undefined || raw === null) return
+  const origin = obj(raw, field)
+  if (origin.provider === 'open-food-facts') {
+    shape(origin, field,['provider','productCode','fetchedAt'],['provider','productCode','fetchedAt'])
+    text(origin.productCode,field+'.productCode',14)
+    if (!/^\d{8,14}$/.test(origin.productCode as string)) invalid(field+'.productCode','invalid barcode')
+    iso(origin.fetchedAt,field+'.fetchedAt')
+  } else if (origin.provider === 'usda-sr-legacy' || origin.provider === 'usda-foundation') {
+    shape(origin,field,['provider','fdcId','release'],['provider','fdcId','release'])
+    numeric(origin.fdcId,field+'.fdcId',1,999999999)
+    if (!Number.isSafeInteger(origin.fdcId)) invalid(field+'.fdcId','invalid food ID')
+    if (origin.release !== (origin.provider === 'usda-foundation' ? '2026-04' : '2018-04'))
+      invalid(field+'.release','unsupported USDA release')
+  } else invalid(field,'unsupported provider')
+}
+
+function recipeRecord(raw: unknown, field: string, label: FoodEntry['labelBasis']) {
+  const r = shape(raw,field,['ingredients','finishedAmount','servingCount'],['ingredients'])
+  if (!Array.isArray(r.ingredients) || !r.ingredients.length || r.ingredients.length > 100)
+    invalid(field+'.ingredients','recipe must contain 1–100 ingredients')
+  if (r.finishedAmount != null) {
+    const a = shape(r.finishedAmount,field+'.finishedAmount',['quantity','unit'],['quantity','unit'])
+    numeric(a.quantity,field+'.finishedAmount.quantity',0.000001,100000)
+    choice(a.unit,field+'.finishedAmount.unit',['g','ml'])
+  }
+  numeric(r.servingCount,field+'.servingCount',0.000001,10000,true)
+  for (const [index, ingredient] of r.ingredients.entries()) {
+    const name = field+'.ingredients['+index+']'
+    const i = shape(ingredient,name,[
+      'name','source','savedFoodId','nutritionSource','quantity','unit','labelBasis',
+      'nutrientsSnapshot','incompleteNutrientFields','fluidMl'
+    ],['name','source','quantity','unit','labelBasis','nutrientsSnapshot'])
+    text(i.name,name+'.name',150)
+    choice(i.source,name+'.source',['savedFood','savedDrink','plainWater','usda'])
+    text(i.savedFoodId,name+'.savedFoodId',128,true)
+    if (i.savedFoodId != null && !['savedFood','savedDrink'].includes(i.source as string))
+      invalid(name+'.savedFoodId','only saved-food sources can reference saved IDs')
+    sourceProvenance(i.nutritionSource,name+'.nutritionSource')
+    if (i.source === 'usda' &&
+        (!i.nutritionSource || !['usda-sr-legacy','usda-foundation'].includes(
+          (i.nutritionSource as {provider:string}).provider)))
+      invalid(name+'.nutritionSource','USDA ingredient must identify its catalog record')
+    numeric(i.quantity,name+'.quantity',0.000001,100000)
+    choice(i.unit,name+'.unit',units)
+    basis(i.labelBasis,name+'.labelBasis')
+    portionRatio(i.labelBasis as FoodEntry['labelBasis'],i.quantity as number,i.unit as FoodEntry['unit'])
+    nutrition(i.nutrientsSnapshot,name+'.nutrientsSnapshot')
+    incompleteFields(i.incompleteNutrientFields,name+'.incompleteNutrientFields',i.nutrientsSnapshot)
+    numeric(i.fluidMl,name+'.fluidMl',0,30000,true)
+  }
+  validateKitchenRecipe(r as unknown as NonNullable<import('./models').SavedFood['recipe']>,label)
+}
+
 function validateRecord(table:BackupTableName,raw:unknown,field:string){
   if(table==='profiles'){
     const r=shape(raw,field,[
@@ -212,10 +277,12 @@ function validateRecord(table:BackupTableName,raw:unknown,field:string){
   } else if(table==='savedFoods'){
     const r=shape(raw,field,[
       'id','name','brand','labelBasis','nutrientsPerBasis','kind','servingDescription',
-      'fluidMlPerBasis','isFavorite',...dates
+      'fluidMlPerBasis','isFavorite','recipe','incompleteNutrientFields',...dates
     ],['id','name','brand','labelBasis','nutrientsPerBasis',...dates])
     common(r,field);text(r.name,field+'.name',150);text(r.brand,field+'.brand',150,true)
     basis(r.labelBasis,field+'.labelBasis');nutrition(r.nutrientsPerBasis,field+'.nutrientsPerBasis')
+    incompleteFields(r.incompleteNutrientFields,field+'.incompleteNutrientFields',r.nutrientsPerBasis)
+    if (r.recipe !== undefined) recipeRecord(r.recipe,field+'.recipe',r.labelBasis as FoodEntry['labelBasis'])
     choice(r.kind,field+'.kind',['food','beverage'],true)
     text(r.servingDescription,field+'.servingDescription',150,true)
     numeric(r.fluidMlPerBasis,field+'.fluidMlPerBasis',0,30000,true)
@@ -224,7 +291,7 @@ function validateRecord(table:BackupTableName,raw:unknown,field:string){
     const r=shape(raw,field,[
       'id','dayKey','recordedAt','kind','beverageType','meal','name','savedFoodId',
       'quantity','unit','labelBasis','nutrientsSnapshot','referenceNutrientsSnapshot',
-      'servingDescription','fluidMl','nutritionSource',...dates
+      'servingDescription','fluidMl','nutritionSource','incompleteNutrientFields',...dates
     ],['id','dayKey','recordedAt','kind','name','savedFoodId','quantity','unit','labelBasis','nutrientsSnapshot','fluidMl',...dates])
     common(r,field);day(r.dayKey,field+'.dayKey');iso(r.recordedAt,field+'.recordedAt')
     choice(r.kind,field+'.kind',['food','beverage']);choice(r.beverageType,field+'.beverageType',['water','other'],true)
@@ -233,25 +300,9 @@ function validateRecord(table:BackupTableName,raw:unknown,field:string){
     numeric(r.quantity,field+'.quantity',0.000001,100000);choice(r.unit,field+'.unit',units)
     basis(r.labelBasis,field+'.labelBasis')
     portionRatio(r.labelBasis as FoodEntry['labelBasis'],r.quantity as number,r.unit as FoodEntry['unit'])
-    if(r.nutritionSource!==undefined&&r.nutritionSource!==null){
-      const origin=obj(r.nutritionSource,field+'.nutritionSource')
-      if(origin.provider==='open-food-facts'){
-        shape(origin,field+'.nutritionSource',
-          ['provider','productCode','fetchedAt'],['provider','productCode','fetchedAt'])
-        text(origin.productCode,field+'.nutritionSource.productCode',14)
-        if(!/^\d{8,14}$/.test(origin.productCode as string))invalid(field+'.nutritionSource.productCode','invalid barcode')
-        iso(origin.fetchedAt,field+'.nutritionSource.fetchedAt')
-      }else if(origin.provider==='usda-sr-legacy'||origin.provider==='usda-foundation'){
-        shape(origin,field+'.nutritionSource',
-          ['provider','fdcId','release'],['provider','fdcId','release'])
-        numeric(origin.fdcId,field+'.nutritionSource.fdcId',1,999999999)
-        if(!Number.isSafeInteger(origin.fdcId))invalid(field+'.nutritionSource.fdcId','invalid food ID')
-        if(origin.release!==(origin.provider==='usda-foundation'?'2026-04':'2018-04')){
-          invalid(field+'.nutritionSource.release','unsupported USDA release')
-        }
-      }else invalid(field+'.nutritionSource','unsupported provider')
-    }
+    sourceProvenance(r.nutritionSource,field+'.nutritionSource')
     nutrition(r.nutrientsSnapshot,field+'.nutrientsSnapshot')
+    incompleteFields(r.incompleteNutrientFields,field+'.incompleteNutrientFields',r.nutrientsSnapshot)
     if(r.referenceNutrientsSnapshot!==undefined) {
       nutrition(r.referenceNutrientsSnapshot,field+'.referenceNutrientsSnapshot')
       // Each new-format log includes the original label. Its consumed snapshot
@@ -352,10 +403,14 @@ function validateRecord(table:BackupTableName,raw:unknown,field:string){
 export function validateBackup(raw:unknown):HealthBackup {
   const root=shape(raw,'root',['formatVersion','exportedAt','app','tables'],
     ['formatVersion','exportedAt','app','tables'])
-  if(root.formatVersion!==BACKUP_FORMAT_VERSION)invalid('formatVersion','unsupported backup version')
+  if(root.formatVersion!==1 && root.formatVersion!==BACKUP_FORMAT_VERSION)
+    invalid('formatVersion','unsupported backup version')
   iso(root.exportedAt,'exportedAt')
   const app=shape(root.app,'app',['name','version','schemaVersion'],['name','version','schemaVersion'])
-  if(app.name!=='health-tracker'||(app.schemaVersion!==2&&app.schemaVersion!==3))invalid('app','unsupported application or database version')
+  if(app.name!=='health-tracker' ||
+    !(root.formatVersion===1 && (app.schemaVersion===2 || app.schemaVersion===3) ||
+      root.formatVersion===2 && app.schemaVersion===4))
+    invalid('app','unsupported application or database version')
   text(app.version,'app.version',32)
   const tables=shape(root.tables,'tables',BACKUP_TABLES,BACKUP_TABLES)
   for(const table of BACKUP_TABLES){

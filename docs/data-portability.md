@@ -4,8 +4,11 @@ Scope: Phase 3, Development Guide v1.0 §5.5 and §§9.6, 13–14.
 
 ## Backup format
 
-`formatVersion: 1` with a UTC `exportedAt` timestamp, application metadata
-(name `health-tracker`, application version, Dexie schema version 2) and **all
+New exports use `formatVersion: 2` with a UTC `exportedAt` timestamp, application metadata
+(name `health-tracker`, application version, Dexie schema version 4).
+The importer also accepts pre-Kitchen `formatVersion: 1` backups from Dexie schema
+versions 2 and 3, including the user's existing v3 backup. No old records
+need to be modified in the JSON file. and **all
 eight user-owned tables**: `profiles`, `goalPeriods`, `savedFoods`,
 `foodEntries`, `exerciseEntries`, `weightEntries`, `dayReviews`,
 `appSettings`.
@@ -37,7 +40,9 @@ limits must be reviewed alongside parser resource-safety constraints.
    application/schema version, table names, record shapes, allowed fields,
    numeric bounds, units, local dates, ISO timestamps, uniqueness and (for
    new-format food logs) saved label-to-consumed nutrient consistency are
-   validated before any write.
+   validated before any write. Opening an entirely new installation also
+   offers **Import existing JSON backup** on onboarding, without creating a
+   temporary profile. This route requires a backup containing a profile.
 3. Review the backup timestamp and counts. Type **REPLACE** to explicitly
    authorize replacement.
 4. All eight stores are cleared and reinserted inside **one Dexie transaction**.
@@ -51,6 +56,26 @@ data repair, nutrient interpolation, or cloud transfer occurs.
 **Important:** A browser origin/profile has its own IndexedDB. Import on a
 different origin/browser is a deliberate transfer. An earlier or newer code
 version may not accept this backup format: always preserve the original file.
+
+## Kitchen-compatible schema v4 and nutrient coverage
+
+Dexie v4 retains all eight tables, their primary keys and their indexes.
+No existing record is rewritten during the v3→v4 upgrade. Optional
+`savedFoods.recipe` snapshots can retain individual ingredient contributions
+and an explicitly measured final batch quantity with optional serving count.
+`savedFoods.incompleteNutrientFields` and
+`foodEntries.incompleteNutrientFields` are optional lists naming numeric
+subtotals with missing contributions. A `null` nutrient is still unknown,
+not zero; a partial numeric subtotal counts toward a known minimum but is
+*not* a fully assessable value. The optional flag is copied to historical
+intake at logging time so subsequent saved-label edits do not rewrite it.
+
+Format v2 validation explicitly checks optional ingredient snapshots, units,
+source IDs, nutrient amounts, incomplete flags and final-yield metadata.
+New fields are never fabricated when importing legacy v1 files. Older v1
+imports remain transactional and all exported v2 files contain the same
+eight top-level tables. An earlier application may reject format v2: keep
+the pre-update backup as your recovery copy.
 
 ## Reset
 

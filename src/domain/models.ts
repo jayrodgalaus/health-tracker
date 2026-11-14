@@ -99,12 +99,43 @@ export interface LabelBasis {
   unit: ServingUnit
 }
 
+/** Partial known subtotals have numerical values, but do not certify full coverage. */
+export type NutrientFieldName = keyof NutrientSnapshot
+
+/** Immutable ingredient contribution recorded when assembling a reusable dish. */
+export interface KitchenIngredientSnapshot {
+  name: string
+  source: 'savedFood' | 'savedDrink' | 'plainWater' | 'usda'
+  savedFoodId?: RecordId | null
+  nutritionSource?: NutritionSource | null
+  quantity: number
+  unit: ServingUnit
+  labelBasis: LabelBasis
+  nutrientsSnapshot: NutrientSnapshot
+  /** A nonempty list marks partially known numeric subtotals. Null stays unknown. */
+  incompleteNutrientFields?: NutrientFieldName[]
+  fluidMl?: number | null
+}
+
+/** Optional recipe provenance, not a separate persistent store or daily log. */
+export interface KitchenRecipe {
+  ingredients: KitchenIngredientSnapshot[]
+  /** Measured final batch mass/volume, not inferred from raw ingredients. */
+  finishedAmount?: { quantity: number; unit: 'g' | 'ml' } | null
+  /** Optional portion planning; exact per-serving amount is derived from finishedAmount. */
+  servingCount?: number | null
+}
+
 export interface SavedFood {
   id: RecordId
   name: string
   brand: string | null
   labelBasis: LabelBasis
   nutrientsPerBasis: NutrientSnapshot
+  /** Coverage of numeric-but-incomplete ingredient totals (Kitchen). */
+  incompleteNutrientFields?: NutrientFieldName[]
+  /** Original ingredient snapshots and optional yield; absent on legacy labels. */
+  recipe?: KitchenRecipe
   /** Optional fields are backward compatible with the existing Dexie v1 store. */
   kind?: 'food' | 'beverage'
   servingDescription?: string | null
@@ -132,6 +163,8 @@ export interface FoodEntry {
   nutrientsSnapshot: NutrientSnapshot
   /** Reference label before scaling; preserved for transparent historical edits. */
   referenceNutrientsSnapshot?: NutrientSnapshot
+  /** Frozen when logged; later edits to the saved recipe never rewrite history. */
+  incompleteNutrientFields?: NutrientFieldName[]
   nutritionSource?: NutritionSource | null
   servingDescription?: string | null
   fluidMl: number | null

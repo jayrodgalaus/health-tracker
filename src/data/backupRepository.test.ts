@@ -59,8 +59,8 @@ describe('complete local JSON backup and restore',()=>{
     const database=newDb(name)
     await seed(database)
     const backup=await readLocalBackup(database)
-    expect(backup.formatVersion).toBe(1)
-    expect(backup.app.schemaVersion).toBe(3)
+    expect(backup.formatVersion).toBe(2)
+    expect(backup.app.schemaVersion).toBe(4)
     expect(backup.tables.foodEntries[0]?.referenceNutrientsSnapshot?.energyKcal).toBe(400)
     const serialized=JSON.stringify(backup)
     await deleteAllLocalRecords(database)
@@ -74,6 +74,78 @@ describe('complete local JSON backup and restore',()=>{
     expect(restored.tables.foodEntries[0]?.nutrientsSnapshot.energyKcal).toBe(300)
     reopened.close()
   })
+  it('imports pre-Kitchen JSON v1/schema 3 and v1/schema 2, then exports v2/schema 4', async () => {
+    const database = newDb('backup-v1-to-v2')
+    await seed(database)
+    const before = await readLocalBackup(database)
+    for (const schemaVersion of [2, 3] as const) {
+      const legacy = structuredClone(before)
+      legacy.formatVersion = 1
+      legacy.app.schemaVersion = schemaVersion
+      expect(validateBackup(legacy).tables.savedFoods[0]?.name).toBe('Synthetic oats')
+      await replaceLocalData(parseBackupJson(JSON.stringify(legacy)), database)
+      const after = await readLocalBackup(database)
+      expect(after.formatVersion).toBe(2)
+      expect(after.app.schemaVersion).toBe(4)
+      expect(after.tables).toEqual(before.tables)
+      expect(after.tables.savedFoods[0]?.recipe).toBeUndefined()
+    }
+    database.close()
+  })
+
+  it('round-trips Kitchen recipe, optional servings and partial nutrient coverage', async () => {
+    const database = newDb('backup-kitchen-v2')
+    await seed(database)
+    const before = await readLocalBackup(database)
+    const withKitchen = structuredClone(before)
+    const saved = withKitchen.tables.savedFoods[0]!
+    saved.labelBasis = { quantity: 600, unit: 'g' }
+    saved.nutrientsPerBasis = { ...emptyNutrition(), energyKcal: 200, proteinG: 9 }
+    saved.incompleteNutrientFields = ['proteinG']
+    saved.recipe = {
+      finishedAmount: { quantity: 600, unit: 'g' },
+      servingCount: 3,
+      ingredients: [
+        { name: 'Synthetic flour', source: 'usda',
+          nutritionSource: { provider: 'usda-sr-legacy', fdcId: 169704, release: '2018-04' },
+          quantity: 100, unit: 'g', labelBasis: { quantity: 100, unit: 'g' },
+          nutrientsSnapshot: { ...emptyNutrition(), energyKcal: 150, proteinG: 9 } },
+        { name: 'Synthetic sauce', source: 'savedFood', savedFoodId: 'other-label',
+          quantity: 100, unit: 'g', labelBasis: { quantity: 100, unit: 'g' },
+          nutrientsSnapshot: { ...emptyNutrition(), energyKcal: 50 } }
+      ]
+    }
+    const meal = withKitchen.tables.foodEntries[0]!
+    meal.referenceNutrientsSnapshot!.proteinG = 6
+    meal.nutrientsSnapshot.proteinG = 4.5
+    meal.incompleteNutrientFields = ['proteinG']
+    await replaceLocalData(parseBackupJson(JSON.stringify(withKitchen)), database)
+    const reopenedBackup = await readLocalBackup(database)
+    expect(reopenedBackup.tables.savedFoods[0]?.recipe).toEqual(saved.recipe)
+    expect(reopenedBackup.tables.savedFoods[0]?.incompleteNutrientFields).toEqual(['proteinG'])
+    expect(reopenedBackup.tables.foodEntries[0]?.incompleteNutrientFields).toEqual(['proteinG'])
+    expect(reopenedBackup.tables.foodEntries[0]?.nutrientsSnapshot.proteinG).toBe(4.5)
+    expect(reopenedBackup.tables.dayReviews[0]?.frozen)
+      .toEqual(before.tables.dayReviews[0]?.frozen)
+
+    const corrupt = structuredClone(reopenedBackup)
+    corrupt.tables.savedFoods[0]!.recipe!.servingCount = -5
+    await expect(replaceLocalData(corrupt,database)).rejects.toThrow(/invalid number/)
+    const forged = structuredClone(reopenedBackup)
+    forged.tables.savedFoods[0]!.recipe!.ingredients[0]!.nutritionSource = {
+      provider: 'usda-foundation', fdcId: 169704, release: '2018-04'
+    } as never
+    await expect(replaceLocalData(forged,database)).rejects.toThrow(/unsupported USDA release/)
+    const wrongIncomplete = structuredClone(reopenedBackup)
+    wrongIncomplete.tables.savedFoods[0]!.incompleteNutrientFields = ['fiberG']
+    await expect(replaceLocalData(wrongIncomplete,database)).rejects.toThrow(/numeric/)
+    const unknownField = structuredClone(reopenedBackup)
+    ;(unknownField.tables.savedFoods[0] as unknown as Record<string, unknown>).unexpectedProperty = 1
+    await expect(replaceLocalData(unknownField,database)).rejects.toThrow(/unexpected field/)
+    expect((await readLocalBackup(database)).tables).toEqual(reopenedBackup.tables)
+    database.close()
+  })
+
   it('keeps completion snapshots on restore and archives completed legacy backups', async () => {
     const database = newDb('archive-backup-roundtrip')
     await seed(database)
@@ -84,6 +156,7 @@ describe('complete local JSON backup and restore',()=>{
     expect((await readLocalBackup(database)).tables.dayReviews[0]?.frozen).toEqual(original)
 
     const old = structuredClone(backup)
+    old.formatVersion = 1
     old.app.schemaVersion = 2
     delete old.tables.dayReviews[0]!.frozen
     await replaceLocalData(old, database)

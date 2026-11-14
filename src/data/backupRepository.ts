@@ -1,7 +1,7 @@
 import { db, type HealthTrackerDatabase } from '../db/database'
 import { archiveLegacyReviews } from '../domain/daySnapshot'
 import {
-  BACKUP_TABLES, backupCounts, validateBackup,
+  BACKUP_FORMAT_VERSION, BACKUP_TABLES, backupCounts, validateBackup,
   type BackupCounts, type HealthBackup
 } from '../domain/backup'
 
@@ -18,9 +18,9 @@ export async function readLocalBackup(database: HealthTrackerDatabase = db): Pro
           database.dayReviews.toArray(), database.appSettings.toArray()
         ])
       const snapshot: HealthBackup = {
-        formatVersion: 1,
+        formatVersion: BACKUP_FORMAT_VERSION,
         exportedAt: new Date().toISOString(),
-        app: { name: 'health-tracker', version: '0.1.0', schemaVersion: 3 },
+        app: { name: 'health-tracker', version: '0.1.0', schemaVersion: 4 },
         tables: { profiles, goalPeriods, savedFoods, foodEntries,
           exerciseEntries, weightEntries, dayReviews, appSettings }
       }
