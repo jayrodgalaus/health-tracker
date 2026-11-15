@@ -3,7 +3,7 @@ import type {
 } from './models'
 import { assertLocalDay } from './profile'
 import { MAX_INCLINE_PERCENT } from './paceGrade'
-import { portionRatio, scaleNutrition, validatePortion } from './nutrition'
+import { portionRatio, portionRatioWithServing, scaleNutrition, validatePortion } from './nutrition'
 import { validateKitchenRecipe, validateIncompleteNutrients } from './kitchenRecipe'
 
 export const BACKUP_FORMAT_VERSION = 2
@@ -291,7 +291,7 @@ function validateRecord(table:BackupTableName,raw:unknown,field:string){
     const r=shape(raw,field,[
       'id','dayKey','recordedAt','kind','beverageType','meal','name','savedFoodId',
       'quantity','unit','labelBasis','nutrientsSnapshot','referenceNutrientsSnapshot',
-      'servingDescription','fluidMl','nutritionSource','incompleteNutrientFields',...dates
+      'servingDescription','fluidMl','nutritionSource','incompleteNutrientFields','servingAmount',...dates
     ],['id','dayKey','recordedAt','kind','name','savedFoodId','quantity','unit','labelBasis','nutrientsSnapshot','fluidMl',...dates])
     common(r,field);day(r.dayKey,field+'.dayKey');iso(r.recordedAt,field+'.recordedAt')
     choice(r.kind,field+'.kind',['food','beverage']);choice(r.beverageType,field+'.beverageType',['water','other'],true)
@@ -299,7 +299,19 @@ function validateRecord(table:BackupTableName,raw:unknown,field:string){
     text(r.name,field+'.name',150);text(r.savedFoodId,field+'.savedFoodId',128,true)
     numeric(r.quantity,field+'.quantity',0.000001,100000);choice(r.unit,field+'.unit',units)
     basis(r.labelBasis,field+'.labelBasis')
-    portionRatio(r.labelBasis as FoodEntry['labelBasis'],r.quantity as number,r.unit as FoodEntry['unit'])
+    if(r.servingAmount!==undefined) {
+      basis(r.servingAmount,field+'.servingAmount')
+      const amount=r.servingAmount as FoodEntry['labelBasis']
+      if(!['g','oz','ml','fl-oz'].includes(amount.unit) || r.unit!=='serving' ||
+         (r.labelBasis as FoodEntry['labelBasis']).unit==='serving') {
+        invalid(field+'.servingAmount','invalid serving conversion snapshot')
+      }
+    }
+    portionRatioWithServing(
+      r.labelBasis as FoodEntry['labelBasis'],
+      r.quantity as number, r.unit as FoodEntry['unit'],
+      r.servingAmount as FoodEntry['servingAmount']
+    )
     sourceProvenance(r.nutritionSource,field+'.nutritionSource')
     nutrition(r.nutrientsSnapshot,field+'.nutrientsSnapshot')
     incompleteFields(r.incompleteNutrientFields,field+'.incompleteNutrientFields',r.nutrientsSnapshot)
@@ -310,7 +322,8 @@ function validateRecord(table:BackupTableName,raw:unknown,field:string){
       const expected=scaleNutrition(
         r.referenceNutrientsSnapshot as FoodEntry['nutrientsSnapshot'],
         r.labelBasis as FoodEntry['labelBasis'],
-        r.quantity as number, r.unit as FoodEntry['unit']
+        r.quantity as number, r.unit as FoodEntry['unit'],
+        r.servingAmount as FoodEntry['servingAmount']
       )
       const consumed=r.nutrientsSnapshot as FoodEntry['nutrientsSnapshot']
       for(const nutrient of nutrients){

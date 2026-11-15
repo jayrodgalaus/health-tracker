@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
-import type { FoodEntry, MealCategory, NutrientFieldName, NutrientSnapshot, NutritionSource, SavedFood, ServingUnit } from '../../domain/models'
-import { portionRatio, referenceNutritionForEntry } from '../../domain/nutrition'
+import type { FoodEntry, LabelBasis, MealCategory, NutrientFieldName, NutrientSnapshot, NutritionSource, SavedFood, ServingUnit } from '../../domain/models'
+import { portionRatioWithServing, referenceNutritionForEntry } from '../../domain/nutrition'
+import { perServingAmount } from '../../domain/kitchenRecipe'
 import { saveIntake } from '../../data/intakeRepository'
 import { toLocalDay } from '../../lib/localDate'
 import { FoodLookupCombobox, type FoodLookupChoice } from './FoodLookupCombobox'
@@ -41,6 +42,11 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
   const [basisUnit, setBasisUnit] = useState<ServingUnit>(initialBasis.unit)
   const [quantity, setQuantity] = useState(String(source?.quantity ?? (initialMode === '100g' || initialMode === '100ml' ? 100 : initialBasis.quantity)))
   const [unit, setUnit] = useState<ServingUnit>(source?.unit ?? initialBasis.unit)
+  const [servingAmount, setServingAmount] = useState<LabelBasis | null>(
+    () => source?.servingAmount ??
+      (saved?.recipe ? perServingAmount(saved.recipe.finishedAmount, saved.recipe.servingCount) : null)
+  )
+  const [fromKitchen, setFromKitchen] = useState(Boolean(saved?.recipe))
   const [servingDescription, setServingDescription] = useState(source?.servingDescription ?? saved?.servingDescription ?? '')
   const [nutrition, setNutrition] = useState(inputsFromNutrition(reference))
   const [incompleteNutrients, setIncompleteNutrients] = useState<NutrientFieldName[]>(
@@ -54,14 +60,19 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
   const [saving, setSaving] = useState(false)
 
   const basis = basisFor(mode, basisQuantity, basisUnit)
-  const compatibleUnits: ServingUnit[] = basis.unit === 'g' || basis.unit === 'oz' ? ['g', 'oz'] :
-    basis.unit === 'ml' || basis.unit === 'fl-oz' ? ['ml', 'fl-oz'] : [basis.unit]
+  const compatibleUnits: ServingUnit[] = basis.unit === 'g' || basis.unit === 'oz'
+    ? ['g', 'oz', ...(servingAmount && (servingAmount.unit === 'g' || servingAmount.unit === 'oz')
+      ? ['serving' as const] : [])]
+    : basis.unit === 'ml' || basis.unit === 'fl-oz'
+      ? ['ml', 'fl-oz', ...(servingAmount && (servingAmount.unit === 'ml' || servingAmount.unit === 'fl-oz')
+        ? ['serving' as const] : [])]
+      : [basis.unit]
   const effectiveUnit = compatibleUnits.includes(unit) ? unit : basis.unit
   const calculatedLookupFluid = (() => {
     if (kind !== 'beverage' || fluidChanged || !lookupApplied || lookupFluidPerBasis === null ||
       effectiveUnit === 'ml' || effectiveUnit === 'fl-oz') return fluid
     try {
-      return String(lookupFluidPerBasis * portionRatio(basis, Number(quantity), effectiveUnit))
+      return String(lookupFluidPerBasis * portionRatioWithServing(basis, Number(quantity), effectiveUnit, servingAmount))
     } catch {
       return ''
     }
@@ -90,6 +101,10 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
     setServingDescription(item.servingDescription ?? '')
     setNutrition(inputsFromNutrition(selected.nutrients))
     setIncompleteNutrients(choice.type === 'saved' ? choice.product.incompleteNutrientFields ?? [] : [])
+    setFromKitchen(choice.type === 'saved' && Boolean(choice.product.recipe))
+    setServingAmount(choice.type === 'saved' && choice.product.recipe
+      ? perServingAmount(choice.product.recipe.finishedAmount, choice.product.recipe.servingCount)
+      : null)
     setSelectedSavedFoodId(selected.savedId)
     setNutritionSource(selected.nutritionSource)
     setLookupApplied(true)
@@ -124,6 +139,8 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
     setNutritionSource(null)
     setSelectedSavedFoodId(null)
     setIncompleteNutrients([])
+    setServingAmount(null)
+    setFromKitchen(false)
     setLookupApplied(false)
     setLookupFluidPerBasis(null)
     // A new scanned label must never reuse a previous drink's measured volume.
@@ -139,6 +156,22 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
     setBasisQuantity(String(nextBasis.quantity))
     setUnit(nextBasis.unit)
     setQuantity(String(nextBasis.quantity))
+    if (nextBasis.unit !== 'g' && nextBasis.unit !== 'oz' &&
+        nextBasis.unit !== 'ml' && nextBasis.unit !== 'fl-oz') {
+      setServingAmount(null)
+      setFromKitchen(false)
+    }
+  }
+
+  function changeConsumedUnit(next: ServingUnit) {
+    // Unit selection never silently treats one serving as the entire cooked batch.
+    if (next === 'serving' && effectiveUnit !== 'serving') {
+      setQuantity('1')
+    } else if (effectiveUnit === 'serving' && next !== 'serving') {
+      setQuantity(String(servingAmount?.quantity ?? basis.quantity))
+    }
+    setUnit(next)
+    setFluidChanged(false)
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -156,12 +189,12 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
           fluidMl = parseNumber(fluid, 'drink fluid volume', true)
         } else if (lookupApplied) {
           fluidMl = lookupFluidPerBasis === null ? null :
-            lookupFluidPerBasis * portionRatio(resolvedBasis, amount, effectiveUnit)
+            lookupFluidPerBasis * portionRatioWithServing(resolvedBasis, amount, effectiveUnit, servingAmount)
         } else if (source?.fluidMl != null) {
-          fluidMl = source.fluidMl * portionRatio(resolvedBasis, amount, effectiveUnit) /
-            portionRatio(source.labelBasis, source.quantity, source.unit)
+          fluidMl = source.fluidMl * portionRatioWithServing(resolvedBasis, amount, effectiveUnit, servingAmount) /
+            portionRatioWithServing(source.labelBasis, source.quantity, source.unit, source.servingAmount)
         } else if (saved?.fluidMlPerBasis != null) {
-          fluidMl = saved.fluidMlPerBasis * portionRatio(resolvedBasis, amount, effectiveUnit)
+          fluidMl = saved.fluidMlPerBasis * portionRatioWithServing(resolvedBasis, amount, effectiveUnit, servingAmount)
         }
       }
       await saveIntake({
@@ -173,6 +206,7 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
         servingDescription,
         referenceNutrients,
         incompleteNutrientFields: incompleteNutrients.filter(field => referenceNutrients[field] != null),
+        servingAmount: effectiveUnit === 'serving' ? servingAmount : null,
         fluidMl
       }, editing?.id)
       onDone(date)
@@ -208,19 +242,24 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
           </select>
         </label>}
         <label className="block text-sm font-medium">Nutrition is per
-          <select className={input} value={mode} onChange={event => changeMode(event.target.value as BasisMode)}>
-            <option value="serving">1 serving</option><option value="piece">1 piece</option>
+          <select className={input} value={mode} disabled={fromKitchen}
+            onChange={event => changeMode(event.target.value as BasisMode)}>
+            <option value="serving" disabled={fromKitchen}>1 serving</option><option value="piece">1 piece</option>
             <option value="100g">100 g</option><option value="100ml">100 ml</option>
             <option value="custom">Custom label quantity</option>
           </select>
         </label>
         {mode === 'custom' && <>
           <label className="block text-sm font-medium">Label quantity
-            <input className={input} type="number" step="any" min="0.01" inputMode="decimal" value={basisQuantity} onChange={event => setBasisQuantity(event.target.value)} required />
+            <input className={input} type="number" step="any" min="0.01" inputMode="decimal"
+              value={basisQuantity} disabled={fromKitchen}
+              onChange={event => setBasisQuantity(event.target.value)} required />
           </label>
           <label className="block text-sm font-medium">Label unit
-            <select className={input} value={basisUnit} onChange={event => { setBasisUnit(event.target.value as ServingUnit); setUnit(event.target.value as ServingUnit) }}>
-              {SERVING_UNITS.map(value => <option key={value} value={value}>{value}</option>)}
+            <select className={input} value={basisUnit} disabled={fromKitchen}
+              onChange={event => { setBasisUnit(event.target.value as ServingUnit); setUnit(event.target.value as ServingUnit) }}>
+              {SERVING_UNITS.map(value => <option key={value} value={value}
+                disabled={fromKitchen && value === 'serving'}>{value}</option>)}
             </select>
           </label>
         </>}
@@ -228,7 +267,7 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
           <input className={input} type="number" step="any" min="0.01" inputMode="decimal" value={quantity} onChange={event => setQuantity(event.target.value)} required />
         </label>
         <label className="block text-sm font-medium">Consumed unit
-          <select className={input} value={effectiveUnit} onChange={event => setUnit(event.target.value as ServingUnit)}>
+          <select className={input} value={effectiveUnit} onChange={event => changeConsumedUnit(event.target.value as ServingUnit)}>
             {compatibleUnits.map(value => <option key={value} value={value}>{value}</option>)}
           </select>
         </label>

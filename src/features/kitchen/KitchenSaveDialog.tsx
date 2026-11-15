@@ -7,7 +7,7 @@ import { NUTRIENT_LABELS } from '../nutrition/NutritionFields'
 export interface KitchenSavePayload {
   name: string
   kind: 'food' | 'beverage'
-  finishedAmount: { quantity: number; unit: 'g' | 'ml' } | null
+  finishedAmount: { quantity: number; unit: 'g' | 'ml' }
   servingCount: number | null
 }
 
@@ -89,7 +89,7 @@ export function KitchenSaveDialog({
     event.preventDefault()
     setError('')
     if (!name.trim()) { setError('Enter a dish name.'); field.current?.focus(); return }
-    if (amount.trim() && !isPositive(total)) { setError('Enter a valid finished amount.'); return }
+    if (!hasAmount) { setError('Enter the finished batch amount.'); return }
     const hasCount = servings.trim() !== '' || (hasAmount && lastEdited === 'size' && perServing.trim() !== '')
     if (hasCount && !isPositive(resolvedCount)) { setError('Enter a valid number of servings.'); return }
     if (perServing.trim() !== '' && (!hasAmount || !isPositive(resolvedSize))) {
@@ -97,7 +97,7 @@ export function KitchenSaveDialog({
     }
     const payload: KitchenSavePayload = {
       name: name.trim(), kind,
-      finishedAmount: hasAmount ? { quantity: total, unit: kind === 'food' ? 'g' : 'ml' } : null,
+      finishedAmount: { quantity: total, unit: kind === 'food' ? 'g' : 'ml' },
       servingCount: hasCount ? resolvedCount : null
     }
     setSaving(true)
@@ -136,22 +136,22 @@ export function KitchenSaveDialog({
       </fieldset>
       <div className="grid grid-cols-2 gap-3">
         <label className="col-span-2 block text-sm font-semibold">
-          Finished batch amount (optional, {kind === 'food' ? 'g' : 'mL'})
+          Finished batch amount ({kind === 'food' ? 'g' : 'mL'})
           <input className={input} type="number" step="any" min="0.000001" max="10000"
-            inputMode="decimal" value={amount} onChange={event => setAmount(event.target.value)} />
+            inputMode="decimal" required value={amount} onChange={event => setAmount(event.target.value)} />
         </label>
         <label className="block text-sm font-semibold">Servings (optional)
           <input className={input} type="number" step="any" min="0.000001" max="10000"
             inputMode="decimal"
             value={hasAmount && lastEdited === 'size' && perServing.trim() !== '' && isPositive(size)
               ? String(Number(resolvedCount.toFixed(5))) : servings}
-            onChange={event => { setServings(event.target.value); setLastEdited('count') }} />
+            onChange={event => { setServings(event.target.value); setPerServing(''); setLastEdited('count') }} />
         </label>
         <label className="block text-sm font-semibold">Amount per serving ({kind === 'food' ? 'g' : 'mL'})
           <input className={input} type="number" step="any" min="0.000001" max="10000"
             inputMode="decimal" value={hasAmount && lastEdited === 'count' && servings.trim() !== '' && isPositive(count)
               ? String(Number(resolvedSize.toFixed(5))) : perServing}
-            onChange={event => { setPerServing(event.target.value); setLastEdited('size') }} />
+            onChange={event => { setPerServing(event.target.value); setServings(''); setLastEdited('size') }} />
         </label>
       </div>
       <div>

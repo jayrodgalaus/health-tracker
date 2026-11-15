@@ -34,10 +34,9 @@ export function KitchenPage() {
 
   async function save(payload: KitchenSavePayload) {
     if (!totals || !ingredients.length) throw new Error('Add an ingredient before saving.')
-    // If the cooked weight/volume is unknown, the complete batch is one
-    // "serving" unless the cook explicitly entered a serving count.
-    const labelBasis = payload.finishedAmount ??
-      { quantity: payload.servingCount ?? 1, unit: 'serving' as const }
+    // The label always describes the entire measured finished batch.
+    // Optional serving counts are metadata only, never the nutrient basis.
+    const labelBasis = payload.finishedAmount
     await saveSavedFood({
       name: payload.name,
       kind: payload.kind,
@@ -48,7 +47,7 @@ export function KitchenPage() {
         ? payload.finishedAmount.quantity : null,
       recipe: {
         ingredients: structuredClone(ingredients),
-        ...(payload.finishedAmount ? { finishedAmount: payload.finishedAmount } : {}),
+        finishedAmount: payload.finishedAmount,
         ...(payload.servingCount ? { servingCount: payload.servingCount } : {})
       }
     })

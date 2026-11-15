@@ -3,7 +3,7 @@ import { assertDayEditable } from './dayRepository'
 import type { FoodEntry, KitchenRecipe, LabelBasis, LocalDay, MealCategory, NutrientFieldName, NutrientSnapshot, NutritionSource, SavedFood, ServingUnit } from '../domain/models'
 import { validateIncompleteNutrients, validateKitchenRecipe } from '../domain/kitchenRecipe'
 import {
-  emptyNutrition, fluidMlFromPortion, portionRatio, scaleNutrition,
+  emptyNutrition, fluidMlFromPortion, portionRatioWithServing, scaleNutrition,
   validateNutrition, validatePortion, waterNutrition
 } from '../domain/nutrition'
 import { assertLocalDay } from '../domain/profile'
@@ -36,6 +36,8 @@ export interface IntakeDraft {
   nutritionSource?: NutritionSource | null
   servingDescription?: string | null
   incompleteNutrientFields?: NutrientFieldName[]
+  /** Frozen grams or milliliters per serving when logging a batch by servings. */
+  servingAmount?: LabelBasis | null
   /** Required only when volume cannot be derived from consumed amount units. */
   fluidMl?: number | null
 }
@@ -93,7 +95,9 @@ function prepareEntry(draft: IntakeDraft, previous: FoodEntry | undefined, today
     if (draft.unit !== 'ml' && draft.unit !== 'fl-oz') throw new Error('Water requires a measured volume.')
     if (draft.referenceNutrients.energyKcal !== 0) throw new Error('Plain water must have zero known calories.')
   }
-  const scaled = scaleNutrition(draft.referenceNutrients, draft.labelBasis, draft.quantity, draft.unit)
+  const scaled = scaleNutrition(
+    draft.referenceNutrients, draft.labelBasis, draft.quantity, draft.unit, draft.servingAmount
+  )
   validateNutrition(scaled)
   validateIncompleteNutrients(draft.incompleteNutrientFields, scaled)
   validateFluid(draft.fluidMl)
@@ -115,6 +119,8 @@ function prepareEntry(draft: IntakeDraft, previous: FoodEntry | undefined, today
     labelBasis: { ...draft.labelBasis },
     servingDescription: validOptionalText(draft.servingDescription),
     referenceNutrientsSnapshot: { ...emptyNutrition(), ...draft.referenceNutrients },
+    ...(draft.unit === 'serving' && draft.servingAmount
+      ? { servingAmount: { ...draft.servingAmount } } : {}),
     nutritionSource: draft.nutritionSource ?? null,
     nutrientsSnapshot: scaled,
     ...(draft.incompleteNutrientFields?.length
@@ -220,8 +226,13 @@ export async function logSavedFood(
 ): Promise<FoodEntry> {
   const saved = await database.savedFoods.get(id)
   if (!saved) throw new Error('This saved food no longer exists.')
+  const servingAmount = saved.recipe?.finishedAmount && saved.recipe.servingCount
+    ? { quantity: saved.recipe.finishedAmount.quantity / saved.recipe.servingCount,
+        unit: saved.recipe.finishedAmount.unit }
+    : null
+  const ratio = portionRatioWithServing(saved.labelBasis, quantity, unit, servingAmount)
   const volume = saved.kind === 'beverage' && saved.fluidMlPerBasis != null
-    ? saved.fluidMlPerBasis * portionRatio(saved.labelBasis, quantity, unit)
+    ? saved.fluidMlPerBasis * ratio
     : null
   return saveIntake({
     dayKey,
@@ -235,6 +246,7 @@ export async function logSavedFood(
     servingDescription: saved.servingDescription,
     referenceNutrients: { ...saved.nutrientsPerBasis },
     incompleteNutrientFields: saved.incompleteNutrientFields,
+    servingAmount: unit === 'serving' ? servingAmount : null,
     fluidMl: volume
   }, undefined, database, today)
 }

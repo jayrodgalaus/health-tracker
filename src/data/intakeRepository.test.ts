@@ -80,6 +80,65 @@ describe('offline food/drink persistence', () => {
     database.close()
   })
 
+  it('logs and edits cooked batch portions by serving and mass without rewriting historic nutrition', async () => {
+    const database = create('kitchen-serving-snapshot')
+    const saved = await saveSavedFood({
+      name:'Synthetic casserole', kind:'food',
+      labelBasis:{quantity:600,unit:'g'},
+      referenceNutrients:{...emptyNutrition(),energyKcal:900,proteinG:60},
+      recipe:{ finishedAmount:{quantity:600,unit:'g'}, servingCount:3,
+        ingredients:[{name:'Synthetic oats',source:'savedFood',quantity:100,unit:'g',
+          labelBasis:{quantity:100,unit:'g'},nutrientsSnapshot:{...emptyNutrition(),energyKcal:900}}]
+      }
+    },undefined,database)
+    const portion = await logSavedFood(saved.id, '2026-11-06', 1.5, 'serving', null, database, '2026-11-06')
+    expect(portion.quantity).toBe(1.5)
+    expect(portion.unit).toBe('serving')
+    expect(portion.servingAmount).toEqual({quantity:200,unit:'g'})
+    expect(portion.labelBasis).toEqual({quantity:600,unit:'g'})
+    expect(portion.referenceNutrientsSnapshot?.energyKcal).toBe(900)
+    expect(portion.nutrientsSnapshot.energyKcal).toBe(450)
+    expect(portion.nutrientsSnapshot.proteinG).toBe(30)
+    const grams = await logSavedFood(saved.id,'2026-11-06',150,'g',null,database,'2026-11-06')
+    expect(grams.nutrientsSnapshot.energyKcal).toBe(225)
+    expect(grams.servingAmount).toBeUndefined()
+    const adjusted = await saveIntake({
+      dayKey:portion.dayKey,kind:'food',name:portion.name,savedFoodId:saved.id,
+      quantity:2,unit:'serving',labelBasis:portion.labelBasis,
+      referenceNutrients:portion.referenceNutrientsSnapshot!,
+      servingAmount:portion.servingAmount
+    },portion.id,database,'2026-11-06')
+    expect(adjusted.nutrientsSnapshot.energyKcal).toBe(600)
+    expect(adjusted.servingAmount).toEqual({quantity:200,unit:'g'})
+    await saveSavedFood({
+      name:'Casserole adjusted',kind:'food',
+      labelBasis:{quantity:600,unit:'g'},
+      referenceNutrients:{...emptyNutrition(),energyKcal:1200}
+    },saved.id,database)
+    const frozen=await database.foodEntries.get(portion.id)
+    expect(frozen?.nutrientsSnapshot.energyKcal).toBe(600)
+    expect(frozen?.servingAmount).toEqual({quantity:200,unit:'g'})
+  })
+
+  it('requires servings to be measured before logging cooked batches by serving', async () => {
+    const database = create('kitchen-no-servings')
+    const saved = await saveSavedFood({
+      name:'Synthetic soup',kind:'beverage',
+      labelBasis:{quantity:800,unit:'ml'},
+      referenceNutrients:{...emptyNutrition(),energyKcal:320},
+      fluidMlPerBasis:800,
+      recipe:{finishedAmount:{quantity:800,unit:'ml'},
+        ingredients:[{name:'Synthetic water',source:'plainWater',quantity:250,unit:'ml',
+          labelBasis:{quantity:1,unit:'ml'},nutrientsSnapshot:{...emptyNutrition(),energyKcal:0},fluidMl:250}]}
+    },undefined,database)
+    await expect(logSavedFood(saved.id,'2026-11-06',1,'serving',null,database,'2026-11-06'))
+      .rejects.toThrow(/no measured amount per serving/)
+    const inMl=await logSavedFood(saved.id,'2026-11-06',200,'ml',null,database,'2026-11-06')
+    expect(inMl.nutrientsSnapshot.energyKcal).toBe(80)
+    expect(inMl.fluidMl).toBe(200)
+    expect(await database.foodEntries.count()).toBe(1)
+  })
+
   it('counts one caloric drink plus water and an unknown-calorie drink accurately', async () => {
     const database = create('nutrition-beverage-coverage')
     await saveIntake({

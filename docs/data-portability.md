@@ -69,6 +69,15 @@ subtotals with missing contributions. A `null` nutrient is still unknown,
 not zero; a partial numeric subtotal counts toward a known minimum but is
 *not* a fully assessable value. The optional flag is copied to historical
 intake at logging time so subsequent saved-label edits do not rewrite it.
+A new Kitchen dish must have a measured finished batch amount in grams or
+milliliters; the nutrition label describes the full batch. The optional
+serving count enables a separate serving-based consumption unit without
+altering the label basis. When a user logs servings, the corresponding
+`foodEntries.servingAmount` (grams or milliliters per serving) is frozen in
+that entry alongside the nutrient snapshot, preserving correct calculations
+and editability after the saved recipe changes. Existing v1/v2 backups without
+this field import unchanged; invalid or inconsistent per-serving conversion
+fields are rejected during backup validation.
 
 Format v2 validation explicitly checks optional ingredient snapshots, units,
 source IDs, nutrient amounts, incomplete flags and final-yield metadata.

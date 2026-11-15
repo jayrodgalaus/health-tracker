@@ -163,6 +163,8 @@ export interface FoodEntry {
   nutrientsSnapshot: NutrientSnapshot
   /** Reference label before scaling; preserved for transparent historical edits. */
   referenceNutrientsSnapshot?: NutrientSnapshot
+  /** Measured mass or volume of one serving, frozen for historical logs. */
+  servingAmount?: LabelBasis
   /** Frozen when logged; later edits to the saved recipe never rewrite history. */
   incompleteNutrientFields?: NutrientFieldName[]
   nutritionSource?: NutritionSource | null

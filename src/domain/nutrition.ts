@@ -65,15 +65,33 @@ export function portionRatio(reference: LabelBasis, quantity: number, unit: Serv
   return consumed.amount / source.amount
 }
 
+/** Serving counts for mass/volume-based Kitchen batches require a measured
+ * portion size; existing per-serving labels work without that metadata. */
+export function portionRatioWithServing(
+  reference: LabelBasis, quantity: number, unit: ServingUnit,
+  servingAmount?: LabelBasis | null
+): number {
+  if (unit !== 'serving' || reference.unit === 'serving') {
+    return portionRatio(reference, quantity, unit)
+  }
+  if (!servingAmount || !['g', 'oz', 'ml', 'fl-oz'].includes(servingAmount.unit)) {
+    throw new Error('This food has no measured amount per serving. Log an amount in grams or milliliters.')
+  }
+  validatePortion(quantity, unit)
+  validatePortion(servingAmount.quantity, servingAmount.unit)
+  return portionRatio(reference, servingAmount.quantity * quantity, servingAmount.unit)
+}
+
 /** Full precision retained in storage, rounding only at display time. */
 export function scaleNutrition(
   reference: NutrientSnapshot,
   basis: LabelBasis,
   quantity: number,
-  unit: ServingUnit
+  unit: ServingUnit,
+  servingAmount?: LabelBasis | null
 ): CompleteNutrition {
   validateNutrition(reference)
-  const ratio = portionRatio(basis, quantity, unit)
+  const ratio = portionRatioWithServing(basis, quantity, unit, servingAmount)
   return Object.fromEntries(NUTRIENT_FIELDS.map(field => {
     const value = reference[field]
     return [field, value === undefined || value === null ? null : value * ratio]
@@ -168,7 +186,7 @@ export function referenceNutritionForEntry(entry: FoodEntry): CompleteNutrition 
   if (entry.referenceNutrientsSnapshot) {
     return { ...emptyNutrition(), ...entry.referenceNutrientsSnapshot }
   }
-  const ratio = portionRatio(entry.labelBasis, entry.quantity, entry.unit)
+  const ratio = portionRatioWithServing(entry.labelBasis, entry.quantity, entry.unit, entry.servingAmount)
   return Object.fromEntries(NUTRIENT_FIELDS.map(field => {
     const value = entry.nutrientsSnapshot[field]
     return [field, value === null || value === undefined ? null : value / ratio]

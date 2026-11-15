@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { FoodEntry, NutrientSnapshot } from './models'
-import { aggregateIntake, emptyNutrition, fluidMlFromPortion, portionRatio, referenceNutritionForEntry, scaleNutrition, waterNutrition } from './nutrition'
+import { aggregateIntake, emptyNutrition, fluidMlFromPortion, portionRatio, portionRatioWithServing, referenceNutritionForEntry, scaleNutrition, waterNutrition } from './nutrition'
 
 const label = (energyKcal: number | null, proteinG: number | null = null): NutrientSnapshot => ({
   ...emptyNutrition(), energyKcal, proteinG
@@ -20,6 +20,29 @@ describe('nutrition scaling and completeness', () => {
     expect(scaleNutrition(label(200, 12), { quantity: 100, unit: 'g' }, 75, 'g').proteinG).toBe(9)
     expect(portionRatio({ quantity: 100, unit: 'g' }, 3.52739619496, 'oz')).toBeCloseTo(1, 7)
   })
+  it('logs mass or volume Kitchen batches by serving only when a per-serving amount is known', () => {
+    const batch = { quantity: 600, unit: 'g' as const }
+    const serving = { quantity: 200, unit: 'g' as const }
+    expect(portionRatioWithServing(batch, 1.5, 'serving', serving)).toBeCloseTo(0.5)
+    expect(scaleNutrition(label(900, 60), batch, 1.5, 'serving', serving))
+      .toMatchObject({ energyKcal: 450, proteinG: 30 })
+    expect(scaleNutrition(label(900), batch, 150, 'g').energyKcal).toBe(225)
+    expect(() => portionRatioWithServing(batch, 1, 'serving')).toThrow(/no measured amount per serving/)
+    expect(() => portionRatioWithServing(batch, 1, 'serving', {quantity:250,unit:'ml'}))
+      .toThrow(/Cannot convert/)
+    expect(portionRatioWithServing({quantity:800,unit:'ml'}, 2,'serving', {quantity:200,unit:'ml'})).toBe(0.5)
+    expect(portionRatioWithServing({quantity:1,unit:'serving'},2,'serving')).toBe(2)
+  })
+  it('reconstructs historic batch nutrient labels from serving snapshots', () => {
+    const record = {
+      ...entry('batch', 'food', label(450, 30)),
+      labelBasis: {quantity:600,unit:'g' as const},
+      quantity: 1.5,
+      servingAmount: {quantity:200,unit:'g' as const}
+    }
+    expect(referenceNutritionForEntry(record)).toMatchObject({ energyKcal:900, proteinG:60 })
+  })
+
   it('rejects incompatible units, invalid quantities and corrupt nutrients', () => {
     expect(() => portionRatio({ quantity: 100, unit: 'g' }, 50, 'ml')).toThrow(/Cannot convert/)
     expect(() => portionRatio({ quantity: 1, unit: 'serving' }, 100, 'g')).toThrow()

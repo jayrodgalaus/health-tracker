@@ -146,6 +146,35 @@ describe('complete local JSON backup and restore',()=>{
     database.close()
   })
 
+  it('restores a serving-based Kitchen log with its historical mass conversion snapshot', async () => {
+    const database=newDb('backup-kitchen-serving-restore')
+    await seed(database)
+    const original=await readLocalBackup(database)
+    const modified=structuredClone(original)
+    const meal=modified.tables.foodEntries[0]!
+    meal.labelBasis={quantity:600,unit:'g'}
+    meal.unit='serving'
+    meal.quantity=2
+    meal.servingAmount={quantity:150,unit:'g'}
+    meal.referenceNutrientsSnapshot={...emptyNutrition(),energyKcal:800}
+    meal.nutrientsSnapshot={...emptyNutrition(),energyKcal:400}
+    await replaceLocalData(parseBackupJson(JSON.stringify(modified)),database)
+    const restored=await readLocalBackup(database)
+    expect(restored.tables.foodEntries[0]?.servingAmount).toEqual({quantity:150,unit:'g'})
+    expect(restored.tables.foodEntries[0]?.nutrientsSnapshot.energyKcal).toBe(400)
+    const incompatible=structuredClone(restored)
+    incompatible.tables.foodEntries[0]!.servingAmount={quantity:150,unit:'ml'}
+    await expect(replaceLocalData(incompatible,database)).rejects.toThrow(/Cannot convert/)
+    const tampered=structuredClone(restored)
+    tampered.tables.foodEntries[0]!.servingAmount={quantity:300,unit:'g'}
+    await expect(replaceLocalData(tampered,database)).rejects.toThrow(/does not match/)
+    const absent=structuredClone(restored)
+    delete absent.tables.foodEntries[0]!.servingAmount
+    await expect(replaceLocalData(absent,database)).rejects.toThrow(/no measured amount per serving/)
+    expect((await readLocalBackup(database)).tables).toEqual(restored.tables)
+    database.close()
+  })
+
   it('keeps completion snapshots on restore and archives completed legacy backups', async () => {
     const database = newDb('archive-backup-roundtrip')
     await seed(database)
