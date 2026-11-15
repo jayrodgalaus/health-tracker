@@ -44,10 +44,12 @@ export function nutritionFromInputs(values: NutrientInputs): NutrientSnapshot {
 interface Props {
   values: NutrientInputs
   onChange: (field: NutrientField, value: string) => void
+  onFocus?: (field: NutrientField) => void
+  onBlur?: (field: NutrientField) => void
   legend?: string
 }
 
-export function NutritionFields({ values, onChange, legend = 'Nutrition facts' }: Props) {
+export function NutritionFields({ values, onChange, onFocus, onBlur, legend = 'Nutrition facts' }: Props) {
   return (
     <fieldset className="space-y-3">
       <legend className="text-base font-semibold">{legend}</legend>
@@ -60,6 +62,8 @@ export function NutritionFields({ values, onChange, legend = 'Nutrition facts' }
               type="number" min="0" step="any" inputMode="decimal"
               value={values[field]}
               onChange={event => onChange(field, event.target.value)}
+              onFocus={() => onFocus?.(field)}
+              onBlur={() => onBlur?.(field)}
               placeholder="Unknown"
             />
           </label>

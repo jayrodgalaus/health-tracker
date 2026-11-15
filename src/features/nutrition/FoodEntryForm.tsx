@@ -9,6 +9,8 @@ import { externalFoodUrl } from '../../data/openFoodFacts'
 import { usdaFoodUrl } from '../../data/ingredientCatalog'
 import { basisFor, inferBasisMode, SERVING_UNITS, type BasisMode } from './labelBasis'
 import { NutritionFields, inputsFromNutrition, nutritionFromInputs, parseNumber } from './NutritionFields'
+import type { NutrientField } from '../../domain/nutrition'
+import { consumedNutritionInputs, referenceValueFromConsumedInput } from './consumedNutrition'
 import { FloatingNutritionCamera } from '../../components/FloatingNutritionCamera'
 import type { ParsedNutritionLabel } from '../../domain/nutritionLabelOcr'
 
@@ -49,6 +51,7 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
   const [fromKitchen, setFromKitchen] = useState(Boolean(saved?.recipe))
   const [servingDescription, setServingDescription] = useState(source?.servingDescription ?? saved?.servingDescription ?? '')
   const [nutrition, setNutrition] = useState(inputsFromNutrition(reference))
+  const [editingNutrient, setEditingNutrient] = useState<{ field: NutrientField; raw: string } | null>(null)
   const [incompleteNutrients, setIncompleteNutrients] = useState<NutrientFieldName[]>(
     source?.incompleteNutrientFields ?? saved?.incompleteNutrientFields ?? []
   )
@@ -60,6 +63,7 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
   const [saving, setSaving] = useState(false)
 
   const basis = basisFor(mode, basisQuantity, basisUnit)
+  const isUsda = nutritionSource?.provider === 'usda-sr-legacy' || nutritionSource?.provider === 'usda-foundation'
   const compatibleUnits: ServingUnit[] = basis.unit === 'g' || basis.unit === 'oz'
     ? ['g', 'oz', ...(servingAmount && (servingAmount.unit === 'g' || servingAmount.unit === 'oz')
       ? ['serving' as const] : [])]
@@ -68,6 +72,12 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
         ? ['serving' as const] : [])]
       : [basis.unit]
   const effectiveUnit = compatibleUnits.includes(unit) ? unit : basis.unit
+  const previewNutrition = isUsda
+    ? consumedNutritionInputs(nutrition, basis, quantity, effectiveUnit, servingAmount)
+    : nutrition
+  const displayedNutrition = isUsda && editingNutrient
+    ? { ...previewNutrition, [editingNutrient.field]: editingNutrient.raw }
+    : previewNutrition
   const calculatedLookupFluid = (() => {
     if (kind !== 'beverage' || fluidChanged || !lookupApplied || lookupFluidPerBasis === null ||
       effectiveUnit === 'ml' || effectiveUnit === 'fl-oz') return fluid
@@ -100,6 +110,7 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
     setUnit(selected.basis.unit)
     setServingDescription(item.servingDescription ?? '')
     setNutrition(inputsFromNutrition(selected.nutrients))
+    setEditingNutrient(null)
     setIncompleteNutrients(choice.type === 'saved' ? choice.product.incompleteNutrientFields ?? [] : [])
     setFromKitchen(choice.type === 'saved' && Boolean(choice.product.recipe))
     setServingAmount(choice.type === 'saved' && choice.product.recipe
@@ -137,6 +148,7 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
     }
     if (label.servingDescription) setServingDescription(label.servingDescription)
     setNutritionSource(null)
+    setEditingNutrient(null)
     setSelectedSavedFoodId(null)
     setIncompleteNutrients([])
     setServingAmount(null)
@@ -150,6 +162,8 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
   }
 
   function changeMode(next: BasisMode) {
+    // USDA catalog records are measured per 100 g; do not fabricate piece/serving weights.
+    if (isUsda) return
     const nextBasis = basisFor(next, basisQuantity, basisUnit)
     setMode(next)
     setBasisUnit(nextBasis.unit)
@@ -244,9 +258,11 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
         <label className="block text-sm font-medium">Nutrition is per
           <select className={input} value={mode} disabled={fromKitchen}
             onChange={event => changeMode(event.target.value as BasisMode)}>
-            <option value="serving" disabled={fromKitchen}>1 serving</option><option value="piece">1 piece</option>
-            <option value="100g">100 g</option><option value="100ml">100 ml</option>
-            <option value="custom">Custom label quantity</option>
+            <option value="serving" disabled={fromKitchen || isUsda}>1 serving</option>
+            <option value="piece" disabled={isUsda}>1 piece</option>
+            <option value="100g">100 g</option>
+            <option value="100ml" disabled={isUsda}>100 ml</option>
+            <option value="custom" disabled={isUsda}>Custom label quantity</option>
           </select>
         </label>
         {mode === 'custom' && <>
@@ -269,6 +285,10 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
         <label className="block text-sm font-medium">Consumed unit
           <select className={input} value={effectiveUnit} onChange={event => changeConsumedUnit(event.target.value as ServingUnit)}>
             {compatibleUnits.map(value => <option key={value} value={value}>{value}</option>)}
+            {isUsda && <>
+              <option value="serving" disabled>serving (unavailable)</option>
+              <option value="piece" disabled>piece (unavailable)</option>
+            </>}
           </select>
         </label>
         <label className="block text-sm font-medium">Serving description (optional)
@@ -295,11 +315,35 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
           </>
         )}
       </p>}
-      <NutritionFields values={nutrition} onChange={(field, value) => {
-        setNutrition(previous => ({ ...previous, [field]: value }))
-        // An explicit user-supplied value replaces the provisional subtotal.
-        setIncompleteNutrients(previous => previous.filter(item => item !== field))
-      }} />
+      <NutritionFields
+        legend={isUsda ? 'Nutrition for amount consumed' : 'Nutrition facts'}
+        values={displayedNutrition}
+        onFocus={field => {
+          if (isUsda) setEditingNutrient({ field, raw: previewNutrition[field] })
+        }}
+        onBlur={field => {
+          if (editingNutrient?.field === field) setEditingNutrient(null)
+        }}
+        onChange={(field, value) => {
+          if (isUsda) {
+            // Edit the portion displayed, but store the corrected per-100-g reference.
+            // Keep the user's raw number while typing instead of reformatting each keystroke.
+            setEditingNutrient({ field, raw: value })
+            try {
+              const referenceValue = referenceValueFromConsumedInput(
+                value, basis, Number(quantity), effectiveUnit, servingAmount
+              )
+              setNutrition(previous => ({ ...previous, [field]: referenceValue }))
+            } catch {
+              // A partial number or invalid consumed amount cannot alter the reference.
+              return
+            }
+          } else {
+            setNutrition(previous => ({ ...previous, [field]: value }))
+          }
+          // An explicitly supplied nutrient overrides the previous unknown subtotal.
+          setIncompleteNutrients(previous => previous.filter(item => item !== field))
+        }} />
       <FloatingNutritionCamera onRecognized={applyScannedLabel} />
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-900">{error}</p>}
       <div className="flex flex-wrap gap-3">
