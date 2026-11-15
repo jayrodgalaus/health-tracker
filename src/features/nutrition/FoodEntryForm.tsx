@@ -125,6 +125,30 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
     setError('')
   }
 
+  function resetUsda() {
+    // Reset only the selected source and its draft food fields. Preserve date,
+    // meal and any existing entry ID so a user can safely choose another label.
+    setName('')
+    setSelectedSavedFoodId(null)
+    setNutritionSource(null)
+    setMode('serving')
+    setBasisQuantity('1')
+    setBasisUnit('serving')
+    setQuantity('1')
+    setUnit('serving')
+    setServingAmount(null)
+    setFromKitchen(false)
+    setServingDescription('')
+    setNutrition(inputsFromNutrition())
+    setEditingNutrient(null)
+    setIncompleteNutrients([])
+    setFluid('')
+    setFluidChanged(false)
+    setLookupApplied(false)
+    setLookupFluidPerBasis(null)
+    setError('')
+  }
+
   function applyScannedLabel(label: ParsedNutritionLabel) {
     // OCR is only a draft of the printed facts; no automatic save or guessing.
     setNutrition(() => {
@@ -245,6 +269,8 @@ export function FoodEntryForm({ dayKey, kind, editing, saved, recent, onDone, on
             // even if the user edits the displayed name before saving.
           }}
           onChoose={chooseLookup}
+          usdaSource={isUsda ? nutritionSource : null}
+          onResetUsda={resetUsda}
         />
         <label className="block text-sm font-medium">Date
           <input className={input} type="date" max={toLocalDay(new Date())} value={date} onChange={event => setDate(event.target.value)} required />

@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import type { SavedFood } from '../../domain/models'
+import type { NutritionSource, SavedFood } from '../../domain/models'
 import { listSavedFoods } from '../../data/intakeRepository'
 import { searchOpenFoodFacts, type ExternalFoodResult } from '../../data/openFoodFacts'
 import { searchIngredientCatalog, type IngredientFood } from '../../data/ingredientCatalog'
@@ -16,6 +16,8 @@ interface Props {
   inputClass: string
   onNameChange: (value: string) => void
   onChoose: (choice: FoodLookupChoice) => void
+  usdaSource?: Extract<NutritionSource, { provider: 'usda-sr-legacy' | 'usda-foundation' }> | null
+  onResetUsda?: () => void
 }
 
 /**
@@ -23,7 +25,9 @@ interface Props {
  * Local saved foods are suggested as the user types; online lookup requires
  * an explicit button click so there are no keystroke network requests.
  */
-export function FoodLookupCombobox({ name, kind, inputClass, onNameChange, onChoose }: Props) {
+export function FoodLookupCombobox({
+  name, kind, inputClass, onNameChange, onChoose, usdaSource, onResetUsda
+}: Props) {
   const listId = useId()
   const saved = useLiveQuery(() => listSavedFoods(), [], undefined)
   const [open, setOpen] = useState(false)
@@ -99,8 +103,25 @@ export function FoodLookupCombobox({ name, kind, inputClass, onNameChange, onCho
     setMessage(choice.type === 'saved'
       ? 'Saved label loaded. Review the portion and nutrition fields.'
       : choice.type === 'ingredient'
-        ? 'USDA ingredient loaded per 100 g. Confirm the preparation and enter the cooked or raw weight eaten.'
+        ? ''
         : 'Product label loaded. Verify the package and adjust the amount before logging.')
+  }
+
+  function resetUsda() {
+    request.current?.abort()
+    requestIndex.current++
+    setLoading(false)
+    setPickedName('')
+    setIngredients([])
+    setSelectedIngredientId('')
+    setIngredientLoadError('')
+    setOpen(false)
+    setActive(-1)
+    setOnline([])
+    setSearched('')
+    setMessage('')
+    setSearchError('')
+    onResetUsda?.()
   }
 
   function keys(event: KeyboardEvent<HTMLInputElement>) {
@@ -203,6 +224,17 @@ export function FoodLookupCombobox({ name, kind, inputClass, onNameChange, onCho
           USDA has cooked boiled/drained cabbage; that is a comparison, not an exact measurement of blanched cabbage.
         </p>}
       </section>
+    )}
+    {usdaSource && onResetUsda && (
+      <div role="status" className="inline-flex max-w-full min-w-0 items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 py-1 pl-3 pr-1.5 text-xs text-evergreen-700">
+        <span className="min-w-0 truncate">
+          Currently using USDA {usdaSource.provider === 'usda-foundation' ? 'Foundation' : 'SR Legacy'} · #{usdaSource.fdcId} · per 100 g
+        </span>
+        <button type="button" onClick={resetUsda}
+          className="inline-flex min-h-8 shrink-0 items-center rounded-full border border-emerald-300 bg-white px-3 text-xs font-semibold text-evergreen-700 hover:bg-emerald-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-evergreen-700">
+          Reset
+        </button>
+      </div>
     )}
     {ingredientLoadError && <p role="alert" className="text-sm text-rose-800">{ingredientLoadError}</p>}
     {expanded && <ul id={listId+'-list'} role="listbox"
