@@ -30,14 +30,49 @@ test('Kitchen makes a recipe from saved food and water, cooks, then saves a port
   await kitchen.getByRole('option',{name:/Synthetic kitchen oats/}).click()
   await expect(kitchen.getByRole('combobox',{name:'Ingredient'})).toHaveValue('Synthetic kitchen oats')
   await kitchen.getByRole('button',{name:'Add ingredient'}).click()
-  await expect(kitchen.getByRole('region',{name:'Ingredients in cauldron'})).toContainText('Synthetic kitchen oats')
+  const shelf = kitchen.getByRole('region',{name:'Ingredients in cauldron'})
+  await expect(shelf.locator('li')).toHaveCount(1)
+  await expect(shelf.locator('li').first()).toHaveText('Synthetic')
+  await expect(shelf.getByRole('button',{name:'Edit ingredient Synthetic kitchen oats, 1 serving'})).toBeVisible()
   await search.fill('water')
   await kitchen.getByRole('option',{name:/Plain water/}).click()
   await kitchen.getByRole('button',{name:'Add ingredient'}).click()
-  await expect(kitchen.getByRole('region',{name:'Ingredients in cauldron'})).toContainText('Plain water')
+  await expect(shelf.locator('li')).toHaveCount(2)
+  await expect(shelf.locator('li').nth(1)).toHaveText('Plain')
+
+  const shelfBounds = await shelf.boundingBox()
+  const potBounds = await kitchen.locator('[aria-label="Kitchen cauldron"]').boundingBox()
+  expect(shelfBounds).not.toBeNull()
+  expect(potBounds).not.toBeNull()
+  expect(shelfBounds!.x + shelfBounds!.width).toBeLessThanOrEqual(potBounds!.x + 1)
+  expect(Math.abs(shelfBounds!.height - potBounds!.height)).toBeLessThanOrEqual(1)
+
+  await shelf.getByRole('button',{name:/Edit ingredient Synthetic kitchen oats/}).click()
+  const edit = page.getByRole('dialog',{name:'Edit ingredient'})
+  await expect(edit.getByText('Synthetic kitchen oats')).toBeVisible()
+  await expect(edit.getByLabel('Amount')).toBeFocused()
+  await edit.getByLabel('Amount').fill('0.5')
+  await edit.getByRole('button',{name:'Save changes'}).click()
+  await expect(shelf.getByRole('button',{name:'Edit ingredient Synthetic kitchen oats, 0.5 serving'})).toBeVisible()
+
+  await shelf.getByRole('button',{name:/Edit ingredient Plain water/}).click()
+  await page.getByRole('dialog',{name:'Edit ingredient'}).getByRole('button',{name:'Remove ingredient'}).click()
+  await expect(shelf.locator('li')).toHaveCount(1)
+  await search.fill('water')
+  await kitchen.getByRole('option',{name:/Plain water/}).click()
+  await kitchen.getByRole('button',{name:'Add ingredient'}).click()
+  await expect(shelf.locator('li')).toHaveCount(2)
   const noOverflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)
   expect(noOverflow).toBeLessThanOrEqual(2)
 
+  await kitchen.getByRole('button',{name:/Start cooking/}).click()
+  await expect(kitchen.getByRole('button',{name:/Done cooking/})).toBeVisible({timeout:3500})
+  // Editing after cooking invalidates the finished dish and requires cooking again.
+  await shelf.getByRole('button',{name:/Edit ingredient Plain water/}).click()
+  await page.getByRole('dialog',{name:'Edit ingredient'}).getByLabel('Amount').fill('300')
+  await page.getByRole('dialog',{name:'Edit ingredient'}).getByRole('button',{name:'Save changes'}).click()
+  await expect(kitchen.getByRole('button',{name:/Done cooking/})).toHaveCount(0)
+  await expect(kitchen.getByRole('button',{name:/Start cooking/})).toBeEnabled()
   await kitchen.getByRole('button',{name:/Start cooking/}).click()
   await expect(kitchen.getByRole('button',{name:/Done cooking/})).toBeVisible({timeout:3500})
   await kitchen.getByRole('button',{name:/Done cooking/}).click()
@@ -45,7 +80,7 @@ test('Kitchen makes a recipe from saved food and water, cooks, then saves a port
   await expect(dialog).toBeVisible()
   await expect(dialog.getByRole('textbox',{name:'Dish name'})).toBeFocused()
   await dialog.getByRole('textbox',{name:'Dish name'}).fill('Synthetic kitchen porridge')
-  await expect(dialog.getByText('200 kcal')).toBeVisible()
+  await expect(dialog.getByText('100 kcal')).toBeVisible()
   await dialog.getByLabel('Finished batch amount (optional, g)').fill('500')
   await dialog.getByLabel('Servings (optional)').fill('2')
   await expect(dialog.getByLabel('Amount per serving (g)')).toHaveValue('250')
@@ -60,6 +95,42 @@ test('Kitchen makes a recipe from saved food and water, cooks, then saves a port
     .getByRole('button',{name:'Log this'}).click()
   await expect(page.getByRole('heading',{name:'Add food'})).toBeVisible()
   await expect(page.getByRole('textbox',{name:'Name'})).toHaveValue('Synthetic kitchen porridge')
+})
+
+
+test('Kitchen ingredient shelf scrolls independently with hidden scrollbar at phone width', async ({page}) => {
+  await onboard(page)
+  await page.setViewportSize({width:320,height:740})
+  await page.goto('/kitchen')
+  const search = page.getByRole('combobox',{name:'Ingredient'})
+  for (let index = 0; index < 10; index++) {
+    await search.fill('water')
+    await page.getByRole('option',{name:/Plain water/}).click()
+    await page.getByRole('button',{name:'Add ingredient'}).click()
+  }
+  const shelf = page.getByRole('region',{name:'Ingredients in cauldron'})
+  await expect(shelf.locator('li')).toHaveCount(10)
+  const metrics = await shelf.evaluate(element => {
+    const style = getComputedStyle(element)
+    return {
+      scrollHeight: element.scrollHeight, clientHeight: element.clientHeight,
+      overflowY: style.overflowY, scrollbarWidth: style.scrollbarWidth
+    }
+  })
+  expect(metrics.scrollHeight).toBeGreaterThan(metrics.clientHeight)
+  expect(metrics.overflowY).toBe('auto')
+  expect(metrics.scrollbarWidth).toBe('none')
+  await shelf.evaluate(element => { element.scrollTop = element.scrollHeight })
+  const scrollTop = await shelf.evaluate(element => element.scrollTop)
+  expect(scrollTop).toBeGreaterThan(0)
+  const side = await shelf.boundingBox()
+  const pot = await page.locator('[aria-label="Kitchen cauldron"]').boundingBox()
+  expect(side).not.toBeNull()
+  expect(pot).not.toBeNull()
+  expect(Math.abs(side!.height - pot!.height)).toBeLessThanOrEqual(1)
+  expect(side!.x + side!.width).toBeLessThanOrEqual(pot!.x + 1)
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)
+  expect(overflow).toBeLessThanOrEqual(2)
 })
 
 test('Kitchen supports offline USDA suggestions and drink saving without daily logging', async ({page}) => {

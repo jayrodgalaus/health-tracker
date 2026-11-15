@@ -1,8 +1,34 @@
 import type { IngredientFood } from '../../data/ingredientCatalog'
-import type { KitchenIngredientSnapshot, SavedFood, ServingUnit } from '../../domain/models'
+import type { KitchenIngredientSnapshot, LabelBasis, SavedFood, ServingUnit } from '../../domain/models'
 import {
   fluidMlFromPortion, portionRatio, scaleNutrition, validatePortion, waterNutrition
 } from '../../domain/nutrition'
+
+/** The first word is only a visual shorthand; full names remain accessible. */
+export function kitchenIngredientPillLabel(name: string): string {
+  return name.trim().split(/[\s,.;:]+/u)[0] || 'Ingredient'
+}
+
+export function compatibleKitchenUnits(basis: LabelBasis): ServingUnit[] {
+  if (basis.unit === 'g' || basis.unit === 'oz') return ['g', 'oz']
+  if (basis.unit === 'ml' || basis.unit === 'fl-oz') return ['ml', 'fl-oz']
+  return [basis.unit]
+}
+
+/** Rescale the previously frozen ingredient contribution, not the source's current label. */
+export function rescaleKitchenIngredient(
+  item: KitchenIngredientSnapshot, quantity: number, unit: ServingUnit
+): KitchenIngredientSnapshot {
+  validatePortion(quantity, unit)
+  const ratio = portionRatio({ quantity: item.quantity, unit: item.unit }, quantity, unit)
+  return {
+    ...item,
+    quantity,
+    unit,
+    nutrientsSnapshot: scaleNutrition(item.nutrientsSnapshot, { quantity: item.quantity, unit: item.unit }, quantity, unit),
+    ...(item.fluidMl != null ? { fluidMl: item.fluidMl * ratio } : {})
+  }
+}
 
 export type KitchenChoice =
   | { type: 'saved'; item: SavedFood }

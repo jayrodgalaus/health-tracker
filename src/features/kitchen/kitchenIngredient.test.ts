@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { IngredientFood } from '../../data/ingredientCatalog'
 import type { SavedFood } from '../../domain/models'
 import { emptyNutrition } from '../../domain/nutrition'
-import { prepareKitchenIngredient } from './kitchenIngredient'
+import { compatibleKitchenUnits, kitchenIngredientPillLabel, prepareKitchenIngredient, rescaleKitchenIngredient } from './kitchenIngredient'
 
 const now='2026-11-07T09:00:00.000Z'
 const saved: SavedFood = {
@@ -40,5 +40,34 @@ describe('Kitchen ingredient builder',()=>{
     expect(item.nutrientsSnapshot.energyKcal).toBe(0)
     expect(item.fluidMl).toBe(240)
     expect(()=>prepareKitchenIngredient({type:'water'},1,'piece')).toThrow(/Cannot convert/)
+  })
+  it('shows only the first ingredient word and handles full source names without changing them',()=>{
+    expect(kitchenIngredientPillLabel('Bananas, raw')).toBe('Bananas')
+    expect(kitchenIngredientPillLabel('Potatoes, boiled, cooked in skin')).toBe('Potatoes')
+    expect(kitchenIngredientPillLabel('Plain water')).toBe('Plain')
+    expect(kitchenIngredientPillLabel(' Synthetic oat cereal ')).toBe('Synthetic')
+  })
+  it('resizes a frozen ingredient snapshot with compatible units and preserves unknown values',()=>{
+    const original=prepareKitchenIngredient({type:'saved',item:saved},250,'ml')
+    const modified=rescaleKitchenIngredient(original,125,'ml')
+    expect(modified.quantity).toBe(125)
+    expect(modified.nutrientsSnapshot.energyKcal).toBe(81.25)
+    expect(modified.nutrientsSnapshot.proteinG).toBe(5)
+    expect(modified.nutrientsSnapshot.fiberG).toBeNull()
+    expect(modified.incompleteNutrientFields).toEqual(['proteinG'])
+    expect(modified.fluidMl).toBe(125)
+    expect(original.nutrientsSnapshot.energyKcal).toBe(162.5)
+    expect(original.fluidMl).toBe(250)
+    expect(() => rescaleKitchenIngredient(original,100,'g')).toThrow(/Cannot convert/)
+    expect(() => rescaleKitchenIngredient(original,-1,'ml')).toThrow()
+    expect(compatibleKitchenUnits(saved.labelBasis)).toEqual(['ml','fl-oz'])
+    expect(compatibleKitchenUnits({quantity:1,unit:'piece'})).toEqual(['piece'])
+  })
+  it('resizes plain water in fluid units without inventing calories',()=>{
+    const original=prepareKitchenIngredient({type:'water'},250,'ml')
+    const updated=rescaleKitchenIngredient(original,500,'ml')
+    expect(updated.nutrientsSnapshot.energyKcal).toBe(0)
+    expect(updated.fluidMl).toBe(500)
+    expect(original.fluidMl).toBe(250)
   })
 })

@@ -4,7 +4,7 @@ export type KitchenPhase = 'preparing' | 'cooking' | 'ready'
 export function KitchenCauldron({
   phase, onDone
 }: { phase: KitchenPhase; onDone: () => void }) {
-  return <div className="relative mx-auto flex h-[31dvh] min-h-[218px] max-h-[310px] w-full items-center justify-center"
+  return <div className="relative mx-auto flex h-full min-w-0 w-full items-center justify-center"
     aria-label="Kitchen cauldron">
     <svg viewBox="0 0 320 260" className={'h-full max-h-[280px] w-full max-w-[355px] drop-shadow-lg ' +
       (phase === 'cooking' ? 'kitchen-cauldron-shake' : '')}

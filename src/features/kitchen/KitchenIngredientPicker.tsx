@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { listSavedFoods } from '../../data/intakeRepository'
 import { searchIngredientCatalog, type IngredientFood } from '../../data/ingredientCatalog'
 import type { KitchenIngredientSnapshot, ServingUnit } from '../../domain/models'
-import { prepareKitchenIngredient, kitchenChoiceBasis, kitchenChoiceLabel, type KitchenChoice } from './kitchenIngredient'
+import { compatibleKitchenUnits, prepareKitchenIngredient, kitchenChoiceBasis, kitchenChoiceLabel, type KitchenChoice } from './kitchenIngredient'
 
 const input = 'block min-h-11 w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3 py-2 text-base'
 
@@ -50,11 +50,7 @@ export function KitchenIngredientPicker({
   }, [saved, search, results, selected])
 
   const expanded = open && !selected && choices.length > 0
-  const availableUnits: ServingUnit[] = selected
-    ? ['g', 'oz'].includes(kitchenChoiceBasis(selected).unit)
-      ? ['g', 'oz'] : ['ml', 'fl-oz'].includes(kitchenChoiceBasis(selected).unit)
-        ? ['ml', 'fl-oz'] : [kitchenChoiceBasis(selected).unit]
-    : ['g']
+  const availableUnits = selected ? compatibleKitchenUnits(kitchenChoiceBasis(selected)) : ['g' as const]
   const group = (choice: KitchenChoice) => choice.type === 'water' ? 'Plain water'
     : choice.type === 'usda' ? 'USDA ingredients'
       : choice.item.kind === 'beverage' ? 'Saved drinks' : 'Saved foods'

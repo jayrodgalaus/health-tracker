@@ -62,3 +62,7 @@ body {
   .kitchen-cauldron-shake { animation: kitchen-cauldron-shake 1s ease-in-out both; }
   .kitchen-done-cta { animation: kitchen-done-pulse 1.35s ease-in-out infinite; }
 }
+
+/* Ingredient chips share the cauldron's height while keeping overflow scrollable. */
+.kitchen-ingredient-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+.kitchen-ingredient-scroll::-webkit-scrollbar { display: none; }
