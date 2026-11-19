@@ -36,7 +36,6 @@ function Wheel({
     <div className="mb-2 text-center text-xs font-semibold uppercase tracking-widest text-emerald-100">{label}</div>
     <div className="relative">
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-1/2 z-10 h-14 -translate-y-1/2 rounded-xl border border-emerald-200/40 bg-white/10" />
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-emerald-900/90 via-transparent to-emerald-900/90" />
       <div ref={wheelRef} role="listbox" tabIndex={0} aria-label={label}
         aria-activedescendant={column + '-duration-' + value}
         onKeyDown={keys}
@@ -44,7 +43,7 @@ function Wheel({
           const next = Math.max(0, Math.min(max, Math.round(event.currentTarget.scrollTop / ROW_HEIGHT)))
           if (next !== value) onChange(next)
         }}
-        className="duration-wheel relative h-[168px] overflow-y-auto overscroll-contain rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-emerald-200">
+        className="duration-wheel relative h-[168px] overflow-y-auto overscroll-contain rounded-xl bg-transparent outline-none focus-visible:ring-2 focus-visible:ring-emerald-200">
         <div className="h-14" aria-hidden="true" />
         {options.map(item => <div key={item} id={column + '-duration-' + item}
           role="option" aria-selected={item === value}

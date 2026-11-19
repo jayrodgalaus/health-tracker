@@ -1088,6 +1088,12 @@ test('exercise duration shows two 00 slots and snaps minutes/seconds to fraction
   await expect(dialog.getByRole('listbox',{name:'Seconds'})).toBeFocused()
   const minutes=dialog.getByRole('listbox',{name:'Minutes'})
   const seconds=dialog.getByRole('listbox',{name:'Seconds'})
+  // Wheel surfaces are transparent, so the modal's green gradient continues behind both.
+  for (const wheel of [minutes, seconds]) {
+    await expect(wheel).toHaveCSS('background-color','rgba(0, 0, 0, 0)')
+    await expect(wheel).toHaveCSS('background-image','none')
+  }
+  await expect(dialog.locator('.bg-gradient-to-b')).toHaveCount(0)
   await minutes.evaluate(node=>{node.scrollTop=7*56})
   await expect(minutes.getByRole('option',{name:'07 minutes'})).toHaveAttribute('aria-selected','true')
   await seconds.evaluate(node=>{node.scrollTop=30*56})
