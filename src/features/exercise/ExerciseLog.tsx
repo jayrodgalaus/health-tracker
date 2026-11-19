@@ -14,6 +14,7 @@ import { toLocalDay } from '../../lib/localDate'
 import { selectedLogDay } from '../../lib/logDate'
 import { parseNumber } from '../nutrition/NutritionFields'
 import { ActivitySummary } from './ActivitySummary'
+import { DurationPicker } from './DurationPicker'
 import { useToast } from '../../components/ToastProvider'
 
 const inputClass = 'mt-1 block min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base'
@@ -177,10 +178,7 @@ export function ExerciseForm({ profile, selectedDay, editing, onSaved, onCancel 
         <label className="block text-sm font-semibold">Local time (optional)
           <input className={inputClass} type="time" value={time} onChange={event => setTime(event.target.value)} />
         </label>
-        <label className="block text-sm font-semibold">Duration (minutes)
-          <input className={inputClass} type="number" inputMode="decimal" min="0.1" max="1440" step="any"
-            value={duration} onChange={event => changePace('duration', event.target.value)} placeholder="e.g. 30" required />
-        </label>
+        <DurationPicker value={duration} onChange={value => changePace('duration', value)} />
         {walkRun && <label className="block text-sm font-semibold">Distance (km)
           <input className={inputClass} type="number" inputMode="decimal" min="0.01" max="300" step="any"
             value={distance} onChange={event => changePace('distance', event.target.value)} placeholder="e.g. 3.5" required />

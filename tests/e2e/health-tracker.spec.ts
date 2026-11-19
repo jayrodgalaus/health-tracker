@@ -11,6 +11,31 @@ async function onboard(page: Page) {
   await expect(page.getByRole('heading',{name:'Daily goal alignment'})).toBeVisible()
 }
 
+
+async function setDuration(page: Page, minutes: number, seconds = 0) {
+  await page.getByRole('button',{name:'Duration minutes'}).click()
+  const dialog = page.getByRole('dialog',{name:'Set exercise duration'})
+  if ([10,15,30].includes(minutes) && seconds === 0) {
+    await dialog.getByRole('button',{name:minutes + ' minute preset'}).click()
+  } else {
+    await dialog.getByRole('listbox',{name:'Minutes'})
+      .getByRole('option',{name:String(minutes).padStart(2,'0') + ' minutes'}).click()
+    if (seconds) {
+      await dialog.getByRole('listbox',{name:'Seconds'})
+        .getByRole('option',{name:String(seconds).padStart(2,'0') + ' seconds'}).click()
+    }
+  }
+  await dialog.getByRole('button',{name:'Set duration'}).click()
+}
+
+async function expectDuration(page: Page, minutes: number, seconds: number) {
+  await expect(page.getByRole('button',{name:'Duration minutes'}))
+    .toHaveText(String(minutes).padStart(2,'0'))
+  await expect(page.getByRole('button',{name:'Duration seconds'}))
+    .toHaveText(String(seconds).padStart(2,'0'))
+}
+
+
 test('shared branding banner is absent on onboarding and every main page', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByText('Your day, your data', {exact:true})).toHaveCount(0)
@@ -557,7 +582,7 @@ test('dedicated food, drink and exercise forms save and Calendar can edit/delete
   await expect(page.getByLabel('Calories (kcal)')).toHaveValue('25')
   await page.getByRole('link',{name:/Back to Log/}).click()
   await page.getByRole('link',{name:'Exercise',exact:true}).click()
-  await page.getByLabel('Duration (minutes)').fill('30')
+  await setDuration(page, 30)
   await page.getByLabel('Distance (km)').fill('2.5')
   await page.getByRole('button',{name:'Save exercise'}).click()
   await expect(page.getByText('Exercise saved.')).toBeVisible()
@@ -610,7 +635,7 @@ test('five illustrated Calendar cards route to their own detailed sections and k
   await expect(page.getByTestId('app-toast')).toContainText('Logged 250 ml of water.')
 
   await page.goto('/log/exercise?date=' + day)
-  await page.getByLabel('Duration (minutes)').fill('30')
+  await setDuration(page, 30)
   await page.getByLabel('Distance (km)').fill('2.5')
   await page.getByRole('button',{name:'Save exercise'}).click()
   await expect(page.getByTestId('app-toast')).toContainText('Exercise saved.')
@@ -1046,12 +1071,65 @@ test('nutrient cards open per-entry food and drink pages with dash for unknown a
   await expect(page.getByRole('alert')).toContainText('Invalid date or nutrient')
 })
 
+test('exercise duration shows two 00 slots and snaps minutes/seconds to fractional recorded minutes', async ({page})=>{
+  await onboard(page)
+  await page.setViewportSize({width:320,height:740})
+  await page.goto('/log/exercise')
+  const day = await page.evaluate(() => {
+    const date = new Date()
+    return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') +
+      '-' + String(date.getDate()).padStart(2, '0')
+  })
+  await expectDuration(page, 0, 0)
+  await page.getByRole('combobox',{name:'Activity'}).selectOption('Cycling')
+  await page.getByRole('button',{name:'Duration seconds'}).click()
+  const dialog=page.getByRole('dialog',{name:'Set exercise duration'})
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByRole('listbox',{name:'Seconds'})).toBeFocused()
+  const minutes=dialog.getByRole('listbox',{name:'Minutes'})
+  const seconds=dialog.getByRole('listbox',{name:'Seconds'})
+  await minutes.evaluate(node=>{node.scrollTop=7*56})
+  await expect(minutes.getByRole('option',{name:'07 minutes'})).toHaveAttribute('aria-selected','true')
+  await seconds.evaluate(node=>{node.scrollTop=30*56})
+  await expect(seconds.getByRole('option',{name:'30 seconds'})).toHaveAttribute('aria-selected','true')
+  await expect(minutes).toHaveCSS('scroll-snap-type','y mandatory')
+  await dialog.getByRole('button',{name:'Cancel'}).click()
+  await expectDuration(page, 0, 0)
+  await setDuration(page,7,30)
+  await expectDuration(page,7,30)
+  await page.getByRole('radio',{name:'Calculate net incremental kcal from a MET'}).check()
+  await page.getByRole('spinbutton',{name:'Chosen activity MET (1–25)'}).fill('4')
+  await expect(page.getByText('≈ 27.6 kcal')).toBeVisible()
+  const viewport = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+  expect(viewport).toBeLessThanOrEqual(2)
+  await page.getByRole('button',{name:'Save exercise'}).click()
+  await expect(page.getByTestId('app-toast')).toContainText('Exercise saved.')
+  const saved=await page.evaluate(async()=>{
+    const request=indexedDB.open('health-tracker')
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{
+      request.onsuccess=()=>resolve(request.result)
+      request.onerror=()=>reject(request.error)
+    })
+    try {
+      return await new Promise<unknown[]>((resolve,reject)=>{
+        const q=db.transaction('exerciseEntries','readonly').objectStore('exerciseEntries').getAll()
+        q.onsuccess=()=>resolve(q.result as unknown[])
+        q.onerror=()=>reject(q.error)
+      })
+    } finally {db.close()}
+  }) as Array<{durationMinutes:number;activity:string;met:number}>
+  expect(saved.find(item=>item.activity==='Cycling')).toMatchObject({durationMinutes:7.5,met:4})
+  await page.goto('/calendar/' + day + '/activity')
+  await page.getByRole('heading',{name:'Cycling',exact:true}).locator('..')
+    .getByRole('link',{name:'Edit / delete'}).click()
+  await expectDuration(page,7,30)
+})
+
 test('walking and running derive any third pace value live and require two supplied values', async ({page}) => {
   await onboard(page)
   await page.goto('/log/exercise?date=2026-01-15')
   const day = '2026-01-15'
   const activity = page.getByLabel('Activity')
-  const duration = page.getByLabel('Duration (minutes)')
   const distance = page.getByLabel('Distance (km)')
   const speed = page.getByLabel('Speed (km/h)')
   const incline = page.getByLabel('Incline (°, uphill only)')
@@ -1059,22 +1137,22 @@ test('walking and running derive any third pace value live and require two suppl
   await page.getByRole('button',{name:'Save exercise'}).click()
   await expect(page.getByRole('alert')).toContainText('at least two valid values')
   await distance.fill('3')
-  await expect(duration).toHaveValue('')
+  await expectDuration(page, 0, 0)
   await expect(speed).toHaveValue('')
   await page.getByRole('button',{name:'Save exercise'}).click()
   await expect(page.getByRole('alert')).toContainText('at least two valid values')
-  await duration.fill('30')
+  await setDuration(page, 30)
   await expect(speed).toHaveValue('6')
   await expect(page.getByRole('alert')).toHaveCount(0)
   await distance.fill('4')
   await expect(speed).toHaveValue('8')
   await speed.fill('5')
-  await expect(duration).toHaveValue('48')
-  await duration.fill('30')
+  await expectDuration(page, 48, 0)
+  await setDuration(page, 30)
   await expect(distance).toHaveValue('2.5')
   await speed.fill('')
   await expect(distance).toHaveValue('')
-  await expect(duration).toHaveValue('30')
+  await expectDuration(page, 30, 0)
   await speed.fill('5')
   await expect(distance).toHaveValue('2.5')
   await incline.fill('2.8624')
@@ -1087,22 +1165,22 @@ test('walking and running derive any third pace value live and require two suppl
   await expect(page.getByText('5 km/h')).toBeVisible()
   await page.getByRole('heading',{name:'Walking',exact:true}).locator('..')
     .getByRole('link',{name:'Edit / delete'}).click()
-  await expect(duration).toHaveValue('30')
+  await expectDuration(page, 30, 0)
   await expect(distance).toHaveValue('2.5')
   await expect(speed).toHaveValue('5')
   await speed.fill('6')
-  await expect(duration).toHaveValue('25')
+  await expectDuration(page, 25, 0)
   await page.getByRole('button',{name:'Save changes'}).click()
   await expect(page.getByTestId('app-toast')).toContainText('Exercise updated.')
 
   await page.goto('/log/exercise?date='+day)
   await activity.selectOption('Running')
-  await duration.fill('30')
+  await setDuration(page, 30)
   await speed.fill('12')
   await expect(distance).toHaveValue('6')
   await distance.fill('3')
-  await expect(duration).toHaveValue('15')
-  await duration.fill('20')
+  await expectDuration(page, 15, 0)
+  await setDuration(page, 20)
   await expect(speed).toHaveValue('9')
   await incline.fill('2.8624')
   await page.getByRole('button',{name:'Save exercise'}).click()

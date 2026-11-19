@@ -66,3 +66,12 @@ body {
 /* Ingredient chips share the cauldron's height while keeping overflow scrollable. */
 .kitchen-ingredient-scroll { scrollbar-width: none; -ms-overflow-style: none; }
 .kitchen-ingredient-scroll::-webkit-scrollbar { display: none; }
+
+/* Native touch scrolling with centered snapping and visually hidden scrollbars. */
+.duration-wheel {
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.duration-wheel::-webkit-scrollbar { display: none; }
+.duration-wheel [role="option"] { scroll-snap-align: center; }
