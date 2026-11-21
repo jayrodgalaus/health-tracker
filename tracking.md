@@ -60,13 +60,13 @@ The following are **aspirational benchmarks**, not recorded achievements or stri
 
 | Exercise | Sets | Total / load | Notes |
 | --- | --- | --- | --- |
-| Pull-ups | 5, 3, 3 reps | **11 reps** | First set described as done "one by one" because back was still hurting; pace/rest pattern not specified |
+| Pull-ups | 5, 3, 3 reps | **11 reps** | First set described as done "one by one" while the same back muscles were still sore from earlier pull-ups; pace/rest pattern not specified |
 | Push-ups | 10, 10, 10 reps | **30 reps** | Three even sets |
 | Squats | 10, 10, 10, 15 reps | **45 reps** | Four sets |
 | Dumbbell lateral raises | 10, 10, 10 reps | **30 reps**, using 3 kg dumbbells | Three sets; lighter dumbbells than earlier baseline |
 | Walking | Approximately 3 km | **~3 km** | Duration and pace not recorded |
 
-**Self-reported note:** Back still hurting during pull-up training; the cause and whether it is ordinary soreness or pain were not specified. Avoid treating this as a diagnosis or evidence of an injury. Do not force painful repetitions.
+**Self-reported note (clarified November 21):** The back discomfort was lingering soreness in the same muscles from previous pull-ups, not a newly reported pain. This is a self-report, not a diagnosis. Avoid forcing repetitions if soreness limits clean form or changes into sharp or worsening pain.
 
 **Comparison with earlier reported baseline (date unknown):** First pull-up set 4 → 5 reps (total 11 → 11); push-ups 28 → 30 reps; squats 48 reps across three sets → 45 reps across four sets. Lateral raises changed from 2 × 6 at 6 kg to 3 × 10 at 3 kg, so they are not a like-for-like load comparison.
 
